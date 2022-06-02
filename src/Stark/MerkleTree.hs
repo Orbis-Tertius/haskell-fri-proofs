@@ -5,6 +5,7 @@ module Stark.MerkleTree
   , open_
   , open
   , verify_
+  , verify
   ) where
 
 
@@ -67,3 +68,7 @@ verify_ c i p l =
       if i `mod` 2 == 0
       then verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (unLeaf l, x))
       else verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (x, unLeaf l))
+
+
+verify :: Serialise a => Commitment -> Integer -> AuthPath -> a -> Bool
+verify c i p = verify_ c i p . dataToLeaf
