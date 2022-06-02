@@ -9,4 +9,4 @@ import Math.FiniteField.PrimeField.Generic (Fp)
 
 
 newtype Scalar = Scalar { unScalar :: Fp 270497897142230380135924736767050121217 }
-  deriving Num
+  deriving (Eq, Ord, Num)
