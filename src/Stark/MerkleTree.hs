@@ -4,6 +4,7 @@ module Stark.MerkleTree
   , commit_
   , open_
   , open
+  , verify_
   ) where
 
 
@@ -16,7 +17,7 @@ import qualified Stark.BinaryTree as Tree
 import Stark.Types.AuthPath (AuthPath (AuthPath))
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import Stark.Types.Commitment (Commitment (Commitment, unCommitment))
-import Stark.Types.Leaf (Leaf (Leaf))
+import Stark.Types.Leaf (Leaf (Leaf, unLeaf))
 import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 
 
@@ -55,3 +56,14 @@ open_ _ _ = error "open_ pattern match failure"
 
 open :: Serialise a => Integer -> BinaryTree a -> AuthPath
 open i xs = open_ i (hashData <$> xs)
+
+
+verify_ :: Commitment -> Integer -> AuthPath -> Leaf -> Bool
+verify_ c i p l =
+  case p of
+    AuthPath [] -> error "tried to verify empty path"
+    AuthPath [x] -> c == Commitment (hashData (x, unLeaf l))
+    AuthPath (x:xs) ->
+      if i `mod` 2 == 0
+      then verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (unLeaf l, x))
+      else verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (x, unLeaf l))

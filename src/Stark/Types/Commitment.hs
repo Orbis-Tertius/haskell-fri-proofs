@@ -10,4 +10,4 @@ import Stark.Types.MerkleHash (MerkleHash)
 
 
 newtype Commitment = Commitment { unCommitment :: MerkleHash }
-  deriving Serialise
+  deriving (Eq, Serialise)
