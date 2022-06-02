@@ -8,12 +8,14 @@ maintainer:    morgan.thomas@platonic.systems
 
 library
   exposed-modules:
+    Stark.Types.MerkleHash
     Stark.Types.MultivariatePolynomial
     Stark.Types.Scalar
     Stark.Types.UnivariatePolynomial
 
   build-depends:
     base >= 4.9 && < 5,
+    bytestring,
     finite-fields,
     poly
 
