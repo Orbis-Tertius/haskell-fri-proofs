@@ -3,6 +3,7 @@ module Stark.MerkleTree
   , commit
   , commit_
   , open_
+  , open
   ) where
 
 
@@ -50,3 +51,7 @@ open_ i t@(IsNode x y) =
      then (open_ i x) <> AuthPath [unCommitment $ commit_ y]
      else (open_ (i-m) x) <> AuthPath [unCommitment $ commit_ y]
 open_ _ _ = error "open_ pattern match failure"
+
+
+open :: Serialise a => Integer -> BinaryTree a -> AuthPath
+open i xs = open_ i (hashData <$> xs)
