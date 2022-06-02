@@ -1,6 +1,7 @@
 module Stark.MerkleTree
   ( dataToLeaf
   , commit
+  , commit_
   ) where
 
 
@@ -28,5 +29,9 @@ dataToLeaf = Leaf . hashData
 
 
 commit :: Serialise a => BinaryTree a -> Commitment
-commit (IsLeaf x) = Commitment (hashData x)
-commit (IsNode x y) = Commitment (hashData (commit x, commit y))
+commit = commit_ . fmap hashData
+
+
+commit_ :: BinaryTree MerkleHash -> Commitment
+commit_ (IsLeaf x) = Commitment x
+commit_ (IsNode x y) = Commitment (hashData (commit x, commit y))
