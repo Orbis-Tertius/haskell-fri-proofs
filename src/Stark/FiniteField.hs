@@ -2,11 +2,13 @@ module Stark.FiniteField
   ( cardinality
   , generator
   , primitiveNthRoot
+  , sample
   ) where
 
 
 import Control.Monad (guard)
 import Data.Bits (Bits ((.&.)))
+import qualified Data.ByteString as BS
 
 import Stark.Types.Scalar (Scalar (Scalar))
 
@@ -34,3 +36,11 @@ primitiveNthRoot n = do
       if order /= n
         then f (root * root) (order `quot` 2)
         else root
+
+
+sample :: BS.ByteString -> Scalar
+sample = fromInteger . sampleInteger
+
+
+sampleInteger :: BS.ByteString -> Integer
+sampleInteger = BS.foldl (\x b -> x + fromIntegral b) 0
