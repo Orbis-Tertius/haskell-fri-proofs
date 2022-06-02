@@ -9,6 +9,7 @@ maintainer:    morgan.thomas@platonic.systems
 library
   exposed-modules:
     Stark.BinaryTree
+    Stark.FiniteField
     Stark.MerkleTree
     Stark.Types.AuthPath
     Stark.Types.BinaryTree
