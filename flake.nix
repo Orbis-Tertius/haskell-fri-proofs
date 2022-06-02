@@ -43,7 +43,7 @@
               final.haskell-nix.project' {
                 src = ./.;
                 compiler-nix-name = "ghc8107";
-                projectFileName = "stack.yaml";
+                projectFileName = "cabal.project";
                 modules = [{
                   packages = {
                   };
@@ -56,7 +56,6 @@
                   stylish-haskell = { };
                   sydtest-discover = { };
                 };
-                # Non-Haskell shell tools go here
                 shell.buildInputs = with pkgs; [
                   nixpkgs-fmt
                 ];
@@ -81,6 +80,6 @@
           flake = self;
           systems = [ "x86_64-linux" ];
         };
-        defaultPackage = flake.packages."stark-anatomy:lib";
+        defaultPackage = flake.packages."stark-anatomy:lib:stark-anatomy";
       });
 }

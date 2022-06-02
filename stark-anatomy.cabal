@@ -8,6 +8,7 @@ maintainer:    morgan.thomas@platonic.systems
 
 library
   exposed-modules:
+    Stark.Types.Scalar
     Stark.Types.UnivariatePolynomial
 
   build-depends:
