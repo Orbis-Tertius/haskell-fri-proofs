@@ -1,6 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
-
 module Stark.UnivariatePolynomial
   ( degree
   , isZero
@@ -34,9 +31,7 @@ degree p =
 
 
 isZero :: UnivariatePolynomial -> Bool
-isZero p =
-  ((== Nothing) . lookupMax . unFreeMod . unUni $ p)
-  || all (== 0) (elems . unFreeMod . unUni $ p)
+isZero = all (== 0) . elems . unFreeMod . unUni
 
 
 leadingCoefficient :: UnivariatePolynomial -> Maybe Scalar

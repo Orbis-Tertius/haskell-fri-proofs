@@ -11,6 +11,7 @@ library
     Stark.BinaryTree
     Stark.FiniteField
     Stark.MerkleTree
+    Stark.MultivariatePolynomial
     Stark.UnivariatePolynomial
     Stark.Types.AuthPath
     Stark.Types.BinaryTree
