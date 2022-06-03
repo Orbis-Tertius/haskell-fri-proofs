@@ -10,6 +10,7 @@ module Stark.UnivariatePolynomial
   , zerofier
   , constant
   , linear
+  , areColinear
   ) where
 
 
@@ -61,3 +62,7 @@ interpolate f = fromQUni $ lagrangeInterp ((g *** g) <$> f)
 
 zerofier :: [Scalar] -> UnivariatePolynomial
 zerofier = interpolate . zip (repeat 0)
+
+
+areColinear :: [(Scalar, Scalar)] -> Bool
+areColinear = (== 1) . degree . interpolate
