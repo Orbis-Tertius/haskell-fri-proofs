@@ -26,7 +26,7 @@ library
     blake2,
     bytestring,
     containers,
-    finite-fields,
+    finite-field,
     polynomial-algebra,
     serialise
 
