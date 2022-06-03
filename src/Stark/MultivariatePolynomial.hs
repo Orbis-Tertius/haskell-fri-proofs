@@ -7,6 +7,7 @@ module Stark.MultivariatePolynomial
   , linearBasis
   , fromUnivariate
   , evaluate
+  , evaluateSymbolic
   ) where
 
 
@@ -14,7 +15,7 @@ import Prelude hiding ((!!))
 import Data.List.Safe ((!!))
 import Data.Map (elems, singleton, mapKeys)
 import Data.Maybe (fromMaybe)
-import Math.Algebra.Polynomial.Class (Polynomial (evalP), fromIndex)
+import Math.Algebra.Polynomial.Class (Polynomial (evalP, subsP), fromIndex)
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
 import Math.Algebra.Polynomial.Univariate (unUni)
 import Math.Algebra.Polynomial.Multivariate.Infinite (Poly (Poly), unPoly, XInf (XInf))
@@ -50,3 +51,9 @@ fromUnivariate p (Variable i) =
 
 evaluate :: MultivariatePolynomial -> [Scalar] -> Scalar
 evaluate p xs = evalP id (fromMaybe 0 . (xs !!) . fromIndex) p
+
+
+evaluateSymbolic :: MultivariatePolynomial
+                 -> [MultivariatePolynomial]
+                 -> MultivariatePolynomial
+evaluateSymbolic p qs = subsP (fromMaybe 0 . (qs !!) . fromIndex) p
