@@ -15,7 +15,7 @@ module Stark.UnivariatePolynomial
 
 
 import Control.Arrow ((***))
-import Data.Map (lookupMax, singleton)
+import Data.Map (lookupMax, singleton, elems)
 import Math.Algebra.Polynomial.Class (Polynomial (evalP))
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
 import Math.Algebra.Polynomial.Univariate (Univariate (Uni), unUni, U (U), fromQUni)
@@ -36,7 +36,7 @@ degree p =
 isZero :: UnivariatePolynomial -> Bool
 isZero p =
   ((== Nothing) . lookupMax . unFreeMod . unUni $ p)
-  || p == constant 0
+  || all (== 0) (elems . unFreeMod . unUni $ p)
 
 
 leadingCoefficient :: UnivariatePolynomial -> Maybe Scalar
