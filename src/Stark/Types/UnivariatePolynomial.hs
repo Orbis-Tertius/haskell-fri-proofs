@@ -1,9 +1,12 @@
+{-# LANGUAGE DataKinds #-}
+
+
 module Stark.Types.UnivariatePolynomial ( UnivariatePolynomial ) where
 
 
-import Data.Poly (VPoly)
+import Math.Algebra.Polynomial.Univariate (Univariate)
 
 import Stark.Types.Scalar (Scalar)
 
 
-type UnivariatePolynomial = VPoly Scalar
+type UnivariatePolynomial = Univariate Scalar "x"

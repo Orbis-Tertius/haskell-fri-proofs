@@ -1,14 +1,12 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 
 
 module Stark.Types.MultivariatePolynomial ( MultivariatePolynomial ) where
 
 
-import Data.Poly.Multi (VMultiPoly)
-import GHC.TypeLits (Nat)
+import Math.Algebra.Polynomial.Multivariate.Infinite (Poly)
 
 import Stark.Types.Scalar (Scalar)
 
 
-type MultivariatePolynomial (n :: Nat) = VMultiPoly n Scalar
+type MultivariatePolynomial = Poly Scalar "x"

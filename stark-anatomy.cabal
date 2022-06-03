@@ -25,7 +25,7 @@ library
     blake2,
     bytestring,
     finite-fields,
-    poly,
+    polynomial-algebra,
     serialise
 
   hs-source-dirs: src
