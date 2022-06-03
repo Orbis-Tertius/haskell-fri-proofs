@@ -10,6 +10,8 @@ library
   exposed-modules:
     Stark.BinaryTree
     Stark.FiniteField
+    Stark.Fri
+    Stark.Fri.Types
     Stark.MerkleTree
     Stark.MultivariatePolynomial
     Stark.UnivariatePolynomial
