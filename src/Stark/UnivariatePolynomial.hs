@@ -1,9 +1,13 @@
+{-# LANGUAGE TupleSections #-}
+
+
 module Stark.UnivariatePolynomial
   ( degree
   , isZero
   , leadingCoefficient
   , evaluate
   , interpolate
+  , zerofier
   , constant
   , linear
   ) where
@@ -53,8 +57,7 @@ interpolate f = fromQUni $ lagrangeInterp ((g *** g) <$> f)
   where
     g :: Scalar -> Rational
     g = fromIntegral . PrimeField.toInteger . unScalar
---  let n = length f in
---  sum [constant yi *
---       (product [  (linear 1 - constant xj) / (constant (xi - xj))
---                 | (xj,yj) <- f, xj /= xi ])
---    | (xi,yi) <- f ]
+
+
+zerofier :: [Scalar] -> UnivariatePolynomial
+zerofier = interpolate . zip (repeat 0)
