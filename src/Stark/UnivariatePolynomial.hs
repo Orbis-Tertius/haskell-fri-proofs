@@ -34,7 +34,9 @@ degree p =
 
 
 isZero :: UnivariatePolynomial -> Bool
-isZero = (== Nothing) . lookupMax . unFreeMod . unUni
+isZero p =
+  ((== Nothing) . lookupMax . unFreeMod . unUni $ p)
+  || p == constant 0
 
 
 leadingCoefficient :: UnivariatePolynomial -> Maybe Scalar
