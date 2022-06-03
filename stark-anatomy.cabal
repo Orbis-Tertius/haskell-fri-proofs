@@ -11,6 +11,7 @@ library
     Stark.BinaryTree
     Stark.FiniteField
     Stark.MerkleTree
+    Stark.UnivariatePolynomial
     Stark.Types.AuthPath
     Stark.Types.BinaryTree
     Stark.Types.Commitment
@@ -24,6 +25,7 @@ library
     base >= 4.9 && < 5,
     blake2,
     bytestring,
+    containers,
     finite-fields,
     polynomial-algebra,
     serialise
