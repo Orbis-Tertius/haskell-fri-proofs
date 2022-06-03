@@ -29,6 +29,7 @@ library
     bytestring,
     containers,
     finite-field,
+    listsafe,
     polynomial-algebra,
     serialise
 
