@@ -2,15 +2,19 @@ module Stark.MultivariatePolynomial
   ( isZero
   , constant
   , linearBasis
+  , fromUnivariate
   ) where
 
 
-import Data.Map (elems, singleton)
+import Data.Map (elems, singleton, mapKeys)
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
+import Math.Algebra.Polynomial.Univariate (unUni)
 import Math.Algebra.Polynomial.Multivariate.Infinite (Poly (Poly), unPoly, XInf (XInf))
 
 import Stark.Types.MultivariatePolynomial (MultivariatePolynomial)
 import Stark.Types.Scalar (Scalar)
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import Stark.Types.Variable (Variable (Variable))
 
 
 isZero :: MultivariatePolynomial -> Bool
@@ -26,3 +30,11 @@ linearBasis n =
   Poly . FreeMod . flip singleton 1 . XInf <$>
   [ replicate (i-1) 0 ++ [1] ++ replicate (n-i) 0
   | i <- [1..n] ]
+
+
+fromUnivariate :: UnivariatePolynomial -> Variable -> MultivariatePolynomial
+fromUnivariate p (Variable i) =
+  Poly . FreeMod . mapKeys (const x) . unFreeMod . unUni $ p
+  where
+    x :: XInf x
+    x = XInf $ replicate (i-1) 0 ++ [1]

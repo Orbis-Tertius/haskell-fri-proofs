@@ -21,6 +21,7 @@ library
     Stark.Types.MultivariatePolynomial
     Stark.Types.Scalar
     Stark.Types.UnivariatePolynomial
+    Stark.Types.Variable
 
   build-depends:
     base >= 4.9 && < 5,
