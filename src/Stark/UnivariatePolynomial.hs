@@ -21,7 +21,7 @@ degree p =
 
 
 isZero :: UnivariatePolynomial -> Bool
-isZero = (== -1) . degree
+isZero = (== Nothing) . lookupMax . unFreeMod . unUni
 
 
 leadingCoefficient :: UnivariatePolynomial -> Maybe Scalar
