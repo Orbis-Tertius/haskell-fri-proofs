@@ -12,6 +12,7 @@ library
     Stark.FiniteField
     Stark.Fri
     Stark.Fri.Types
+    Stark.Hash
     Stark.MerkleTree
     Stark.MultivariatePolynomial
     Stark.UnivariatePolynomial
