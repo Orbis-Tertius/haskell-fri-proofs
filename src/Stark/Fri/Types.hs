@@ -23,6 +23,7 @@ import Codec.Serialise (Serialise)
 import Data.Bits (Bits)
 import Data.ByteString (ByteString)
 
+import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -65,7 +66,7 @@ newtype Codeword = Codeword { unCodeword :: [Scalar] }
   deriving Serialise
 
 
-newtype ProofStream = ProofStream { unProofStream :: [Codeword] }
+newtype ProofStream = ProofStream { unProofStream :: [Either Commitment Codeword] }
   deriving Serialise
 
 

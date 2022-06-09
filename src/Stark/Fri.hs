@@ -4,7 +4,13 @@ module Stark.Fri
   , sampleIndex
   , sampleIndices
   , fiatShamirSeed
+  , fiatShamirChallenge
   , splitAndFold
+  , commitPhase
+  , commitRound
+  , commitCodeword
+  , addCodeword
+  , addCommitment
   ) where
 
 
@@ -17,8 +23,12 @@ import Data.Maybe (fromMaybe)
 import Data.Set (Set, size, member, insert)
 import Data.Tuple.Extra (fst3)
 
+import Stark.BinaryTree (fromList)
+import Stark.FiniteField (sample)
 import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..))
 import Stark.Hash (hash)
+import Stark.MerkleTree (commit)
+import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -71,6 +81,10 @@ fiatShamirSeed :: ProofStream -> RandomSeed
 fiatShamirSeed = RandomSeed . hash . toStrict . serialise
 
 
+fiatShamirChallenge :: ProofStream -> Challenge
+fiatShamirChallenge = Challenge . sample . unRandomSeed . fiatShamirSeed
+
+
 splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
 splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
   let n = length codeword
@@ -79,3 +93,42 @@ splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha)
   [ recip 2 * ( ( 1 + alpha / (offset * (omega^i)) ) * xi
               + ( 1 - alpha / (offset * (omega^i)) ) * xj )
   | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]
+
+
+addCommitment :: Commitment -> ProofStream -> ProofStream
+addCommitment c (ProofStream p) = ProofStream (Left c : p)
+
+
+addCodeword :: Codeword -> ProofStream -> ProofStream
+addCodeword c (ProofStream p) = ProofStream (Right c : p)
+
+
+commitCodeword :: Codeword -> Commitment
+commitCodeword = commit . fromMaybe (error "codeword is not a binary tree") . fromList . unCodeword
+
+
+commitPhase :: DomainLength
+            -> ExpansionFactor
+            -> NumColinearityTests
+            -> Omega
+            -> Offset
+            -> Codeword
+            -> ProofStream
+            -> (ProofStream, [Codeword])
+commitPhase domainLength expansionFactor numColinearityTests omega offset codeword proofStream
+  = let n = numRounds domainLength expansionFactor numColinearityTests
+        (proofStream', codewords', codeword') =
+          (iterate (commitRound omega offset) (proofStream, [], codeword))
+          !! (n-1)
+    in (addCodeword codeword' proofStream', codeword' : codewords')
+
+
+commitRound :: Omega
+            -> Offset
+            -> (ProofStream, [Codeword], Codeword)
+            -> (ProofStream, [Codeword], Codeword)
+commitRound omega offset (proofStream, codewords, codeword) =
+  let root = commitCodeword codeword
+      alpha = fiatShamirChallenge proofStream
+      codeword' = splitAndFold omega offset codeword alpha
+  in (addCommitment root proofStream, codeword : codewords, codeword')
