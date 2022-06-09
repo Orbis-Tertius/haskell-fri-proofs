@@ -12,6 +12,7 @@ module Stark.Fri.Types
   , ReducedListSize (ReducedListSize, unReducedListSize)
   , SampleSize (SampleSize, unSampleSize)
   , Index (Index, unIndex)
+  , ReducedIndex (ReducedIndex, unReducedIndex)
   ) where
 
 
@@ -50,3 +51,7 @@ newtype SampleSize = SampleSize { unSampleSize :: Int }
 
 newtype Index = Index { unIndex :: Int }
   deriving (Eq, Ord, Num, Enum, Real, Integral, Bits)
+
+
+newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
+  deriving (Eq, Ord)
