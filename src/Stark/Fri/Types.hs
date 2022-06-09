@@ -15,6 +15,7 @@ module Stark.Fri.Types
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
   , ProofStream (ProofStream, unProofStream)
+  , Challenge (Challenge, unChallenge)
   ) where
 
 
@@ -22,7 +23,6 @@ import Codec.Serialise (Serialise)
 import Data.Bits (Bits)
 import Data.ByteString (ByteString)
 
-import Stark.Types.MerkleHash (MerkleHash)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -61,9 +61,13 @@ newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
   deriving (Eq, Ord)
 
 
-newtype Codeword = Codeword { unCodeword :: [MerkleHash] }
+newtype Codeword = Codeword { unCodeword :: [Scalar] }
   deriving Serialise
 
 
 newtype ProofStream = ProofStream { unProofStream :: [Codeword] }
+  deriving Serialise
+
+
+newtype Challenge = Challenge { unChallenge :: Scalar }
   deriving Serialise

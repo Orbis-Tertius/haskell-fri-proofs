@@ -35,8 +35,7 @@ library
     finite-field,
     listsafe,
     polynomial-algebra,
-    serialise,
-    text
+    serialise
 
   hs-source-dirs: src
   default-language: Haskell2010

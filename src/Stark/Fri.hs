@@ -4,6 +4,7 @@ module Stark.Fri
   , sampleIndex
   , sampleIndices
   , fiatShamirSeed
+  , splitAndFold
   ) where
 
 
@@ -14,11 +15,9 @@ import Data.ByteString.Lazy (toStrict)
 import Data.List (find)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set, size, member, insert)
-import Data.Text (pack)
-import Data.Text.Encoding (encodeUtf8)
 import Data.Tuple.Extra (fst3)
 
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..))
 import Stark.Hash (hash)
 import Stark.Types.Scalar (Scalar)
 
@@ -61,7 +60,7 @@ sampleIndicesStep :: RandomSeed
                   -> (Set Index, Set ReducedIndex, Int)
 sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
                   (indices, reducedIndices, counter)
-  = let index = sampleIndex (hash (seed <> encodeUtf8 (pack (show counter)))) ls
+  = let index = sampleIndex (hash (seed <> toStrict (serialise counter))) ls
         reducedIndex = ReducedIndex $ unIndex index `mod` rls
     in if reducedIndex `member` reducedIndices
        then (indices, reducedIndices, counter+1)
@@ -70,3 +69,13 @@ sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
 
 fiatShamirSeed :: ProofStream -> RandomSeed
 fiatShamirSeed = RandomSeed . hash . toStrict . serialise
+
+
+splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
+splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
+  let n = length codeword
+      (l, r) = splitAt (n `quot` 2) codeword
+  in Codeword $
+  [ recip 2 * ( ( 1 + alpha / (offset * (omega^i)) ) * xi
+              + ( 1 - alpha / (offset * (omega^i)) ) * xj )
+  | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]
