@@ -13,12 +13,16 @@ module Stark.Fri.Types
   , SampleSize (SampleSize, unSampleSize)
   , Index (Index, unIndex)
   , ReducedIndex (ReducedIndex, unReducedIndex)
+  , Codeword (Codeword, unCodeword)
+  , ProofStream (ProofStream, unProofStream)
   ) where
 
 
+import Codec.Serialise (Serialise)
 import Data.Bits (Bits)
 import Data.ByteString (ByteString)
 
+import Stark.Types.MerkleHash (MerkleHash)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -55,3 +59,11 @@ newtype Index = Index { unIndex :: Int }
 
 newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
   deriving (Eq, Ord)
+
+
+newtype Codeword = Codeword { unCodeword :: [MerkleHash] }
+  deriving Serialise
+
+
+newtype ProofStream = ProofStream { unProofStream :: [Codeword] }
+  deriving Serialise

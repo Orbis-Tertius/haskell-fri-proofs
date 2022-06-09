@@ -3,11 +3,14 @@ module Stark.Fri
   , evalDomain
   , sampleIndex
   , sampleIndices
+  , fiatShamirSeed
   ) where
 
 
+import Codec.Serialise (serialise)
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
+import Data.ByteString.Lazy (toStrict)
 import Data.List (find)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set, size, member, insert)
@@ -15,7 +18,7 @@ import Data.Text (pack)
 import Data.Text.Encoding (encodeUtf8)
 import Data.Tuple.Extra (fst3)
 
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..))
 import Stark.Hash (hash)
 import Stark.Types.Scalar (Scalar)
 
@@ -51,7 +54,11 @@ sampleIndices seed ls rls@(ReducedListSize rls') (SampleSize n)
   $ fst3 <$> iterate (sampleIndicesStep seed ls rls) (mempty, mempty, 0)
 
 
-sampleIndicesStep :: RandomSeed -> ListSize -> ReducedListSize -> (Set Index, Set ReducedIndex, Int) -> (Set Index, Set ReducedIndex, Int)
+sampleIndicesStep :: RandomSeed
+                  -> ListSize
+                  -> ReducedListSize
+                  -> (Set Index, Set ReducedIndex, Int)
+                  -> (Set Index, Set ReducedIndex, Int)
 sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
                   (indices, reducedIndices, counter)
   = let index = sampleIndex (hash (seed <> encodeUtf8 (pack (show counter)))) ls
@@ -59,3 +66,7 @@ sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
     in if reducedIndex `member` reducedIndices
        then (indices, reducedIndices, counter+1)
        else (insert index indices, insert reducedIndex reducedIndices, counter+1)
+
+
+fiatShamirSeed :: ProofStream -> RandomSeed
+fiatShamirSeed = RandomSeed . hash . toStrict . serialise
