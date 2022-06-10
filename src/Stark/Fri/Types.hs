@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
@@ -14,6 +15,7 @@ module Stark.Fri.Types
   , Index (Index, unIndex)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
+  , ProofElement (IsCommitment, IsCodeword, IsAuthPath)
   , ProofStream (ProofStream, unProofStream)
   , Challenge (Challenge, unChallenge)
   ) where
@@ -22,7 +24,9 @@ module Stark.Fri.Types
 import Codec.Serialise (Serialise)
 import Data.Bits (Bits)
 import Data.ByteString (ByteString)
+import GHC.Generics (Generic)
 
+import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
 
@@ -66,7 +70,16 @@ newtype Codeword = Codeword { unCodeword :: [Scalar] }
   deriving Serialise
 
 
-newtype ProofStream = ProofStream { unProofStream :: [Either Commitment Codeword] }
+data ProofElement =
+    IsCommitment Commitment
+  | IsCodeword Codeword
+  | IsAuthPath AuthPath
+  deriving Generic
+
+instance Serialise ProofElement
+
+
+newtype ProofStream = ProofStream { unProofStream :: [ProofElement] }
   deriving Serialise
 
 

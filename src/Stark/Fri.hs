@@ -11,6 +11,8 @@ module Stark.Fri
   , commitCodeword
   , addCodeword
   , addCommitment
+  , openCodeword
+  , queryRound
   ) where
 
 
@@ -25,9 +27,10 @@ import Data.Tuple.Extra (fst3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), ProofElement (..))
 import Stark.Hash (hash)
-import Stark.MerkleTree (commit)
+import Stark.MerkleTree (commit, open)
+import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
 
@@ -96,15 +99,20 @@ splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha)
 
 
 addCommitment :: Commitment -> ProofStream -> ProofStream
-addCommitment c (ProofStream p) = ProofStream (Left c : p)
+addCommitment c (ProofStream p) = ProofStream (IsCommitment c : p)
 
 
 addCodeword :: Codeword -> ProofStream -> ProofStream
-addCodeword c (ProofStream p) = ProofStream (Right c : p)
+addCodeword c (ProofStream p) = ProofStream (IsCodeword c : p)
 
 
 commitCodeword :: Codeword -> Commitment
 commitCodeword = commit . fromMaybe (error "codeword is not a binary tree") . fromList . unCodeword
+
+
+openCodeword :: Codeword -> Index -> AuthPath
+openCodeword (Codeword xs) (Index i) =
+  open (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
 
 
 commitPhase :: DomainLength
@@ -132,3 +140,28 @@ commitRound omega offset (proofStream, codewords, codeword) =
       alpha = fiatShamirChallenge proofStream
       codeword' = splitAndFold omega offset codeword alpha
   in (addCommitment root proofStream, codeword : codewords, codeword')
+
+
+queryRound :: NumColinearityTests
+           -> (Codeword, Codeword)
+           -> [Index]
+           -> ProofStream
+           -> (ProofStream, [Index])
+queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodeword)
+           cIndices proofStream =
+  let aIndices = take n cIndices
+      bIndices = take n $ (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
+      leafProofElems = zipWith3 (\a b c -> IsCodeword (Codeword [a,b,c]))
+                       ((currentCodeword !!) . fromIntegral <$> aIndices)
+                       ((currentCodeword !!) . fromIntegral <$> bIndices)
+                       ((nextCodeword !!) . fromIntegral <$> cIndices)
+      authPathProofElems =
+        IsAuthPath <$>
+        ((openCodeword (Codeword currentCodeword) <$> aIndices)
+         <> (openCodeword (Codeword currentCodeword) <$> bIndices)
+         <> (openCodeword (Codeword nextCodeword) <$> cIndices))
+  in ( ProofStream $ reverse authPathProofElems
+                  <> reverse leafProofElems
+                  <> unProofStream proofStream
+     , aIndices <> bIndices
+     )
