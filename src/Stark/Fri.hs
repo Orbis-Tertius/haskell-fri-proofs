@@ -127,21 +127,21 @@ commitPhase :: DomainLength
             -> (ProofStream, [Codeword])
 commitPhase domainLength expansionFactor numColinearityTests omega offset codeword proofStream
   = let n = numRounds domainLength expansionFactor numColinearityTests
-        (proofStream', codewords', codeword') =
-          (iterate (commitRound omega offset) (proofStream, [], codeword))
+        (proofStream', codewords', codeword', _, _) =
+          (iterate commitRound (proofStream, [], codeword, omega, offset))
           !! (n-1)
     in (addCodeword codeword' proofStream', codeword' : codewords')
 
 
-commitRound :: Omega
-            -> Offset
-            -> (ProofStream, [Codeword], Codeword)
-            -> (ProofStream, [Codeword], Codeword)
-commitRound omega offset (proofStream, codewords, codeword) =
+commitRound ::(ProofStream, [Codeword], Codeword, Omega, Offset)
+            -> (ProofStream, [Codeword], Codeword, Omega, Offset)
+commitRound (proofStream, codewords, codeword, omega, offset) =
   let root = commitCodeword codeword
       alpha = fiatShamirChallenge proofStream
       codeword' = splitAndFold omega offset codeword alpha
-  in (addCommitment root proofStream, codeword : codewords, codeword')
+  in (addCommitment root proofStream, codeword : codewords, codeword', omega^two, offset^two)
+  where two :: Integer
+        two = 2
 
 
 queryRound :: NumColinearityTests

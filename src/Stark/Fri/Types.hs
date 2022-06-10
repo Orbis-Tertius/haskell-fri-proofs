@@ -33,9 +33,11 @@ import Stark.Types.Scalar (Scalar)
 
 
 newtype Offset = Offset { unOffset :: Scalar }
+  deriving (Eq, Ord, Num)
 
 
 newtype Omega = Omega { unOmega :: Scalar }
+  deriving (Eq, Ord, Num)
 
 
 newtype DomainLength = DomainLength { unDomainLength :: Int }
