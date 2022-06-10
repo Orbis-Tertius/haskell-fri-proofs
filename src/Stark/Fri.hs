@@ -13,6 +13,7 @@ module Stark.Fri
   , addCommitment
   , openCodeword
   , queryRound
+  , queryPhase
   ) where
 
 
@@ -23,7 +24,7 @@ import Data.ByteString.Lazy (toStrict)
 import Data.List (find)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set, size, member, insert)
-import Data.Tuple.Extra (fst3)
+import Data.Tuple.Extra (fst3, snd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
@@ -146,7 +147,7 @@ queryRound :: NumColinearityTests
            -> (Codeword, Codeword)
            -> [Index]
            -> ProofStream
-           -> (ProofStream, [Index])
+           -> ProofStream
 queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
   let aIndices = take n cIndices
@@ -160,8 +161,18 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
         ((openCodeword (Codeword currentCodeword) <$> aIndices)
          <> (openCodeword (Codeword currentCodeword) <$> bIndices)
          <> (openCodeword (Codeword nextCodeword) <$> cIndices))
-  in ( ProofStream $ reverse authPathProofElems
-                  <> reverse leafProofElems
-                  <> unProofStream proofStream
-     , aIndices <> bIndices
-     )
+  in ProofStream $ reverse authPathProofElems
+                <> reverse leafProofElems
+                <> unProofStream proofStream
+
+
+queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
+queryPhase numColinearityTests codewords indices proofStream =
+  snd3 $ (iterate f (indices, proofStream, 0)) !! (length codewords - 2)
+  where
+    f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
+    f (indices', proofStream', i) =
+      ( (`mod` (Index (length (unCodeword (codewords !! i)) `quot` 2))) <$> indices
+      , queryRound numColinearityTests (codewords !! i, codewords !! (i+1)) indices' proofStream'
+      , i+1
+      )
