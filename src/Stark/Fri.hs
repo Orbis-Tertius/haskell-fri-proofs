@@ -14,6 +14,7 @@ module Stark.Fri
   , openCodeword
   , queryRound
   , queryPhase
+  , prove
   ) where
 
 
@@ -23,12 +24,12 @@ import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.List (find)
 import Data.Maybe (fromMaybe)
-import Data.Set (Set, size, member, insert)
+import Data.Set (Set, size, member, insert, toList)
 import Data.Tuple.Extra (fst3, snd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), ProofElement (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), ProofElement (..), FriConfiguration (..))
 import Stark.Hash (hash)
 import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
@@ -176,3 +177,19 @@ queryPhase numColinearityTests codewords indices proofStream =
       , queryRound numColinearityTests (codewords !! i, codewords !! (i+1)) indices' proofStream'
       , i+1
       )
+
+
+prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
+prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests) codeword
+  | unDomainLength domainLength == length (unCodeword codeword) =
+    let (proofStream0, codewords) =
+          commitPhase domainLength expansionFactor numColinearityTests
+                      omega offset codeword (ProofStream [])
+        indices = toList $ sampleIndices
+                           (fiatShamirSeed proofStream0)
+                           (ListSize (length (unCodeword (codewords !! 1))))
+                           (ReducedListSize (length (unCodeword (codewords !! (length codewords - 1)))))
+                           (SampleSize (unNumColinearityTests numColinearityTests))
+        proofStream1 = queryPhase numColinearityTests codewords indices proofStream0
+    in (proofStream1, indices)
+  | otherwise = error "domain length does not match length of initial codeword"

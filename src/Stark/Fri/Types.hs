@@ -18,6 +18,7 @@ module Stark.Fri.Types
   , ProofElement (IsCommitment, IsCodeword, IsAuthPath)
   , ProofStream (ProofStream, unProofStream)
   , Challenge (Challenge, unChallenge)
+  , FriConfiguration (FriConfiguration)
   ) where
 
 
@@ -85,3 +86,12 @@ newtype ProofStream = ProofStream { unProofStream :: [ProofElement] }
 
 newtype Challenge = Challenge { unChallenge :: Scalar }
   deriving Serialise
+
+
+data FriConfiguration =
+  FriConfiguration
+  Offset
+  Omega
+  DomainLength
+  ExpansionFactor
+  NumColinearityTests
