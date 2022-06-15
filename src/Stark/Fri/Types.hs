@@ -15,8 +15,7 @@ module Stark.Fri.Types
   , Index (Index, unIndex)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
-  , ProofElement (IsCommitment, IsCodeword, IsAuthPath)
-  , ProofStream (ProofStream, unProofStream)
+  , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
   , FriConfiguration (FriConfiguration)
   ) where
@@ -73,17 +72,15 @@ newtype Codeword = Codeword { unCodeword :: [Scalar] }
   deriving Serialise
 
 
-data ProofElement =
-    IsCommitment Commitment
-  | IsCodeword Codeword
-  | IsAuthPath AuthPath
+data ProofStream =
+  ProofStream
+  { commitments :: [Commitment]
+  , codewords :: [Codeword]
+  , authPaths :: [AuthPath]
+  }
   deriving Generic
 
-instance Serialise ProofElement
-
-
-newtype ProofStream = ProofStream { unProofStream :: [ProofElement] }
-  deriving Serialise
+instance Serialise ProofStream
 
 
 newtype Challenge = Challenge { unChallenge :: Scalar }

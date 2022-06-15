@@ -29,7 +29,7 @@ import Data.Tuple.Extra (fst3, snd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), ProofElement (..), FriConfiguration (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..))
 import Stark.Hash (hash)
 import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
@@ -101,11 +101,18 @@ splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha)
 
 
 addCommitment :: Commitment -> ProofStream -> ProofStream
-addCommitment c (ProofStream p) = ProofStream (IsCommitment c : p)
+addCommitment c (ProofStream commitments codewords authPaths)
+  = ProofStream (c : commitments) codewords authPaths
 
 
 addCodeword :: Codeword -> ProofStream -> ProofStream
-addCodeword c (ProofStream p) = ProofStream (IsCodeword c : p)
+addCodeword c (ProofStream commitments codewords authPaths)
+  = ProofStream commitments (c : codewords) authPaths
+
+
+addAuthPath :: AuthPath -> ProofStream -> ProofStream
+addAuthPath p (ProofStream commitments codewords authPaths)
+  = ProofStream commitments codewords (p : authPaths)
 
 
 commitCodeword :: Codeword -> Commitment
@@ -153,18 +160,17 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
            cIndices proofStream =
   let aIndices = take n cIndices
       bIndices = take n $ (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
-      leafProofElems = zipWith3 (\a b c -> IsCodeword (Codeword [a,b,c]))
+      leafProofElems = zipWith3 (\a b c -> Codeword [a,b,c])
                        ((currentCodeword !!) . fromIntegral <$> aIndices)
                        ((currentCodeword !!) . fromIntegral <$> bIndices)
                        ((nextCodeword !!) . fromIntegral <$> cIndices)
       authPathProofElems =
-        IsAuthPath <$>
-        ((openCodeword (Codeword currentCodeword) <$> aIndices)
+        (openCodeword (Codeword currentCodeword) <$> aIndices)
          <> (openCodeword (Codeword currentCodeword) <$> bIndices)
-         <> (openCodeword (Codeword nextCodeword) <$> cIndices))
-  in ProofStream $ reverse authPathProofElems
-                <> reverse leafProofElems
-                <> unProofStream proofStream
+         <> (openCodeword (Codeword nextCodeword) <$> cIndices)
+  in foldl (flip addAuthPath)
+     (foldl (flip addCodeword) proofStream (reverse leafProofElems))
+     (reverse authPathProofElems)
 
 
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
@@ -184,7 +190,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
   | unDomainLength domainLength == length (unCodeword codeword) =
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
-                      omega offset codeword (ProofStream [])
+                      omega offset codeword (ProofStream [] [] [])
         indices = toList $ sampleIndices
                            (fiatShamirSeed proofStream0)
                            (ListSize (length (unCodeword (codewords !! 1))))
