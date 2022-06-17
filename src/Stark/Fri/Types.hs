@@ -109,6 +109,7 @@ newtype Challenge = Challenge { unChallenge :: Scalar }
 
 
 newtype PolynomialValues = PolynomialValues { unPolynomialValues :: Map Index Scalar }
+  deriving (Semigroup, Monoid)
 
 
 data FriConfiguration =

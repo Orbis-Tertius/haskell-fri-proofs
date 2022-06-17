@@ -15,6 +15,8 @@ module Stark.Fri
   , commitCodeword
   , addCodeword
   , addCommitment
+  , addQuery
+  , addAuthPath
   , openCodeword
   , queryRound
   , queryPhase
@@ -237,6 +239,14 @@ getAlphas roots =
   fiatShamirChallenge . (\cs -> ProofStream cs [] [] []) <$> inits roots
 
 
+-- Break a list into equal-sized sublists.
+segment :: Int -> [a] -> [[a]]
+segment n xs =
+  case splitAt n xs of
+    (ys,[]) -> [ys]
+    (ys,yss) -> ys : segment n yss
+
+
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
 verify :: FriConfiguration -> ProofStream -> Maybe PolynomialValues
 verify config proofStream =
@@ -254,16 +264,30 @@ verify config proofStream =
           maxDegree = floor (fromIntegral lastCodewordLength
                            / unExpansionFactor (config ^. #expansionFactor)) - 1
           dl = unDomainLength (config ^. #domainLength)
+          nt = unNumColinearityTests (config ^. #numColinearityTests)
           topLevelIndices =
             sampleIndices
               (fiatShamirSeed
                 (ProofStream (proofStream ^. #commitments) [] [lastCodeword] []))
               (ListSize $ dl `shift` negate 2)
               (ReducedListSize $ dl `shift` negate (nr - 1))
+              (SampleSize nt)
       in if degree poly > maxDegree
          then Nothing
-         else todo
+         else mconcat <$> sequence
+              [ verifyRound config topLevelIndices r q p
+              | (r, q, p) <- zip3 [0 .. nr - 2]
+                                  (segment nt (reverse $ proofStream ^. #queries))
+                                  (segment nt (reverse $ proofStream ^. #authPaths))
+              ]
     _ -> Nothing
+
+
+verifyRound :: FriConfiguration -> Set Index -> Int -> [Query] -> [AuthPath] -> Maybe PolynomialValues
+verifyRound config topLevelIndices r q p =
+  let omega = (config ^. #omega) ^ (2 ^ r)
+      offset = (config ^. #offset) ^ (2 ^ r)
+  in todo
 
 
 todo :: a
