@@ -12,7 +12,6 @@ module Stark.Fri.Types
   , RandomSeed (RandomSeed, unRandomSeed)
   , ReducedListSize (ReducedListSize, unReducedListSize)
   , SampleSize (SampleSize, unSampleSize)
-  , Index (Index, unIndex)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
   , AY (AY, unAY)
@@ -27,13 +26,13 @@ module Stark.Fri.Types
 
 
 import Codec.Serialise (Serialise)
-import Data.Bits (Bits)
 import Data.ByteString (ByteString)
 import Data.Map (Map)
 import GHC.Generics (Generic)
 
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
+import Stark.Types.Index (Index)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -65,10 +64,6 @@ newtype ReducedListSize = ReducedListSize { unReducedListSize :: Int }
 
 
 newtype SampleSize = SampleSize { unSampleSize :: Int }
-
-
-newtype Index = Index { unIndex :: Int }
-  deriving (Eq, Ord, Num, Enum, Real, Integral, Bits)
 
 
 newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }

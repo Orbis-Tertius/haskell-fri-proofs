@@ -44,11 +44,12 @@ import Data.Tuple.Extra (fst3, snd3, thd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), AY (..), BY (..), CY (..), Query (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), AY (..), BY (..), CY (..), Query (..))
 import Stark.Hash (hash)
 import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
+import Stark.Types.Index (Index (..))
 import Stark.Types.Scalar (Scalar)
 import Stark.UnivariatePolynomial (degree, interpolate, areColinear)
 

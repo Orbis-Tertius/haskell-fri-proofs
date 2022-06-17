@@ -17,6 +17,7 @@ import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath (AuthPath))
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import Stark.Types.Commitment (Commitment (Commitment, unCommitment))
+import Stark.Types.Index (Index (Index))
 import Stark.Types.Leaf (Leaf (Leaf, unLeaf))
 import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 
@@ -38,11 +39,11 @@ commit_ (IsLeaf x) = Commitment x
 commit_ (IsNode x y) = Commitment (hashData (commit x, commit y))
 
 
-open_ :: Integer -> BinaryTree MerkleHash -> AuthPath
+open_ :: Index -> BinaryTree MerkleHash -> AuthPath
 open_ 0 (IsNode (IsLeaf _) (IsLeaf x)) = AuthPath [x]
 open_ 1 (IsNode (IsLeaf x) (IsLeaf _)) = AuthPath [x]
 open_ i t@(IsNode x y) =
-  let n = Tree.size t
+  let n = Index . fromIntegral $ Tree.size t
       m = n `quot` 2
   in if i < m
      then (open_ i x) <> AuthPath [unCommitment $ commit_ y]
@@ -50,11 +51,11 @@ open_ i t@(IsNode x y) =
 open_ _ _ = error "open_ pattern match failure"
 
 
-open :: Serialise a => Integer -> BinaryTree a -> AuthPath
+open :: Serialise a => Index -> BinaryTree a -> AuthPath
 open i xs = open_ i (hashData <$> xs)
 
 
-verify_ :: Commitment -> Integer -> AuthPath -> Leaf -> Bool
+verify_ :: Commitment -> Index -> AuthPath -> Leaf -> Bool
 verify_ c i p l =
   case p of
     AuthPath [] -> error "tried to verify empty path"
@@ -65,5 +66,5 @@ verify_ c i p l =
       else verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (x, unLeaf l))
 
 
-verify :: Serialise a => Commitment -> Integer -> AuthPath -> a -> Bool
+verify :: Serialise a => Commitment -> Index -> AuthPath -> a -> Bool
 verify c i p = verify_ c i p . dataToLeaf
