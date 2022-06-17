@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE ViewPatterns #-}
 
 
 module Stark.Fri
@@ -19,9 +20,9 @@ module Stark.Fri
   , queryPhase
   , prove
 
-  , lastOmega
-  , lastOffset
-  , alphas
+  , getLastOmega
+  , getLastOffset
+  , getAlphas
   , verify
   ) where
 
@@ -45,6 +46,7 @@ import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
+import Stark.UnivariatePolynomial (degree, interpolate)
 
 
 numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> Int
@@ -211,28 +213,52 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
   | otherwise = error "domain length does not match length of initial codeword"
 
 
-lastOmega :: FriConfiguration -> Omega
-lastOmega config =
+getLastOmega :: FriConfiguration -> Omega
+getLastOmega config =
   iterate (^ (2 :: Int)) (config ^. #omega)
   !! numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
 
 
-lastOffset :: FriConfiguration -> Offset
-lastOffset config =
+getLastOffset :: FriConfiguration -> Offset
+getLastOffset config =
   iterate (^ (2 :: Int)) (config ^. #offset)
   !! numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
 
 
 -- Takes the reversed list of commitments from the proof stream and provides
 -- the list of corresponding challenges.
-alphas :: [Commitment] -> [Challenge]
-alphas commitments =
-  fiatShamirChallenge . (\cs -> ProofStream cs [] []) <$> inits commitments
+getAlphas :: [Commitment] -> [Challenge]
+getAlphas roots =
+  fiatShamirChallenge . (\cs -> ProofStream cs [] []) <$> inits roots
 
 
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
 verify :: FriConfiguration -> ProofStream -> Maybe PolynomialValues
-verify = todo
+verify config proofStream =
+  let roots = reverse (proofStream ^. #commitments)
+      alphas = getAlphas roots
+      lastOmega = getLastOmega config
+      lastOffset = getLastOffset config
+      nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  in case (proofStream ^. #commitments, proofStream ^. #codewords) of
+    (lastRoot : _, lastCodeword : (reverse -> codewords)) ->
+      let lastCodewordLength = length (unCodeword lastCodeword)
+          lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
+                       | i <- [0 .. lastCodewordLength] ]
+          poly = interpolate (zip lastDomain (unCodeword lastCodeword))
+          maxDegree = floor (fromIntegral lastCodewordLength
+                           / unExpansionFactor (config ^. #expansionFactor)) - 1
+          dl = unDomainLength (config ^. #domainLength)
+          topLevelIndices =
+            sampleIndices
+              (fiatShamirSeed
+                (ProofStream (proofStream ^. #commitments) [lastCodeword] []))
+              (ListSize $ dl `shift` negate 2)
+              (ReducedListSize $ dl `shift` negate (nr - 1))
+      in if degree poly > maxDegree
+         then Nothing
+         else todo
+    _ -> Nothing
 
 
 todo :: a
