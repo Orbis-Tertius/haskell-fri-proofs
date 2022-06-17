@@ -35,10 +35,12 @@ import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
-import Data.List (find, inits)
+import Data.List (find, inits, zip4)
 import Data.Maybe (fromMaybe)
-import Data.Set (Set, size, member, insert, toList)
-import Data.Tuple.Extra (fst3, snd3)
+import Data.Set (Set)
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import Data.Tuple.Extra (fst3, snd3, thd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
@@ -48,7 +50,7 @@ import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
-import Stark.UnivariatePolynomial (degree, interpolate)
+import Stark.UnivariatePolynomial (degree, interpolate, areColinear)
 
 
 numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> Int
@@ -78,7 +80,7 @@ sampleIndices seed ls rls@(ReducedListSize rls') (SampleSize n)
   | n >  2 * rls' = error "not enough entropy in indices wrt last codeword"
   | otherwise =
     fromMaybe (error "the impossible has happened: sampleIndices reached the end of the list")
-  . find ((>= n) . size)
+  . find ((>= n) . Set.size)
   $ fst3 <$> iterate (sampleIndicesStep seed ls rls) (mempty, mempty, 0)
 
 
@@ -91,9 +93,10 @@ sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
                   (indices, reducedIndices, counter)
   = let index = sampleIndex (hash (seed <> toStrict (serialise counter))) ls
         reducedIndex = ReducedIndex $ unIndex index `mod` rls
-    in if reducedIndex `member` reducedIndices
+    in if reducedIndex `Set.member` reducedIndices
        then (indices, reducedIndices, counter+1)
-       else (insert index indices, insert reducedIndex reducedIndices, counter+1)
+       else ( Set.insert index indices
+            , Set.insert reducedIndex reducedIndices, counter+1 )
 
 
 fiatShamirSeed :: ProofStream -> RandomSeed
@@ -210,11 +213,11 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
                       omega offset codeword (ProofStream [] [] [] [])
-        indices = toList $ sampleIndices
-                           (fiatShamirSeed proofStream0)
-                           (ListSize (length (unCodeword (codewords !! 1))))
-                           (ReducedListSize (length (unCodeword (codewords !! (length codewords - 1)))))
-                           (SampleSize (unNumColinearityTests numColinearityTests))
+        indices = Set.elems $ sampleIndices
+                    (fiatShamirSeed proofStream0)
+                    (ListSize (length (unCodeword (codewords !! 1))))
+                    (ReducedListSize (length (unCodeword (codewords !! (length codewords - 1)))))
+                    (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase numColinearityTests codewords indices proofStream0
     in (proofStream1, indices)
   | otherwise = error "domain length does not match length of initial codeword"
@@ -266,7 +269,7 @@ verify config proofStream =
           dl = unDomainLength (config ^. #domainLength)
           nt = unNumColinearityTests (config ^. #numColinearityTests)
           topLevelIndices =
-            sampleIndices
+            Set.elems $ sampleIndices
               (fiatShamirSeed
                 (ProofStream (proofStream ^. #commitments) [] [lastCodeword] []))
               (ListSize $ dl `shift` negate 2)
@@ -275,19 +278,36 @@ verify config proofStream =
       in if degree poly > maxDegree
          then Nothing
          else mconcat <$> sequence
-              [ verifyRound config topLevelIndices r q p
-              | (r, q, p) <- zip3 [0 .. nr - 2]
-                                  (segment nt (reverse $ proofStream ^. #queries))
-                                  (segment nt (reverse $ proofStream ^. #authPaths))
+              [ verifyRound config topLevelIndices r alpha q p
+              | (r, alpha, q, p) <- zip4 [0 .. nr - 2]
+                                    alphas
+                                    (segment nt (reverse $ proofStream ^. #queries))
+                                    (segment nt (reverse $ proofStream ^. #authPaths))
               ]
     _ -> Nothing
 
 
-verifyRound :: FriConfiguration -> Set Index -> Int -> [Query] -> [AuthPath] -> Maybe PolynomialValues
-verifyRound config topLevelIndices r q p =
+verifyRound :: FriConfiguration -> [Index] -> Int -> Challenge -> [Query] -> [AuthPath] -> Maybe PolynomialValues
+verifyRound config topLevelIndices r alpha qs ps =
   let omega = (config ^. #omega) ^ (2 ^ r)
       offset = (config ^. #offset) ^ (2 ^ r)
-  in todo
+      dl = config ^. #domainLength . #unDomainLength
+      cIndices = (`mod` fromIntegral (dl `shift` negate (r+1))) <$> topLevelIndices
+      aIndices = cIndices
+      bIndices = (+ fromIntegral (dl `shift` negate (r+1))) <$> aIndices
+      ays = fst3 . unQuery <$> qs
+      bys = snd3 . unQuery <$> qs
+      cys = thd3 . unQuery <$> qs
+      polyVals = PolynomialValues . Map.fromList
+               $ (zip aIndices (unAY <$> ays)) <> (zip bIndices (unBY <$> bys))
+      f = (* unOffset offset) . (unOmega omega ^)
+      colinearityChecks = all areColinear
+        $ (\(a,b,c) -> [a,b,c])
+        <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
+                 (zip (f <$> bIndices) (unBY <$> bys))
+                 (zip (repeat (unChallenge alpha)) (unCY <$> cys))
+      authPathChecks = todo
+  in if colinearityChecks && authPathChecks then Just polyVals else Nothing
 
 
 todo :: a

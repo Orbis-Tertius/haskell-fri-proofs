@@ -46,6 +46,7 @@ newtype Omega = Omega { unOmega :: Scalar }
 
 
 newtype DomainLength = DomainLength { unDomainLength :: Int }
+  deriving Generic
 
 
 newtype ExpansionFactor = ExpansionFactor { unExpansionFactor :: Rational }
