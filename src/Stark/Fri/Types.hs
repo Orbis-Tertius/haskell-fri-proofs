@@ -15,6 +15,10 @@ module Stark.Fri.Types
   , Index (Index, unIndex)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
+  , AY (AY, unAY)
+  , BY (BY, unBY)
+  , CY (CY, unCY)
+  , Query (Query, unQuery)
   , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
   , PolynomialValues (PolynomialValues, unPolynomialValues)
@@ -74,9 +78,24 @@ newtype Codeword = Codeword { unCodeword :: [Scalar] }
   deriving Serialise
 
 
+newtype AY = AY { unAY :: Scalar }
+  deriving (Generic, Serialise)
+
+newtype BY = BY { unBY :: Scalar}
+  deriving (Generic, Serialise)
+
+newtype CY = CY { unCY :: Scalar }
+  deriving (Generic, Serialise)
+
+
+newtype Query = Query { unQuery :: (AY, BY, CY) }
+  deriving (Generic, Serialise)
+
+
 data ProofStream =
   ProofStream
   { commitments :: [Commitment]
+  , queries :: [Query]
   , codewords :: [Codeword]
   , authPaths :: [AuthPath]
   }

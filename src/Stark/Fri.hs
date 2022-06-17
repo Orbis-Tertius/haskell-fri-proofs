@@ -40,7 +40,7 @@ import Data.Tuple.Extra (fst3, snd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), AY (..), BY (..), CY (..), Query (..))
 import Stark.Hash (hash)
 import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
@@ -113,18 +113,23 @@ splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha)
 
 
 addCommitment :: Commitment -> ProofStream -> ProofStream
-addCommitment c (ProofStream commitments codewords authPaths)
-  = ProofStream (c : commitments) codewords authPaths
+addCommitment c (ProofStream commitments queries codewords authPaths)
+  = ProofStream (c : commitments) queries codewords authPaths
+
+
+addQuery :: Query -> ProofStream -> ProofStream
+addQuery q (ProofStream commitments queries codewords authPaths)
+  = ProofStream commitments (q : queries) codewords authPaths
 
 
 addCodeword :: Codeword -> ProofStream -> ProofStream
-addCodeword c (ProofStream commitments codewords authPaths)
-  = ProofStream commitments (c : codewords) authPaths
+addCodeword c (ProofStream commitments queries codewords authPaths)
+  = ProofStream commitments queries (c : codewords) authPaths
 
 
 addAuthPath :: AuthPath -> ProofStream -> ProofStream
-addAuthPath p (ProofStream commitments codewords authPaths)
-  = ProofStream commitments codewords (p : authPaths)
+addAuthPath p (ProofStream commitments queries codewords authPaths)
+  = ProofStream commitments queries codewords (p : authPaths)
 
 
 commitCodeword :: Codeword -> Commitment
@@ -202,7 +207,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
   | unDomainLength domainLength == length (unCodeword codeword) =
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
-                      omega offset codeword (ProofStream [] [] [])
+                      omega offset codeword (ProofStream [] [] [] [])
         indices = toList $ sampleIndices
                            (fiatShamirSeed proofStream0)
                            (ListSize (length (unCodeword (codewords !! 1))))
@@ -229,7 +234,7 @@ getLastOffset config =
 -- the list of corresponding challenges.
 getAlphas :: [Commitment] -> [Challenge]
 getAlphas roots =
-  fiatShamirChallenge . (\cs -> ProofStream cs [] []) <$> inits roots
+  fiatShamirChallenge . (\cs -> ProofStream cs [] [] []) <$> inits roots
 
 
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
@@ -252,7 +257,7 @@ verify config proofStream =
           topLevelIndices =
             sampleIndices
               (fiatShamirSeed
-                (ProofStream (proofStream ^. #commitments) [lastCodeword] []))
+                (ProofStream (proofStream ^. #commitments) [] [lastCodeword] []))
               (ListSize $ dl `shift` negate 2)
               (ReducedListSize $ dl `shift` negate (nr - 1))
       in if degree poly > maxDegree
