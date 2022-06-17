@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               stark-anatomy
+name:               fri-proofs
 version:            0.1.0.0
 license: NONE
 license-files: LICENSE

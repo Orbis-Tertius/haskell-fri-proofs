@@ -1,6 +1,6 @@
 {
-  nixConfig.bash-prompt = "[nix-develop-stark-anatomy:] ";
-  description = "Hash-based STARK implementation in Haskell for pedagogical purposes";
+  nixConfig.bash-prompt = "[nix-develop-fri-proofs:] ";
+  description = "FRI-based ZKPs in Haskell";
   inputs = {
     # Nixpkgs set to specific URL for haskellNix
     nixpkgs.url = "github:NixOS/nixpkgs/baaf9459d6105c243239289e1e82e3cdd5ac4809";
@@ -39,7 +39,7 @@
           (import "${sydtest-src}/nix/overlay.nix")
           (import "${validity-src}/nix/overlay.nix")
           (final: prev: {
-            stark-anatomy =
+            fri-proofs =
               final.haskell-nix.project' {
                 src = ./.;
                 compiler-nix-name = "ghc8107";
@@ -73,13 +73,13 @@
           })
         ];
         pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
-        flake = pkgs.stark-anatomy.flake { };
+        flake = pkgs.fri-proofs.flake { };
       in flake // {
         
         ciNix = flake-compat-ci.lib.recurseIntoFlakeWith {
           flake = self;
           systems = [ "x86_64-linux" ];
         };
-        defaultPackage = flake.packages."stark-anatomy:lib:stark-anatomy";
+        defaultPackage = flake.packages."fri-proofs:lib:fri-proofs";
       });
 }
