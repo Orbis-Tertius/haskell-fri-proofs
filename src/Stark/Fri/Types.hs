@@ -92,7 +92,7 @@ data ProofStream =
   ProofStream
   { commitments :: [Commitment]
   , queries :: [Query]
-  , codewords :: [Codeword]
+  , lastCodeword :: Maybe Codeword
   , authPaths :: [AuthPath]
   }
   deriving Generic

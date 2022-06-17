@@ -35,7 +35,7 @@ import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
-import Data.List (find, inits, zip4)
+import Data.List (find, inits, zip4, zip5)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Map as Map
@@ -46,7 +46,7 @@ import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
 import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), AY (..), BY (..), CY (..), Query (..))
 import Stark.Hash (hash)
-import Stark.MerkleTree (commit, open)
+import qualified Stark.MerkleTree as Merkle
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Index (Index (..))
@@ -118,6 +118,10 @@ splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha)
   | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]
 
 
+emptyProofStream :: ProofStream
+emptyProofStream = ProofStream [] [] Nothing []
+
+
 addCommitment :: Commitment -> ProofStream -> ProofStream
 addCommitment c (ProofStream commitments queries codewords authPaths)
   = ProofStream (c : commitments) queries codewords authPaths
@@ -129,8 +133,9 @@ addQuery q (ProofStream commitments queries codewords authPaths)
 
 
 addCodeword :: Codeword -> ProofStream -> ProofStream
-addCodeword c (ProofStream commitments queries codewords authPaths)
-  = ProofStream commitments queries (c : codewords) authPaths
+addCodeword c (ProofStream commitments queries Nothing authPaths)
+  = ProofStream commitments queries (Just c) authPaths
+addCodeword _ _ = error "tried to add the last codeword but it is already present"
 
 
 addAuthPath :: AuthPath -> ProofStream -> ProofStream
@@ -139,12 +144,12 @@ addAuthPath p (ProofStream commitments queries codewords authPaths)
 
 
 commitCodeword :: Codeword -> Commitment
-commitCodeword = commit . fromMaybe (error "codeword is not a binary tree") . fromList . unCodeword
+commitCodeword = Merkle.commit . fromMaybe (error "codeword is not a binary tree") . fromList . unCodeword
 
 
 openCodeword :: Codeword -> Index -> AuthPath
 openCodeword (Codeword xs) (Index i) =
-  open (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
+  Merkle.open (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
 
 
 commitPhase :: DomainLength
@@ -183,7 +188,7 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
            cIndices proofStream =
   let aIndices = take n cIndices
       bIndices = take n $ (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
-      leafProofElems = zipWith3 (\a b c -> Codeword [a,b,c])
+      leafProofElems = zipWith3 (\a b c -> Query (AY a, BY b, CY c))
                        ((currentCodeword !!) . fromIntegral <$> aIndices)
                        ((currentCodeword !!) . fromIntegral <$> bIndices)
                        ((nextCodeword !!) . fromIntegral <$> cIndices)
@@ -192,7 +197,7 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
          <> (openCodeword (Codeword currentCodeword) <$> bIndices)
          <> (openCodeword (Codeword nextCodeword) <$> cIndices)
   in foldl (flip addAuthPath)
-     (foldl (flip addCodeword) proofStream (reverse leafProofElems))
+     (foldl (flip addQuery) proofStream (reverse leafProofElems))
      (reverse authPathProofElems)
 
 
@@ -213,7 +218,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
   | unDomainLength domainLength == length (unCodeword codeword) =
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
-                      omega offset codeword (ProofStream [] [] [] [])
+                      omega offset codeword emptyProofStream
         indices = Set.elems $ sampleIndices
                     (fiatShamirSeed proofStream0)
                     (ListSize (length (unCodeword (codewords !! 1))))
@@ -240,7 +245,7 @@ getLastOffset config =
 -- the list of corresponding challenges.
 getAlphas :: [Commitment] -> [Challenge]
 getAlphas roots =
-  fiatShamirChallenge . (\cs -> ProofStream cs [] [] []) <$> inits roots
+  fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> inits roots
 
 
 -- Break a list into equal-sized sublists.
@@ -259,8 +264,8 @@ verify config proofStream =
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
       nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
-  in case (proofStream ^. #commitments, proofStream ^. #codewords) of
-    (lastRoot : _, lastCodeword : (reverse -> codewords)) ->
+  in case (proofStream ^. #commitments, proofStream ^. #lastCodeword) of
+    (lastRoot : _, Just lastCodeword) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
           lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
                        | i <- [0 .. lastCodewordLength] ]
@@ -272,26 +277,28 @@ verify config proofStream =
           topLevelIndices =
             Set.elems $ sampleIndices
               (fiatShamirSeed
-                (ProofStream (proofStream ^. #commitments) [] [lastCodeword] []))
+                (ProofStream (proofStream ^. #commitments) [] (Just lastCodeword) []))
               (ListSize $ dl `shift` negate 2)
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
-      in if degree poly > maxDegree
+      in if degree poly > maxDegree || lastRoot /= commitCodeword lastCodeword
          then Nothing
          else mconcat <$> sequence
-              [ verifyRound config topLevelIndices r alpha q p
-              | (r, alpha, q, p) <- zip4 [0 .. nr - 2]
-                                    alphas
-                                    (segment nt (reverse $ proofStream ^. #queries))
-                                    (segment nt (reverse $ proofStream ^. #authPaths))
+              [ verifyRound config topLevelIndices r alpha rootPair q p
+              | (r, alpha, rootPair, q, p) <-
+                  zip5 [0 .. nr - 2]
+                       alphas
+                       (zip roots (drop 1 roots))
+                       (segment nt (reverse $ proofStream ^. #queries))
+                       (segment nt (reverse $ proofStream ^. #authPaths))
               ]
     _ -> Nothing
 
 
-verifyRound :: FriConfiguration -> [Index] -> Int -> Challenge -> [Query] -> [AuthPath] -> Maybe PolynomialValues
-verifyRound config topLevelIndices r alpha qs ps =
-  let omega = (config ^. #omega) ^ (2 ^ r)
-      offset = (config ^. #offset) ^ (2 ^ r)
+verifyRound :: FriConfiguration -> [Index] -> Int -> Challenge -> (Commitment, Commitment) -> [Query] -> [AuthPath] -> Maybe PolynomialValues
+verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
+  let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
+      offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
       cIndices = (`mod` fromIntegral (dl `shift` negate (r+1))) <$> topLevelIndices
       aIndices = cIndices
@@ -307,9 +314,17 @@ verifyRound config topLevelIndices r alpha qs ps =
         <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
                  (zip (f <$> bIndices) (unBY <$> bys))
                  (zip (repeat (unChallenge alpha)) (unCY <$> cys))
-      authPathChecks = todo
-  in if colinearityChecks && authPathChecks then Just polyVals else Nothing
+      aAuthPathChecks = all (uncurry4 Merkle.verify)
+        $ zip4 (repeat root) aIndices authPaths (unAY <$> ays)
+      bAuthPathChecks = all (uncurry4 Merkle.verify)
+        $ zip4 (repeat root) bIndices authPaths (unBY <$> bys)
+      cAuthPathChecks = all (uncurry4 Merkle.verify)
+        $ zip4 (repeat nextRoot) cIndices authPaths (unCY <$> cys)
+      authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
+  in if colinearityChecks && authPathChecks
+     then Just polyVals
+     else Nothing
 
 
-todo :: a
-todo = todo
+uncurry4 :: (a -> b -> c -> d -> e) -> (a, b, c, d) -> e
+uncurry4 f (a, b, c, d) = f a b c d
