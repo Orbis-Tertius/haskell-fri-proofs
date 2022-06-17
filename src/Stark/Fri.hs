@@ -1,3 +1,6 @@
+{-# LANGUAGE OverloadedLabels #-}
+
+
 module Stark.Fri
   ( numRounds
   , evalDomain
@@ -15,21 +18,28 @@ module Stark.Fri
   , queryRound
   , queryPhase
   , prove
+
+  , lastOmega
+  , lastOffset
+  , alphas
+  , verify
   ) where
 
 
 import Codec.Serialise (serialise)
+import Control.Lens ((^.))
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
-import Data.List (find)
+import Data.Generics.Labels ()
+import Data.List (find, inits)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set, size, member, insert, toList)
 import Data.Tuple.Extra (fst3, snd3)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), Index (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..))
 import Stark.Hash (hash)
 import Stark.MerkleTree (commit, open)
 import Stark.Types.AuthPath (AuthPath)
@@ -199,3 +209,31 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
         proofStream1 = queryPhase numColinearityTests codewords indices proofStream0
     in (proofStream1, indices)
   | otherwise = error "domain length does not match length of initial codeword"
+
+
+lastOmega :: FriConfiguration -> Omega
+lastOmega config =
+  iterate (^ (2 :: Int)) (config ^. #omega)
+  !! numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+
+
+lastOffset :: FriConfiguration -> Offset
+lastOffset config =
+  iterate (^ (2 :: Int)) (config ^. #offset)
+  !! numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+
+
+-- Takes the reversed list of commitments from the proof stream and provides
+-- the list of corresponding challenges.
+alphas :: [Commitment] -> [Challenge]
+alphas commitments =
+  fiatShamirChallenge . (\cs -> ProofStream cs [] []) <$> inits commitments
+
+
+-- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
+verify :: FriConfiguration -> ProofStream -> Maybe PolynomialValues
+verify = todo
+
+
+todo :: a
+todo = todo

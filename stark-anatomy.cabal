@@ -33,6 +33,8 @@ library
     containers,
     extra,
     finite-field,
+    generic-lens,
+    lens,
     listsafe,
     polynomial-algebra,
     serialise

@@ -17,6 +17,7 @@ module Stark.Fri.Types
   , Codeword (Codeword, unCodeword)
   , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
+  , PolynomialValues (PolynomialValues, unPolynomialValues)
   , FriConfiguration (FriConfiguration)
   ) where
 
@@ -24,6 +25,7 @@ module Stark.Fri.Types
 import Codec.Serialise (Serialise)
 import Data.Bits (Bits)
 import Data.ByteString (ByteString)
+import Data.Map (Map)
 import GHC.Generics (Generic)
 
 import Stark.Types.AuthPath (AuthPath)
@@ -87,10 +89,15 @@ newtype Challenge = Challenge { unChallenge :: Scalar }
   deriving Serialise
 
 
+newtype PolynomialValues = PolynomialValues { unPolynomialValues :: Map Index Scalar }
+
+
 data FriConfiguration =
   FriConfiguration
-  Offset
-  Omega
-  DomainLength
-  ExpansionFactor
-  NumColinearityTests
+  { offset :: Offset
+  , omega :: Omega
+  , domainLength :: DomainLength
+  , expansionFactor :: ExpansionFactor
+  , numColinearityTests :: NumColinearityTests
+  }
+  deriving Generic
