@@ -52,6 +52,9 @@ test-suite spec
   type: exitcode-stdio-1.0
   main-is: Spec.hs
 
+  other-modules:
+    Spec.Gen
+
   build-tools: sydtest-discover
 
   build-depends:
