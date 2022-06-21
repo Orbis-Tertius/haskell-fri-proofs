@@ -54,6 +54,7 @@ test-suite spec
 
   other-modules:
     Spec.Gen
+    Spec.Prelude
 
   build-tools: sydtest-discover
 
@@ -65,12 +66,20 @@ test-suite spec
     extra,
     finite-field,
     generic-lens,
+    genvalidity,
+    genvalidity-sydtest,
+    genvalidity-sydtest-aeson,
+    hedgehog,
     lens,
     listsafe,
     polynomial-algebra,
+    QuickCheck,
     serialise,
     sydtest,
-    sydtest-discover
+    sydtest-discover,
+    validity,
+
+    fri-proofs
 
   hs-source-dirs: test
   default-language: Haskell2010
