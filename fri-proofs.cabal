@@ -46,3 +46,32 @@ library
           -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
           -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
           -threaded -rtsopts -with-rtsopts=-N
+
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+
+  build-tools: sydtest-discover
+
+  build-depends:
+    base >= 4.9 && < 5,
+    blake2,
+    bytestring,
+    containers,
+    extra,
+    finite-field,
+    generic-lens,
+    lens,
+    listsafe,
+    polynomial-algebra,
+    serialise,
+    sydtest,
+    sydtest-discover
+
+  hs-source-dirs: test
+  default-language: Haskell2010
+  ghc-options:
+          -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
+          -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
+          -threaded -rtsopts -with-rtsopts=-N
