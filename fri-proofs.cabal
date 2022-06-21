@@ -55,6 +55,7 @@ test-suite spec
   other-modules:
     Spec.Gen
     Spec.Prelude
+    Spec.Stark.Fri
 
   build-tools: sydtest-discover
 
