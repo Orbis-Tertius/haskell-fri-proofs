@@ -17,10 +17,11 @@ import Control.Lens ((^.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Generics.Labels ()
+import Data.Maybe (fromMaybe)
 
 import Spec.Prelude
-import Stark.FiniteField (cardinality)
-import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), AY (..), BY (..), CY (..), Query (..))
+import Stark.FiniteField (cardinality, generator, primitiveNthRoot)
+import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), AY (..), BY (..), CY (..), Query (..), Offset (..), DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Omega (..))
 import Stark.Types.AuthPath (AuthPath (..))
 import Stark.Types.Commitment (Commitment (..))
 import Stark.Types.MerkleHash (MerkleHash (..))
@@ -28,7 +29,15 @@ import Stark.Types.Scalar (Scalar (..))
 
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = todo
+genFriConfiguration =
+  pure $ FriConfiguration
+  (Offset generator)
+  (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (fromIntegral dl))
+  (DomainLength dl)
+  (ExpansionFactor 4)
+  (NumColinearityTests 64)
+  where
+    dl = 32 -- TODO is this a good value?
 
 
 genProofStream :: FriConfiguration -> Gen ProofStream
@@ -65,7 +74,3 @@ genCodeword config =
 
 genScalar :: Gen Scalar
 genScalar = Scalar . fromIntegral <$> choose (0, cardinality - 1)
-
-
-todo :: a
-todo = todo
