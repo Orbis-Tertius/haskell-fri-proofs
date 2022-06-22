@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# OPTIONS_GHC -Wno-unused-local-binds -Wno-unused-top-binds -Wno-unused-imports #-}
 
 
 module Stark.Fri
@@ -39,7 +38,7 @@ import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
-import Data.List (find, inits, zip4, zip5, nub, sort)
+import Data.List (find, inits, zip4, zip5)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Map as Map

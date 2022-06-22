@@ -1,11 +1,9 @@
-{-# OPTIONS_GHC -Wno-unused-imports -Wno-unused-top-binds #-}
-
 module Spec.Stark.FriSpec ( spec ) where
 
 
 import Spec.Prelude
 import Spec.Gen (genFriConfiguration, genProofStream, genLowDegreePoly)
-import Stark.Fri (verify, prove, getCodeword, emptyProofStream)
+import Stark.Fri (verify, prove, getCodeword)
 
 
 spec :: Spec
