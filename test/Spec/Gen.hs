@@ -39,18 +39,6 @@ genFriConfiguration :: Gen FriConfiguration
 genFriConfiguration = pure defaultFriConfiguration
 
 
--- defaultFriConfiguration :: FriConfiguration
--- defaultFriConfiguration =
---    FriConfiguration
---   (Offset generator)
---   (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (fromIntegral dl))
---   (DomainLength dl)
---   (ExpansionFactor 4)
---   (NumColinearityTests 64)
---   where
---     dl = 1024 -- TODO is this a good value?
-
-
 defaultFriConfiguration :: FriConfiguration
 defaultFriConfiguration =
    FriConfiguration
