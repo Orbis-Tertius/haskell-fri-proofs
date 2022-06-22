@@ -11,5 +11,5 @@ import           Data.GenValidity  (GenValid (..), genValidStructurally,
 import           Test.QuickCheck   (Gen, choose, elements, forAll, listOf,
                                     oneof, vectorOf, chooseAny)
 
-import           Test.Syd          (Spec, before, describe, it, shouldBe)
+import           Test.Syd          (Spec, before, describe, it, shouldBe, shouldNotBe)
 import           Test.Syd.Validity (forAllValid)

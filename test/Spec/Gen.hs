@@ -10,6 +10,7 @@ module Spec.Gen
   , genCommitment
   , genByteString
   , genScalar
+  , genLowDegreePoly
   ) where
 
 
@@ -22,10 +23,12 @@ import Data.Maybe (fromMaybe)
 import Spec.Prelude
 import Stark.FiniteField (cardinality, generator, primitiveNthRoot)
 import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), AY (..), BY (..), CY (..), Query (..), Offset (..), DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Omega (..))
+import Stark.Fri (getMaxDegree)
 import Stark.Types.AuthPath (AuthPath (..))
 import Stark.Types.Commitment (Commitment (..))
 import Stark.Types.MerkleHash (MerkleHash (..))
 import Stark.Types.Scalar (Scalar (..))
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 
 
 genFriConfiguration :: Gen FriConfiguration
@@ -70,6 +73,16 @@ genCodeword config =
   Codeword <$> (sequence $ replicate
   (config ^. #domainLength . #unDomainLength)
   genScalar)
+
+
+genLowDegreePoly :: FriConfiguration -> Gen UnivariatePolynomial
+genLowDegreePoly config =
+  let maxDegree = getMaxDegree (config ^. #domainLength)
+  in todo
+
+
+todo :: a
+todo = todo
 
 
 genScalar :: Gen Scalar

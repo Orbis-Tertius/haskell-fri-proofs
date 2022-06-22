@@ -37,21 +37,23 @@ import Stark.Types.Scalar (Scalar)
 
 
 newtype Offset = Offset { unOffset :: Scalar }
-  deriving (Eq, Ord, Num)
+  deriving (Eq, Ord, Num, Show)
 
 
 newtype Omega = Omega { unOmega :: Scalar }
-  deriving (Eq, Ord, Num)
+  deriving (Eq, Ord, Num, Show)
 
 
 newtype DomainLength = DomainLength { unDomainLength :: Int }
-  deriving Generic
+  deriving (Generic, Show)
 
 
 newtype ExpansionFactor = ExpansionFactor { unExpansionFactor :: Rational }
+  deriving (Show)
 
 
 newtype NumColinearityTests = NumColinearityTests { unNumColinearityTests :: Int }
+  deriving (Show)
 
 
 newtype ListSize = ListSize { unListSize :: Int }
@@ -71,21 +73,21 @@ newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
 
 
 newtype Codeword = Codeword { unCodeword :: [Scalar] }
-  deriving Serialise
+  deriving (Serialise, Show)
 
 
 newtype AY = AY { unAY :: Scalar }
-  deriving (Generic, Serialise)
+  deriving (Generic, Serialise, Show)
 
 newtype BY = BY { unBY :: Scalar}
-  deriving (Generic, Serialise)
+  deriving (Generic, Serialise, Show)
 
 newtype CY = CY { unCY :: Scalar }
-  deriving (Generic, Serialise)
+  deriving (Generic, Serialise, Show)
 
 
 newtype Query = Query { unQuery :: (AY, BY, CY) }
-  deriving (Generic, Serialise)
+  deriving (Generic, Serialise, Show)
 
 
 data ProofStream =
@@ -95,7 +97,7 @@ data ProofStream =
   , lastCodeword :: Maybe Codeword
   , authPaths :: [AuthPath]
   }
-  deriving Generic
+  deriving (Generic, Show)
 
 instance Serialise ProofStream
 
@@ -105,7 +107,7 @@ newtype Challenge = Challenge { unChallenge :: Scalar }
 
 
 newtype PolynomialValues = PolynomialValues { unPolynomialValues :: Map Index Scalar }
-  deriving (Semigroup, Monoid)
+  deriving (Eq, Semigroup, Monoid, Show)
 
 
 data FriConfiguration =
@@ -116,4 +118,4 @@ data FriConfiguration =
   , expansionFactor :: ExpansionFactor
   , numColinearityTests :: NumColinearityTests
   }
-  deriving Generic
+  deriving (Generic, Show)

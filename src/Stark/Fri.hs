@@ -3,8 +3,10 @@
 
 
 module Stark.Fri
-  ( numRounds
+  ( getMaxDegree
+  , numRounds
   , evalDomain
+  , getCodeword
   , sampleIndex
   , sampleIndices
   , fiatShamirSeed
@@ -51,7 +53,12 @@ import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Index (Index (..))
 import Stark.Types.Scalar (Scalar)
-import Stark.UnivariatePolynomial (degree, interpolate, areColinear)
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import Stark.UnivariatePolynomial (degree, interpolate, areColinear, evaluate)
+
+
+getMaxDegree :: DomainLength -> Int
+getMaxDegree (DomainLength d) = floor (logBase 2 (fromIntegral d) :: Double)
 
 
 numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> Int
@@ -67,6 +74,11 @@ numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) =
 evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
 evalDomain (Offset o) (Omega m) (DomainLength d)
   = [o * (m ^ i) | i <- [0..d-1]]
+
+
+getCodeword :: FriConfiguration -> UnivariatePolynomial -> Codeword
+getCodeword config poly =
+  Codeword $ evaluate poly <$> evalDomain (config ^. #offset) (config ^. #omega) (config ^. #domainLength)
 
 
 sampleIndex :: ByteString -> ListSize -> Index

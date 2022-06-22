@@ -8,4 +8,4 @@ import Data.Bits (Bits)
 
 
 newtype Index = Index { unIndex :: Int }
-  deriving (Eq, Ord, Num, Enum, Real, Integral, Bits)
+  deriving (Eq, Ord, Num, Enum, Real, Integral, Bits, Show)

@@ -2,8 +2,8 @@ module Spec.Stark.Fri ( spec ) where
 
 
 import Spec.Prelude
-import Spec.Gen (genFriConfiguration, genProofStream)
-import Stark.Fri (verify)
+import Spec.Gen (genFriConfiguration, genProofStream, genLowDegreePoly)
+import Stark.Fri (verify, prove, getCodeword)
 
 
 spec :: Spec
@@ -22,8 +22,7 @@ soundnessTest =
 
 completenessTest :: Spec
 completenessTest =
-  it "creates proofs of true statements which are accepted" $ return ()
-
-
-todo :: a
-todo = todo
+  it "creates proofs of true statements which are accepted" $
+    forAll genFriConfiguration $ \config ->
+      forAll (genLowDegreePoly config) $ \poly ->
+        verify config (fst (prove config (getCodeword config poly))) `shouldNotBe` Nothing
