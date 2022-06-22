@@ -298,9 +298,10 @@ verify config proofStream =
               (ListSize $ dl `shift` negate 2)
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
-      in if degree poly > maxDegree || lastRoot /= commitCodeword lastCodeword
-         then trace (if degree poly <= maxDegree then "lastRoot /= commitCodeword lastCodeword"
-                     else "degree poly > maxDegree")
+      in if lastRoot /= commitCodeword lastCodeword || degree poly > maxDegree
+         then trace (if lastRoot == commitCodeword lastCodeword
+                     then "degree poly > maxDegree"
+                     else "lastRoot /= commitCodeword lastCodeword")
               Nothing
          else mconcat <$> sequence
               [ verifyRound config topLevelIndices r alpha rootPair q p
@@ -319,7 +320,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
   let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
       offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
-      cIndices = (`mod` fromIntegral (dl `shift` negate (r+1))) <$> topLevelIndices
+      cIndices = (`mod` max 1 (fromIntegral (dl `shift` negate (r+1)))) <$> topLevelIndices -- TODO: is max 1 secure as a way to prevent div by zero or does this need to be done differently?
       aIndices = cIndices
       bIndices = (+ fromIntegral (dl `shift` negate (r+1))) <$> aIndices
       ays = fst3 . unQuery <$> qs
