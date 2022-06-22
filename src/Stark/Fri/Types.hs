@@ -73,21 +73,21 @@ newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
 
 
 newtype Codeword = Codeword { unCodeword :: [Scalar] }
-  deriving (Serialise, Show)
+  deriving (Eq, Serialise, Show)
 
 
 newtype AY = AY { unAY :: Scalar }
-  deriving (Generic, Serialise, Show)
+  deriving (Eq, Generic, Serialise, Show)
 
 newtype BY = BY { unBY :: Scalar}
-  deriving (Generic, Serialise, Show)
+  deriving (Eq, Generic, Serialise, Show)
 
 newtype CY = CY { unCY :: Scalar }
-  deriving (Generic, Serialise, Show)
+  deriving (Eq, Generic, Serialise, Show)
 
 
 newtype Query = Query { unQuery :: (AY, BY, CY) }
-  deriving (Generic, Serialise, Show)
+  deriving (Eq, Generic, Serialise, Show)
 
 
 data ProofStream =
@@ -97,7 +97,7 @@ data ProofStream =
   , lastCodeword :: Maybe Codeword
   , authPaths :: [AuthPath]
   }
-  deriving (Generic, Show)
+  deriving (Eq, Generic, Show)
 
 instance Serialise ProofStream
 

@@ -3,6 +3,7 @@
 
 module Spec.Gen
   ( genFriConfiguration
+  , defaultFriConfiguration
   , genProofStream
   , genCodeword
   , genQuery
@@ -35,15 +36,32 @@ import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration =
-  pure $ FriConfiguration
+genFriConfiguration = pure defaultFriConfiguration
+
+
+-- defaultFriConfiguration :: FriConfiguration
+-- defaultFriConfiguration =
+--    FriConfiguration
+--   (Offset generator)
+--   (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (fromIntegral dl))
+--   (DomainLength dl)
+--   (ExpansionFactor 4)
+--   (NumColinearityTests 64)
+--   where
+--     dl = 1024 -- TODO is this a good value?
+
+
+defaultFriConfiguration :: FriConfiguration
+defaultFriConfiguration =
+   FriConfiguration
   (Offset generator)
   (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (fromIntegral dl))
   (DomainLength dl)
-  (ExpansionFactor 4)
-  (NumColinearityTests 64)
+  (ExpansionFactor 2)
+  (NumColinearityTests 2)
   where
-    dl = 32 -- TODO is this a good value?
+    dl = 16
+
 
 
 genProofStream :: FriConfiguration -> Gen ProofStream
@@ -83,7 +101,8 @@ genLowDegreePoly config = do
   let maxDegree = getMaxDegree (config ^. #domainLength)
   coefs <- vectorOf maxDegree genScalar
   let monos = U <$> [0..maxDegree-1]
-  pure . Uni . FreeMod . Map.fromList $ zip monos coefs
+  pure . Uni . FreeMod . Map.fromList
+    . filter ((/= 0) . snd) $ zip monos coefs
 
 
 genScalar :: Gen Scalar

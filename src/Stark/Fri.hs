@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -Wno-unused-local-binds -Wno-unused-top-binds -Wno-unused-imports #-}
 
 
 module Stark.Fri
@@ -22,6 +23,7 @@ module Stark.Fri
   , openCodeword
   , queryRound
   , queryPhase
+  , emptyProofStream
   , prove
 
   , getLastOmega
@@ -37,7 +39,7 @@ import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
-import Data.List (find, inits, zip4, zip5)
+import Data.List (find, inits, zip4, zip5, nub, sort)
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Map as Map
@@ -215,7 +217,7 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
 
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase numColinearityTests codewords indices proofStream =
-  snd3 $ (iterate f (indices, proofStream, 0)) !! (length codewords - 2)
+  snd3 $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
@@ -243,14 +245,14 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
 
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
-  iterate (^ (2 :: Int)) (config ^. #omega)
-  !! numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  in (config ^. #omega) ^ (2 * (nr - 1))
 
 
 getLastOffset :: FriConfiguration -> Offset
 getLastOffset config =
-  iterate (^ (2 :: Int)) (config ^. #offset)
-  !! numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  in (config ^. #offset) ^ (2 * (nr - 1))
 
 
 -- Takes the reversed list of commitments from the proof stream and provides
@@ -280,7 +282,7 @@ verify config proofStream =
     (lastRoot : _, Just lastCodeword) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
           lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
-                       | i <- [0 .. lastCodewordLength] ]
+                       | i <- [0 .. lastCodewordLength - 1] ]
           poly = interpolate (zip lastDomain (unCodeword lastCodeword))
           maxDegree = floor (fromIntegral lastCodewordLength
                            / unExpansionFactor (config ^. #expansionFactor)) - 1
