@@ -1,4 +1,4 @@
-module Spec.Stark.Fri ( spec ) where
+module Spec.Stark.FriSpec ( spec ) where
 
 
 import Spec.Prelude

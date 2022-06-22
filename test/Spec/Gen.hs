@@ -18,7 +18,10 @@ import Control.Lens ((^.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.Generics.Labels ()
+import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
+import Math.Algebra.Polynomial.Univariate (U (..), Univariate (Uni))
 
 import Spec.Prelude
 import Stark.FiniteField (cardinality, generator, primitiveNthRoot)
@@ -76,13 +79,11 @@ genCodeword config =
 
 
 genLowDegreePoly :: FriConfiguration -> Gen UnivariatePolynomial
-genLowDegreePoly config =
+genLowDegreePoly config = do
   let maxDegree = getMaxDegree (config ^. #domainLength)
-  in todo
-
-
-todo :: a
-todo = todo
+  coefs <- vectorOf maxDegree genScalar
+  let monos = U <$> [0..maxDegree-1]
+  pure . Uni . FreeMod . Map.fromList $ zip monos coefs
 
 
 genScalar :: Gen Scalar
