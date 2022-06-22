@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-}
+{-# OPTIONS_GHC -Wno-unused-imports -Wno-unused-top-binds #-}
 
 module Spec.Stark.FriSpec ( spec ) where
 
@@ -10,16 +10,16 @@ import Stark.Fri (verify, prove, getCodeword, emptyProofStream)
 
 spec :: Spec
 spec = describe "Fri" $ do
-  --soundnessTest
+  soundnessTest
   completenessTest
 
 
---soundnessTest :: Spec
---soundnessTest =
---  it "rejects invalid proofs" $
---    forAll genFriConfiguration $ \config ->
---      forAll (genProofStream config) $ \proof ->
---        verify config proof `shouldBe` Nothing
+soundnessTest :: Spec
+soundnessTest =
+  it "rejects invalid proofs" $
+    forAll genFriConfiguration $ \config ->
+      forAll (genProofStream config) $ \proof ->
+        verify config proof `shouldBe` Nothing
 
 
 completenessTest :: Spec

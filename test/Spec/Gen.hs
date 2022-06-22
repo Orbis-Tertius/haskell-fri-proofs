@@ -60,7 +60,7 @@ defaultFriConfiguration =
   (ExpansionFactor 2)
   (NumColinearityTests 2)
   where
-    dl = 16
+    dl = 32
 
 
 

@@ -45,6 +45,7 @@ import Data.Set (Set)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tuple.Extra (fst3, snd3, thd3)
+import Debug.Trace (trace)
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
@@ -179,7 +180,10 @@ commitPhase domainLength expansionFactor numColinearityTests omega offset codewo
         (proofStream', codewords', codeword', _, _) =
           (iterate commitRound (proofStream, [], codeword, omega, offset))
           !! (n-1)
-    in (addCodeword codeword' proofStream', codeword' : codewords')
+    in ( addCodeword codeword'
+         ( addCommitment (commitCodeword codeword')
+           proofStream' )
+       , codeword' : codewords' )
 
 
 commitRound ::(ProofStream, [Codeword], Codeword, Omega, Offset)
@@ -284,8 +288,7 @@ verify config proofStream =
           lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
                        | i <- [0 .. lastCodewordLength - 1] ]
           poly = interpolate (zip lastDomain (unCodeword lastCodeword))
-          maxDegree = floor (fromIntegral lastCodewordLength
-                           / unExpansionFactor (config ^. #expansionFactor)) - 1
+          maxDegree = getMaxDegree (config ^. #domainLength)
           dl = unDomainLength (config ^. #domainLength)
           nt = unNumColinearityTests (config ^. #numColinearityTests)
           topLevelIndices =
@@ -296,7 +299,9 @@ verify config proofStream =
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
       in if degree poly > maxDegree || lastRoot /= commitCodeword lastCodeword
-         then Nothing
+         then trace (if degree poly <= maxDegree then "lastRoot /= commitCodeword lastCodeword"
+                     else "degree poly > maxDegree")
+              Nothing
          else mconcat <$> sequence
               [ verifyRound config topLevelIndices r alpha rootPair q p
               | (r, alpha, rootPair, q, p) <-
@@ -306,7 +311,7 @@ verify config proofStream =
                        (segment nt (reverse $ proofStream ^. #queries))
                        (segment nt (reverse $ proofStream ^. #authPaths))
               ]
-    _ -> Nothing
+    _ -> trace "missing last root or last codeword" Nothing
 
 
 verifyRound :: FriConfiguration -> [Index] -> Int -> Challenge -> (Commitment, Commitment) -> [Query] -> [AuthPath] -> Maybe PolynomialValues
@@ -337,7 +342,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
   in if colinearityChecks && authPathChecks
      then Just polyVals
-     else Nothing
+     else trace "round check failed" Nothing
 
 
 uncurry4 :: (a -> b -> c -> d -> e) -> (a, b, c, d) -> e
