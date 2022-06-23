@@ -1,15 +1,20 @@
 module Spec.Stark.FriSpec ( spec ) where
 
 
+import qualified Data.Map as Map
+
 import Spec.Prelude
 import Spec.Gen (genFriConfiguration, genProofStream, genLowDegreePoly)
 import Stark.Fri (verify, prove, getCodeword)
+import Stark.Fri.Types (PolynomialValues (..), Codeword (..))
+import Stark.UnivariatePolynomial (evaluate)
 
 
 spec :: Spec
 spec = describe "Fri" $ do
   soundnessTest
   completenessTest
+  evaluationTest
 
 
 soundnessTest :: Spec
@@ -26,3 +31,15 @@ completenessTest =
     forAll genFriConfiguration $ \config ->
       forAll (genLowDegreePoly config) $ \poly -> 
         verify config (fst (prove config (getCodeword config poly))) `shouldNotBe` Nothing
+
+
+evaluationTest :: Spec
+evaluationTest =
+  it "produces correct openings at the indices" $
+    forAll genFriConfiguration $ \config ->
+      forAll (genLowDegreePoly config) $ \poly ->
+        let codeword = getCodeword config poly
+            (proofStream, indices) = prove config codeword
+            openings = PolynomialValues . Map.fromList . zip indices
+              $ evaluate poly . (unCodeword codeword !!) . fromIntegral <$> indices
+        in verify config proofStream `shouldBe` Just openings
