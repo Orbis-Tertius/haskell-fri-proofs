@@ -46,9 +46,9 @@ defaultFriConfiguration =
   (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (fromIntegral dl))
   (DomainLength dl)
   (ExpansionFactor 2)
-  (NumColinearityTests 2)
+  (NumColinearityTests 4)
   where
-    dl = 64
+    dl = 256
 
 
 

@@ -18,6 +18,7 @@ spec :: Spec
 spec = describe "Fri" $ do
   soundnessTest
   completenessTest
+  -- if False then completenessTest else return ()
   -- evaluationTest
 
 

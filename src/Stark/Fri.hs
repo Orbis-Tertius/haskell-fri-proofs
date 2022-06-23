@@ -234,7 +234,7 @@ queryPhase numColinearityTests codewords indices proofStream =
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
 prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests) codeword
   | unDomainLength domainLength == length (unCodeword codeword) =
-    let (proofStream0, codewords) =
+    let (proofStream0, reverse -> codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
                       omega offset codeword emptyProofStream
         indices = Set.elems $ sampleIndices
