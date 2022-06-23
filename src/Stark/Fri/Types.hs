@@ -41,7 +41,7 @@ newtype Offset = Offset { unOffset :: Scalar }
 
 
 newtype Omega = Omega { unOmega :: Scalar }
-  deriving (Eq, Ord, Num, Show)
+  deriving (Eq, Ord, Num, Show, Generic)
 
 
 newtype DomainLength = DomainLength { unDomainLength :: Int }
