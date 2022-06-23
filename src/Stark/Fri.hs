@@ -218,13 +218,14 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
      (reverse authPathProofElems)
 
 
+-- Index out of range error in queryPhase
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase numColinearityTests codewords indices proofStream =
   snd3 $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` (Index (length (unCodeword (codewords !! i)) `quot` 2))) <$> indices
+      ( (`mod` (Index (length (unCodeword (codewords !! i)) `quot` 2))) <$> indices'
       , queryRound numColinearityTests (codewords !! i, codewords !! (i+1)) indices' proofStream'
       , i+1
       )
