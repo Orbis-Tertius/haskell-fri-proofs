@@ -31,7 +31,7 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, sydtest-src, validity-src, haskellNix,  flake-compat, flake-compat-ci }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
+    flake-utils.lib.eachSystem [ "x86_64-linux" "aarch64-linux" ] (system:
       let
         deferPluginErrors = true;
         overlays = [
@@ -78,7 +78,7 @@
         
         ciNix = flake-compat-ci.lib.recurseIntoFlakeWith {
           flake = self;
-          systems = [ "x86_64-linux" ];
+          systems = [ "x86_64-linux" "aarch64-linux" ];
         };
         defaultPackage = flake.packages."fri-proofs:lib:fri-proofs";
       });
