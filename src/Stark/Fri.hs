@@ -138,12 +138,12 @@ emptyProofStream = ProofStream [] [] Nothing []
 
 addCommitment :: Commitment -> ProofStream -> ProofStream
 addCommitment c (ProofStream commitments queries codewords authPaths)
-  = ProofStream (c : commitments) queries codewords authPaths
+  = ProofStream (commitments ++ [c]) queries codewords authPaths
 
 
 addQuery :: Query -> ProofStream -> ProofStream
 addQuery q (ProofStream commitments queries codewords authPaths)
-  = ProofStream commitments (q : queries) codewords authPaths
+  = ProofStream commitments (queries ++ [q]) codewords authPaths
 
 
 addCodeword :: Codeword -> ProofStream -> ProofStream
@@ -154,7 +154,7 @@ addCodeword _ _ = error "tried to add the last codeword but it is already presen
 
 addAuthPath :: AuthPath -> ProofStream -> ProofStream
 addAuthPath p (ProofStream commitments queries codewords authPaths)
-  = ProofStream commitments queries codewords (p : authPaths)
+  = ProofStream commitments queries codewords (authPaths ++ [p])
 
 
 commitCodeword :: Codeword -> Commitment
@@ -182,7 +182,7 @@ commitPhase domainLength expansionFactor numColinearityTests omega offset codewo
     in ( addCodeword codeword'
          ( addCommitment (commitCodeword codeword')
            proofStream' )
-       , codeword' : codewords' )
+       , codewords' ++ [codeword'] )
 
 
 commitRound ::(ProofStream, [Codeword], Codeword, Omega, Offset)
@@ -214,8 +214,8 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
          <> (openCodeword (Codeword currentCodeword) <$> bIndices)
          <> (openCodeword (Codeword nextCodeword) <$> cIndices)
   in foldl (flip addAuthPath)
-     (foldl (flip addQuery) proofStream (reverse leafProofElems))
-     (reverse authPathProofElems)
+     (foldl (flip addQuery) proofStream (leafProofElems))
+     (authPathProofElems)
 
 
 -- Index out of range error in queryPhase
@@ -234,7 +234,7 @@ queryPhase numColinearityTests codewords indices proofStream =
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
 prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests) codeword
   | unDomainLength domainLength == length (unCodeword codeword) =
-    let (proofStream0, reverse -> codewords) =
+    let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
                       omega offset codeword emptyProofStream
         indices = Set.elems $ sampleIndices
@@ -259,7 +259,7 @@ getLastOffset config =
   in (config ^. #offset) ^ (2 * (nr - 1))
 
 
--- Takes the reversed list of commitments from the proof stream and provides
+-- Takes the list of commitments from the proof stream and provides
 -- the list of corresponding challenges.
 getAlphas :: [Commitment] -> [Challenge]
 getAlphas roots =
@@ -277,13 +277,14 @@ segment n xs =
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
 verify :: FriConfiguration -> ProofStream -> Maybe PolynomialValues
 verify config proofStream =
-  let roots = reverse (proofStream ^. #commitments)
+  let roots = proofStream ^. #commitments
       alphas = getAlphas roots
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
       nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
-  in case (proofStream ^. #commitments, proofStream ^. #lastCodeword) of
-    (lastRoot : _, Just lastCodeword) ->
+      lastRoot = roots !! (length roots - 1)
+  in case (proofStream ^. #lastCodeword) of
+    (Just lastCodeword) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
           lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
                        | i <- [0 .. lastCodewordLength - 1] ]
@@ -309,10 +310,10 @@ verify config proofStream =
                   zip5 [0 .. nr - 2]
                        alphas
                        (zip roots (drop 1 roots))
-                       (segment nt (reverse $ proofStream ^. #queries))
-                       (segment nt (reverse $ proofStream ^. #authPaths))
+                       (segment nt (proofStream ^. #queries))
+                       (segment nt (proofStream ^. #authPaths))
               ]
-    _ -> trace "missing last root or last codeword" Nothing
+    _ -> trace "missing last codeword" Nothing
 
 
 verifyRound :: FriConfiguration -> [Index] -> Int -> Challenge -> (Commitment, Commitment) -> [Query] -> [AuthPath] -> Maybe PolynomialValues
@@ -343,7 +344,9 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
   in if colinearityChecks && authPathChecks
      then Just polyVals
-     else trace "round check failed" Nothing
+     else if colinearityChecks
+          then trace "auth path check failed" Nothing
+          else trace "colinearity check failed" Nothing
 
 
 uncurry4 :: (a -> b -> c -> d -> e) -> (a, b, c, d) -> e
