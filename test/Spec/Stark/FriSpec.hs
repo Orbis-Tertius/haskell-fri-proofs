@@ -16,7 +16,7 @@ import Stark.Fri (verify, prove, getCodeword)
 
 spec :: Spec
 spec = describe "Fri" $ do
-  soundnessTest
+  if False then soundnessTest else return ()
   completenessTest
   -- if False then completenessTest else return ()
   -- evaluationTest

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE ViewPatterns #-}
-
+{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 module Stark.Fri
   ( getMaxDegree
@@ -39,12 +39,14 @@ import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
 import Data.List (find, inits, zip4, zip5)
+import Data.List.Safe ((!!))
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tuple.Extra (fst3, snd3, thd3)
 import Debug.Trace (trace)
+import Prelude hiding ((!!))
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
@@ -177,6 +179,7 @@ commitPhase :: DomainLength
 commitPhase domainLength expansionFactor numColinearityTests omega offset codeword proofStream
   = let n = numRounds domainLength expansionFactor numColinearityTests
         (proofStream', codewords', codeword', _, _) =
+          fromMaybe (error "could not find last commit round") $
           (iterate commitRound (proofStream, [], codeword, omega, offset))
           !! (n-1)
     in ( addCodeword codeword'
@@ -205,10 +208,11 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
            cIndices proofStream =
   let aIndices = take n cIndices
       bIndices = take n $ (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
-      leafProofElems = zipWith3 (\a b c -> Query (AY a, BY b, CY c))
-                       ((currentCodeword !!) . fromIntegral <$> aIndices)
-                       ((currentCodeword !!) . fromIntegral <$> bIndices)
-                       ((nextCodeword !!) . fromIntegral <$> cIndices)
+      leafProofElems = fromMaybe (error "missing leaf") <$>
+         zipWith3 (\a b c -> Query <$> ((,,) <$> (AY <$> a) <*> (BY <$> b) <*> (CY <$> c)))
+         ((currentCodeword !!) <$> aIndices)
+         ((currentCodeword !!) <$> bIndices)
+         ((nextCodeword !!) <$> cIndices)
       authPathProofElems =
         (openCodeword (Codeword currentCodeword) <$> aIndices)
          <> (openCodeword (Codeword currentCodeword) <$> bIndices)
@@ -221,14 +225,19 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
 -- Index out of range error in queryPhase
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase numColinearityTests codewords indices proofStream =
-  snd3 $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
+  snd3 . fromMaybe (error "could not find last query round")
+    $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` (Index (length (unCodeword (codewords !! i)) `quot` 2))) <$> indices'
-      , queryRound numColinearityTests (codewords !! i, codewords !! (i+1)) indices' proofStream'
+      ( (`mod` (Index (length (unCodeword (e 1 (codewords !! i))) `quot` 2)))
+        <$> indices'
+      , queryRound numColinearityTests (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
       , i+1
       )
+
+    e :: Int -> Maybe a -> a
+    e x = fromMaybe (error ("missing codeword " <> show x))
 
 
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
@@ -238,9 +247,9 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
           commitPhase domainLength expansionFactor numColinearityTests
                       omega offset codeword emptyProofStream
         indices = Set.elems $ sampleIndices
-                    (fiatShamirSeed proofStream0)
-                    (ListSize (length (unCodeword (codewords !! 1))))
-                    (ReducedListSize (length (unCodeword (codewords !! (length codewords - 1)))))
+          (fiatShamirSeed proofStream0)
+          (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords !! (1 :: Int))))))
+          (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords !! (length codewords - 1))))))
                     (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase numColinearityTests codewords indices proofStream0
     in (proofStream1, indices)
@@ -282,7 +291,7 @@ verify config proofStream =
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
       nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
-      lastRoot = roots !! (length roots - 1)
+      lastRoot = fromMaybe (error "could not find last root") $ roots !! (length roots - 1)
   in case (proofStream ^. #lastCodeword) of
     (Just lastCodeword) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
@@ -330,11 +339,15 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
       polyVals = PolynomialValues . Map.fromList
                $ (zip aIndices (unAY <$> ays)) <> (zip bIndices (unBY <$> bys))
       f = (* unOffset offset) . (unOmega omega ^)
+      --colinearityChecks = all areColinear
+      --  $ (\(a,b,c) -> [a,b,c])
+      --  <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
+      --           (zip (f <$> bIndices) (unBY <$> bys))
+      --           (zip (repeat (unChallenge alpha)) (unCY <$> cys))
       colinearityChecks = all areColinear
-        $ (\(a,b,c) -> [a,b,c])
-        <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
-                 (zip (f <$> bIndices) (unBY <$> bys))
-                 (zip (repeat (unChallenge alpha)) (unCY <$> cys))
+        $ (\(a, b) -> [a,b])
+          <$> (zip (zip (f <$> aIndices) (unAY <$> ays))
+                   (zip (f <$> bIndices) (unBY <$> bys)))
       aAuthPathChecks = all (uncurry4 Merkle.verify)
         $ zip4 (repeat root) aIndices authPaths (unAY <$> ays)
       bAuthPathChecks = all (uncurry4 Merkle.verify)
