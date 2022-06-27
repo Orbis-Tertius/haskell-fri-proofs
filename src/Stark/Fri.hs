@@ -213,8 +213,8 @@ queryRound :: NumColinearityTests
            -> ProofStream
 queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
-  let aIndices = take n cIndices
-      bIndices = take n $ (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
+  let aIndices = cIndices
+      bIndices = (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
       leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
          zipWith3 (\a b c -> Query <$> ((,,) <$> (AY <$> a) <*> (BY <$> b) <*> (CY <$> c)))
          ((currentCodeword !!) <$> aIndices)
@@ -229,7 +229,6 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
      authPathProofElems
 
 
--- Index out of range error in queryPhase
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase numColinearityTests codewords indices proofStream =
   snd3 . fromMaybe (error "could not find last query round")
@@ -257,7 +256,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
           (fiatShamirSeed proofStream0)
           (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords !! (1 :: Int))))))
           (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords !! (length codewords - 1))))))
-                    (SampleSize (unNumColinearityTests numColinearityTests))
+          (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase numColinearityTests codewords indices proofStream0
     in (proofStream1, indices)
   | otherwise = error "domain length does not match length of initial codeword"
