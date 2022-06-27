@@ -194,7 +194,7 @@ commitRound (proofStream, codewords, codeword, omega, offset) =
   let root = commitCodeword codeword
       alpha = fiatShamirChallenge proofStream
       codeword' = splitAndFold omega offset codeword alpha
-  in (addCommitment root proofStream, codeword : codewords, codeword', omega^two, offset^two)
+  in (addCommitment root proofStream, codewords ++ [codeword], codeword', omega^two, offset^two)
   where two :: Integer
         two = 2
 
@@ -208,7 +208,7 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
            cIndices proofStream =
   let aIndices = take n cIndices
       bIndices = take n $ (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
-      leafProofElems = fromMaybe (error "missing leaf") <$>
+      leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
          zipWith3 (\a b c -> Query <$> ((,,) <$> (AY <$> a) <*> (BY <$> b) <*> (CY <$> c)))
          ((currentCodeword !!) <$> aIndices)
          ((currentCodeword !!) <$> bIndices)
