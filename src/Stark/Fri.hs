@@ -192,9 +192,14 @@ commitRound ::(ProofStream, [Codeword], Codeword, Omega, Offset)
             -> (ProofStream, [Codeword], Codeword, Omega, Offset)
 commitRound (proofStream, codewords, codeword, omega, offset) =
   let root = commitCodeword codeword
-      alpha = fiatShamirChallenge proofStream
+      proofStream' = addCommitment root proofStream
+      alpha = fiatShamirChallenge proofStream'
       codeword' = splitAndFold omega offset codeword alpha
-  in (addCommitment root proofStream, codewords ++ [codeword], codeword', omega^two, offset^two)
+  in ( proofStream'
+     , codewords ++ [codeword]
+     , codeword'
+     , omega^two, offset^two
+     )
   where two :: Integer
         two = 2
 
@@ -345,7 +350,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
                  (zip (f <$> bIndices) (unBY <$> bys))
                  (zip (repeat (unChallenge alpha)) (unCY <$> cys))
       aAuthPathChecks = all (uncurry4 Merkle.verify)
-        $ zip4 (repeat root) aIndices authPaths (unAY <$> ays)
+        $ zip4 (repeat root) aIndices authPaths (unAY <$> ays) -- why the same paths every time?
       bAuthPathChecks = all (uncurry4 Merkle.verify)
         $ zip4 (repeat root) bIndices authPaths (unBY <$> bys)
       cAuthPathChecks = all (uncurry4 Merkle.verify)
