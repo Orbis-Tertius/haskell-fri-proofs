@@ -27,7 +27,7 @@ interpolateSpec = describe "interpolate" $
 areColinearSpec :: Spec
 areColinearSpec = describe "areColinear" $ do
   it "recognizes colinear points" $
-    forAll ((,,) <$> genScalar <*> genScalar <*> listOf1 genScalar) $ \(m, b, xs) ->
+    forAll ((,,) <$> genScalar <*> genScalar <*> listOf genScalar) $ \(m, b, xs) ->
       let y x = m * x + b
           ys = y <$> xs
       in zip xs ys `shouldSatisfy` areColinear

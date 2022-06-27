@@ -57,4 +57,4 @@ interpolate f = fromQUni $ lagrangeInterp ((g *** g) <$> f)
 
 
 areColinear :: [(Scalar, Scalar)] -> Bool
-areColinear = (== 1) . degree . interpolate
+areColinear = (< 2) . degree . interpolate
