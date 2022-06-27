@@ -311,7 +311,7 @@ verify config proofStream =
             Set.elems $ sampleIndices
               (fiatShamirSeed
                 (ProofStream (proofStream ^. #commitments) [] (Just lastCodeword) []))
-              (ListSize $ dl `shift` negate 2)
+              (ListSize $ dl `shift` negate 1)
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
       in if lastRoot /= commitCodeword lastCodeword || degree poly > maxDegree
