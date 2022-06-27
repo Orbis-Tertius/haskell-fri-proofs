@@ -339,15 +339,11 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
       polyVals = PolynomialValues . Map.fromList
                $ (zip aIndices (unAY <$> ays)) <> (zip bIndices (unBY <$> bys))
       f = (* unOffset offset) . (unOmega omega ^)
-      --colinearityChecks = all areColinear
-      --  $ (\(a,b,c) -> [a,b,c])
-      --  <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
-      --           (zip (f <$> bIndices) (unBY <$> bys))
-      --           (zip (repeat (unChallenge alpha)) (unCY <$> cys))
       colinearityChecks = all areColinear
-        $ (\(a, b) -> [a,b])
-          <$> (zip (zip (f <$> aIndices) (unAY <$> ays))
-                   (zip (f <$> bIndices) (unBY <$> bys)))
+        $ (\(a,b,c) -> [a,b,c])
+        <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
+                 (zip (f <$> bIndices) (unBY <$> bys))
+                 (zip (repeat (unChallenge alpha)) (unCY <$> cys))
       aAuthPathChecks = all (uncurry4 Merkle.verify)
         $ zip4 (repeat root) aIndices authPaths (unAY <$> ays)
       bAuthPathChecks = all (uncurry4 Merkle.verify)
