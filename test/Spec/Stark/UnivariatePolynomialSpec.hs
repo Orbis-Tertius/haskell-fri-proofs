@@ -10,9 +10,10 @@ import Stark.UnivariatePolynomial (areColinear, evaluate, interpolate)
 
 
 spec :: Spec
-spec = describe "UnivariatePolynomial" $ do
-  interpolateSpec
-  areColinearSpec
+spec = describe "UnivariatePolynomial" $
+  modifyMaxSize (const 8) $ do
+    interpolateSpec
+    areColinearSpec
 
 
 interpolateSpec :: Spec
