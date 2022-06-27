@@ -177,13 +177,12 @@ commitPhase :: DomainLength
             -> Omega
             -> Offset
             -> Codeword
-            -> ProofStream
             -> (ProofStream, [Codeword])
-commitPhase domainLength expansionFactor numColinearityTests omega offset codeword proofStream
+commitPhase domainLength expansionFactor numColinearityTests omega offset codeword
   = let n = numRounds domainLength expansionFactor numColinearityTests
         (proofStream', codewords', codeword', _, _) =
           fromMaybe (error "could not find last commit round") $
-          (iterate commitRound (proofStream, [], codeword, omega, offset))
+          (iterate commitRound (emptyProofStream, [], codeword, omega, offset))
           !! (n-1)
     in ( addCodeword codeword'
          ( addCommitment (commitCodeword codeword')
@@ -226,8 +225,8 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
          <> (openCodeword (Codeword currentCodeword) <$> bIndices)
          <> (openCodeword (Codeword nextCodeword) <$> cIndices)
   in foldl (flip addAuthPath)
-     (foldl (flip addQuery) proofStream (leafProofElems))
-     (authPathProofElems)
+     (foldl (flip addQuery) proofStream leafProofElems)
+     authPathProofElems
 
 
 -- Index out of range error in queryPhase
@@ -253,7 +252,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
   | unDomainLength domainLength == length (unCodeword codeword) =
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests
-                      omega offset codeword emptyProofStream
+                      omega offset codeword
         indices = Set.elems $ sampleIndices
           (fiatShamirSeed proofStream0)
           (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords !! (1 :: Int))))))
@@ -280,7 +279,7 @@ getLastOffset config =
 -- the list of corresponding challenges.
 getAlphas :: [Commitment] -> [Challenge]
 getAlphas roots =
-  fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> inits roots
+  fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> tail (inits roots)
 
 
 -- Break a list into equal-sized sublists.
