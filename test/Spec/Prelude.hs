@@ -8,8 +8,8 @@ module Spec.Prelude
 
 import           Data.GenValidity  (GenValid (..), genValidStructurally,
                                     shrinkValidStructurally)
-import           Test.QuickCheck   (Gen, choose, elements, forAll, listOf,
+import           Test.QuickCheck   (Gen, choose, elements, forAll, listOf, listOf1,
                                     oneof, vectorOf, chooseAny)
 
-import           Test.Syd          (Spec, before, describe, it, shouldBe, shouldNotBe)
+import           Test.Syd          (Spec, before, describe, it, shouldBe, shouldNotBe, shouldSatisfy, shouldNotSatisfy)
 import           Test.Syd.Validity (forAllValid)

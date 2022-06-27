@@ -4,7 +4,6 @@ module Stark.UnivariatePolynomial
   , leadingCoefficient
   , evaluate
   , interpolate
-  , zerofier
   , constant
   , linear
   , areColinear
@@ -55,10 +54,6 @@ interpolate f = fromQUni $ lagrangeInterp ((g *** g) <$> f)
   where
     g :: Scalar -> Rational
     g = fromIntegral . PrimeField.toInteger . unScalar
-
-
-zerofier :: [Scalar] -> UnivariatePolynomial
-zerofier = interpolate . zip (repeat 0)
 
 
 areColinear :: [(Scalar, Scalar)] -> Bool
