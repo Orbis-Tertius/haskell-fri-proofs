@@ -18,7 +18,7 @@ module Stark.Fri
   , addCodeword
   , addCommitment
   , addQuery
-  , addAuthPath
+  , addAuthPaths
   , openCodeword
   , queryRound
   , queryPhase
@@ -50,7 +50,7 @@ import Prelude hiding ((!!))
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), AY (..), BY (..), CY (..), Query (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), A (..), B (..), C (..), Query (..), AuthPaths (..))
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Types.AuthPath (AuthPath)
@@ -157,9 +157,9 @@ addCodeword c (ProofStream commitments queries Nothing authPaths)
 addCodeword _ _ = error "tried to add the last codeword but it is already present"
 
 
-addAuthPath :: AuthPath -> ProofStream -> ProofStream
-addAuthPath p (ProofStream commitments queries codewords authPaths)
-  = ProofStream commitments queries codewords (authPaths ++ [p])
+addAuthPaths :: AuthPaths -> ProofStream -> ProofStream
+addAuthPaths ps (ProofStream commitments queries codewords authPaths)
+  = ProofStream commitments queries codewords (authPaths ++ [ps])
 
 
 commitCodeword :: Codeword -> Commitment
@@ -216,15 +216,18 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
   let aIndices = cIndices
       bIndices = (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
       leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
-         zipWith3 (\a b c -> Query <$> ((,,) <$> (AY <$> a) <*> (BY <$> b) <*> (CY <$> c)))
+         zipWith3 (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
          ((currentCodeword !!) <$> aIndices)
          ((currentCodeword !!) <$> bIndices)
          ((nextCodeword !!) <$> cIndices)
       authPathProofElems =
-        (openCodeword (Codeword currentCodeword) <$> aIndices)
-         <> (openCodeword (Codeword currentCodeword) <$> bIndices)
-         <> (openCodeword (Codeword nextCodeword) <$> cIndices)
-  in foldl (flip addAuthPath)
+        ( \(a, b, c) -> AuthPaths $
+          ( A $ openCodeword (Codeword currentCodeword) a
+          , B $ openCodeword (Codeword currentCodeword) b
+          , C $ openCodeword (Codeword nextCodeword) c
+          )
+        ) <$> (zip3 aIndices bIndices cIndices)
+  in foldl (flip addAuthPaths)
      (foldl (flip addQuery) proofStream leafProofElems)
      authPathProofElems
 
@@ -331,8 +334,15 @@ verify config proofStream =
     _ -> trace "missing last codeword" Nothing
 
 
-verifyRound :: FriConfiguration -> [Index] -> Int -> Challenge -> (Commitment, Commitment) -> [Query] -> [AuthPath] -> Maybe PolynomialValues
-verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
+verifyRound :: FriConfiguration
+            -> [Index]
+            -> Int
+            -> Challenge
+            -> (Commitment, Commitment)
+            -> [Query]
+            -> [AuthPaths]
+            -> Maybe PolynomialValues
+verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
   let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
       offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
@@ -343,19 +353,23 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs authPaths =
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs
       polyVals = PolynomialValues . Map.fromList
-               $ (zip aIndices (unAY <$> ays)) <> (zip bIndices (unBY <$> bys))
+               $ (zip aIndices (unA <$> ays)) <> (zip bIndices (unB <$> bys))
       f = (* unOffset offset) . (unOmega omega ^)
       colinearityChecks = all areColinear
         $ (\(a,b,c) -> [a,b,c])
-        <$> zip3 (zip (f <$> aIndices) (unAY <$> ays))
-                 (zip (f <$> bIndices) (unBY <$> bys))
-                 (zip (repeat (unChallenge alpha)) (unCY <$> cys))
+        <$> zip3 (zip (f <$> aIndices) (unA <$> ays))
+                 (zip (f <$> bIndices) (unB <$> bys))
+                 (zip (repeat (unChallenge alpha)) (unC <$> cys))
+      allPaths = unAuthPaths <$> ps
+      aPaths = unA . fst3 <$> allPaths
+      bPaths = unB . snd3 <$> allPaths
+      cPaths = unC . thd3 <$> allPaths
       aAuthPathChecks = all (uncurry4 Merkle.verify)
-        $ zip4 (repeat root) aIndices authPaths (unAY <$> ays) -- why the same paths every time?
+        $ zip4 (repeat root) aIndices aPaths (unA <$> ays)
       bAuthPathChecks = all (uncurry4 Merkle.verify)
-        $ zip4 (repeat root) bIndices authPaths (unBY <$> bys)
+        $ zip4 (repeat root) bIndices bPaths (unB <$> bys)
       cAuthPathChecks = all (uncurry4 Merkle.verify)
-        $ zip4 (repeat nextRoot) cIndices authPaths (unCY <$> cys)
+        $ zip4 (repeat nextRoot) cIndices cPaths (unC <$> cys)
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
   in if colinearityChecks && authPathChecks
      then Just polyVals

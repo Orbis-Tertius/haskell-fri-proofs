@@ -14,10 +14,11 @@ module Stark.Fri.Types
   , SampleSize (SampleSize, unSampleSize)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
-  , AY (AY, unAY)
-  , BY (BY, unBY)
-  , CY (CY, unCY)
+  , A (A, unA)
+  , B (B, unB)
+  , C (C, unC)
   , Query (Query, unQuery)
+  , AuthPaths (AuthPaths, unAuthPaths)
   , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
   , PolynomialValues (PolynomialValues, unPolynomialValues)
@@ -76,17 +77,24 @@ newtype Codeword = Codeword { unCodeword :: [Scalar] }
   deriving (Eq, Serialise, Show)
 
 
-newtype AY = AY { unAY :: Scalar }
+newtype A a = A { unA :: a }
   deriving (Eq, Generic, Serialise, Show)
 
-newtype BY = BY { unBY :: Scalar}
+newtype B a = B { unB :: a }
   deriving (Eq, Generic, Serialise, Show)
 
-newtype CY = CY { unCY :: Scalar }
+newtype C a = C { unC :: a }
   deriving (Eq, Generic, Serialise, Show)
 
 
-newtype Query = Query { unQuery :: (AY, BY, CY) }
+type ABC a = (A a, B a, C a)
+
+
+newtype Query = Query { unQuery :: ABC Scalar }
+  deriving (Eq, Generic, Serialise, Show)
+
+
+newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
   deriving (Eq, Generic, Serialise, Show)
 
 
@@ -95,7 +103,7 @@ data ProofStream =
   { commitments :: [Commitment]
   , queries :: [Query]
   , lastCodeword :: Maybe Codeword
-  , authPaths :: [AuthPath]
+  , authPaths :: [AuthPaths]
   }
   deriving (Eq, Generic, Show)
 

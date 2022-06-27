@@ -26,7 +26,7 @@ import Math.Algebra.Polynomial.Univariate (U (..), Univariate (Uni))
 
 import Spec.Prelude
 import Stark.FiniteField (cardinality, generator, primitiveNthRoot)
-import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), AY (..), BY (..), CY (..), Query (..), Offset (..), DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Omega (..))
+import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), A (..), B (..), C (..), Query (..), Offset (..), DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Omega (..), AuthPaths (..))
 import Stark.Fri (getMaxDegree)
 import Stark.Types.AuthPath (AuthPath (..))
 import Stark.Types.Commitment (Commitment (..))
@@ -58,7 +58,15 @@ genProofStream config =
   <$> listOf genCommitment
   <*> listOf genQuery
   <*> oneof [pure Nothing, Just <$> genCodeword config]
-  <*> listOf genAuthPath
+  <*> listOf genAuthPaths
+
+
+genAuthPaths :: Gen AuthPaths
+genAuthPaths =
+  AuthPaths
+  <$> ((,,) <$> (A <$> genAuthPath)
+            <*> (B <$> genAuthPath)
+            <*> (C <$> genAuthPath))
 
 
 genCommitment :: Gen Commitment
@@ -66,7 +74,7 @@ genCommitment = Commitment . MerkleHash <$> genByteString
 
 
 genQuery :: Gen Query
-genQuery = Query <$> ((,,) <$> (AY <$> genScalar) <*> (BY <$> genScalar) <*> (CY <$> genScalar))
+genQuery = Query <$> ((,,) <$> (A <$> genScalar) <*> (B <$> genScalar) <*> (C <$> genScalar))
 
 
 genAuthPath :: Gen AuthPath
