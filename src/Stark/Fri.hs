@@ -17,7 +17,7 @@ module Stark.Fri
   , commitCodeword
   , addCodeword
   , addCommitment
-  , addQuery
+  , addQueries
   , addAuthPaths
   , openCodeword
   , queryRound
@@ -146,8 +146,8 @@ addCommitment c (ProofStream commitments queries codewords authPaths)
   = ProofStream (commitments ++ [c]) queries codewords authPaths
 
 
-addQuery :: Query -> ProofStream -> ProofStream
-addQuery q (ProofStream commitments queries codewords authPaths)
+addQueries :: [Query] -> ProofStream -> ProofStream
+addQueries q (ProofStream commitments queries codewords authPaths)
   = ProofStream commitments (queries ++ [q]) codewords authPaths
 
 
@@ -228,7 +228,7 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
           )
         ) <$> (zip3 aIndices bIndices cIndices)
   in addAuthPaths authPathProofElems
-     (foldl (flip addQuery) proofStream leafProofElems)
+     (addQueries leafProofElems proofStream)
 
 
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
@@ -283,14 +283,6 @@ getAlphas roots =
   fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> tail (inits roots)
 
 
--- Break a list into equal-sized sublists.
-segment :: Int -> [a] -> [[a]]
-segment n xs =
-  case splitAt n xs of
-    (ys,[]) -> [ys]
-    (ys,yss) -> ys : segment n yss
-
-
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
 verify :: FriConfiguration -> ProofStream -> Maybe PolynomialValues
 verify config proofStream =
@@ -327,7 +319,7 @@ verify config proofStream =
                   zip5 [0 .. nr - 2]
                        alphas
                        (zip roots (drop 1 roots))
-                       (segment nt (proofStream ^. #queries))
+                       (proofStream ^. #queries)
                        (proofStream ^. #authPaths)
               ]
     _ -> trace "missing last codeword" Nothing

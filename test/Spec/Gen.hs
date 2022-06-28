@@ -56,7 +56,7 @@ genProofStream :: FriConfiguration -> Gen ProofStream
 genProofStream config =
   ProofStream
   <$> listOf genCommitment
-  <*> listOf genQuery
+  <*> listOf (listOf genQuery)
   <*> oneof [pure Nothing, Just <$> genCodeword config]
   <*> listOf (listOf genAuthPaths)
 

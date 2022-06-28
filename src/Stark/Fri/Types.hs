@@ -101,7 +101,7 @@ newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
 data ProofStream =
   ProofStream
   { commitments :: [Commitment]
-  , queries :: [Query]
+  , queries :: [[Query]]
   , lastCodeword :: Maybe Codeword
   , authPaths :: [[AuthPaths]]
   }
