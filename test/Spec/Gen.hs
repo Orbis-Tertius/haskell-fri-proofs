@@ -110,7 +110,7 @@ genScalar = Scalar . fromIntegral <$> choose (0, cardinality - 1)
 
 
 genBinaryTreeSize :: Gen Int
-genBinaryTreeSize = (2 ^) <$> chooseInt (0, 8)
+genBinaryTreeSize = (2 ^) <$> chooseInt (1, 1)
 
 
 genBinaryTree :: Gen a -> Gen (Int, [a], BinaryTree a)

@@ -48,7 +48,7 @@ open_ i t@(IsNode x y) =
       m = n `quot` 2
   in if i < m
      then (open_ i x) <> AuthPath [unCommitment $ commit_ y]
-     else (open_ (i-m) x) <> AuthPath [unCommitment $ commit_ y]
+     else (open_ (i-m) y) <> AuthPath [unCommitment $ commit_ x]
 open_ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 
@@ -60,11 +60,13 @@ verify_ :: Commitment -> Index -> AuthPath -> Leaf -> Bool
 verify_ c i p l =
   case p of
     AuthPath [] -> error "tried to verify empty path"
-    AuthPath [x] -> c == Commitment (hashData (x, unLeaf l))
+    AuthPath [x] -> c == Commitment
+      (hashData (if i == 0 then (Commitment (unLeaf l), Commitment x)
+                           else (Commitment x, Commitment (unLeaf l))))
     AuthPath (x:xs) ->
       if i `mod` 2 == 0
-      then verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (unLeaf l, x))
-      else verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (x, unLeaf l))
+      then verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (Commitment (unLeaf l), Commitment x))
+      else verify_ c (i `quot` 2) (AuthPath xs) (dataToLeaf (Commitment x, Commitment (unLeaf l)))
 
 
 verify :: Serialise a => Commitment -> Index -> AuthPath -> a -> Bool
