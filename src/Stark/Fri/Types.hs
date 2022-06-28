@@ -30,8 +30,8 @@ import Data.ByteString (ByteString)
 import GHC.Generics (Generic)
 
 import Stark.Types.AuthPath (AuthPath)
+import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
-import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -98,7 +98,7 @@ newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
 
 data ProofStream =
   ProofStream
-  { commitments :: [Commitment]
+  { commitments :: [CapCommitment]
   , queries :: [[Query]]
   , lastCodeword :: Maybe Codeword
   , authPaths :: [[AuthPaths]]

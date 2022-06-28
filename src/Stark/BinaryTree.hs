@@ -2,10 +2,14 @@ module Stark.BinaryTree
   ( depth
   , size
   , fromList
+  , (!!)
   ) where
 
 
+import Prelude hiding ((!!))
+
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
+import Stark.Types.Index (Index (Index, unIndex))
 
 
 depth :: BinaryTree a -> Int
@@ -23,3 +27,11 @@ fromList [x] = Just (IsLeaf x)
 fromList xs =
   let (ls, rs) = splitAt (length xs `quot` 2) xs
   in IsNode <$> fromList ls <*> fromList rs
+
+
+(!!) :: BinaryTree a -> Index -> Maybe a
+(IsLeaf x) !! 1 = Just x
+(IsLeaf _) !! _ = Nothing
+(IsNode x y) !! i =
+  let n = size x in
+  if unIndex i < n then x !! i else y !! (i - Index n)

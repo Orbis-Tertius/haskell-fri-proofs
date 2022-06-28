@@ -53,8 +53,8 @@ import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
 import Stark.Types.AuthPath (AuthPath)
+import Stark.Types.CapCommitment (CapCommitment (..))
 import Stark.Types.CapLength (CapLength (..))
-import Stark.Types.Commitment (Commitment)
 import Stark.Types.Index (Index (..))
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
@@ -138,7 +138,7 @@ emptyProofStream :: ProofStream
 emptyProofStream = ProofStream [] [] Nothing []
 
 
-addCommitment :: Commitment -> ProofStream -> ProofStream
+addCommitment :: CapCommitment -> ProofStream -> ProofStream
 addCommitment c (ProofStream commitments queries codewords authPaths)
   = ProofStream (commitments ++ [c]) queries codewords authPaths
 
@@ -159,8 +159,12 @@ addAuthPaths ps (ProofStream commitments queries codewords authPaths)
   = ProofStream commitments queries codewords (authPaths ++ [ps])
 
 
-commitCodeword :: Codeword -> Commitment
-commitCodeword = Merkle.commit . fromMaybe (error "codeword is not a binary tree") . fromList . unCodeword
+commitCodeword :: CapLength -> Codeword -> CapCommitment
+commitCodeword capLength
+  = Merkle.commit capLength
+  . fromMaybe (error "codeword is not a binary tree")
+  . fromList
+  . unCodeword
 
 
 openCodeword :: CapLength -> Codeword -> Index -> AuthPath
@@ -180,18 +184,19 @@ commitPhase domainLength expansionFactor numColinearityTests capLength omega off
   = let n = numRounds domainLength expansionFactor numColinearityTests capLength
         (proofStream', codewords', codeword', _, _) =
           fromMaybe (error "could not find last commit round") $
-          (iterate commitRound (emptyProofStream, [], codeword, omega, offset))
+          (iterate (commitRound capLength) (emptyProofStream, [], codeword, omega, offset))
           !! (n-1)
     in ( addCodeword codeword'
-         ( addCommitment (commitCodeword codeword')
+         ( addCommitment (commitCodeword capLength codeword')
            proofStream' )
        , codewords' ++ [codeword'] )
 
 
-commitRound ::(ProofStream, [Codeword], Codeword, Omega, Offset)
+commitRound :: CapLength
             -> (ProofStream, [Codeword], Codeword, Omega, Offset)
-commitRound (proofStream, codewords, codeword, omega, offset) =
-  let root = commitCodeword codeword
+            -> (ProofStream, [Codeword], Codeword, Omega, Offset)
+commitRound capLength (proofStream, codewords, codeword, omega, offset) =
+  let root = commitCodeword capLength codeword
       proofStream' = addCommitment root proofStream
       alpha = fiatShamirChallenge proofStream'
       codeword' = splitAndFold omega offset codeword alpha
@@ -276,7 +281,7 @@ getLastOffset config =
 
 -- Takes the list of commitments from the proof stream and provides
 -- the list of corresponding challenges.
-getAlphas :: [Commitment] -> [Challenge]
+getAlphas :: [CapCommitment] -> [Challenge]
 getAlphas roots =
   fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> tail (inits roots)
 
@@ -306,8 +311,8 @@ verify config proofStream =
               (ListSize $ dl `shift` negate 1)
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
-      in if lastRoot /= commitCodeword lastCodeword || degree poly > maxDegree
-         then trace (if lastRoot == commitCodeword lastCodeword
+      in if lastRoot /= commitCodeword capLength lastCodeword || degree poly > maxDegree
+         then trace (if lastRoot == commitCodeword capLength lastCodeword
                      then "degree poly > maxDegree"
                      else "lastRoot /= commitCodeword lastCodeword")
               False
@@ -321,13 +326,15 @@ verify config proofStream =
                        (proofStream ^. #authPaths)
               ]
     _ -> trace "missing last codeword or empty roots" False
+  where
+    capLength = config ^. #capLength
 
 
 verifyRound :: FriConfiguration
             -> [Index]
             -> Int
             -> Challenge
-            -> (Commitment, Commitment)
+            -> (CapCommitment, CapCommitment)
             -> [Query]
             -> [AuthPaths]
             -> Bool
@@ -351,11 +358,11 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
       aPaths = unA . fst3 <$> allPaths
       bPaths = unB . snd3 <$> allPaths
       cPaths = unC . thd3 <$> allPaths
-      aAuthPathChecks = all (uncurry4 Merkle.verify)
+      aAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
         $ zip4 (repeat root) aIndices aPaths (unA <$> ays)
-      bAuthPathChecks = all (uncurry4 Merkle.verify)
+      bAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
         $ zip4 (repeat root) bIndices bPaths (unB <$> bys)
-      cAuthPathChecks = all (uncurry4 Merkle.verify)
+      cAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
         $ zip4 (repeat nextRoot) cIndices cPaths (unC <$> cys)
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
   in if colinearityChecks && authPathChecks
@@ -363,3 +370,5 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
      else if colinearityChecks
           then trace ("auth path check failed: " <> show (aAuthPathChecks, bAuthPathChecks, cAuthPathChecks)) False
           else trace "colinearity check failed" False
+  where
+    capLength = config ^. #capLength
