@@ -42,7 +42,6 @@ import Data.List (find, inits, zip4, zip5)
 import Data.List.Safe ((!!))
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
-import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Tuple.Extra (fst3, snd3, thd3)
 import Debug.Trace (trace)
@@ -50,7 +49,7 @@ import Prelude hiding ((!!))
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), A (..), B (..), C (..), Query (..), AuthPaths (..))
+import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), A (..), B (..), C (..), Query (..), AuthPaths (..))
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
@@ -285,7 +284,7 @@ getAlphas roots =
 
 
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
-verify :: FriConfiguration -> ProofStream -> Maybe PolynomialValues
+verify :: FriConfiguration -> ProofStream -> Bool
 verify config proofStream =
   let roots = proofStream ^. #commitments
       alphas = getAlphas roots
@@ -313,8 +312,8 @@ verify config proofStream =
          then trace (if lastRoot == commitCodeword lastCodeword
                      then "degree poly > maxDegree"
                      else "lastRoot /= commitCodeword lastCodeword")
-              Nothing
-         else mconcat <$> sequence
+              False
+         else and $
               [ verifyRound config topLevelIndices r alpha rootPair q p
               | (r, alpha, rootPair, q, p) <-
                   zip5 [0 .. nr - 2]
@@ -323,7 +322,7 @@ verify config proofStream =
                        (proofStream ^. #queries)
                        (proofStream ^. #authPaths)
               ]
-    _ -> trace "missing last codeword or empty roots" Nothing
+    _ -> trace "missing last codeword or empty roots" False
 
 
 verifyRound :: FriConfiguration
@@ -333,7 +332,7 @@ verifyRound :: FriConfiguration
             -> (Commitment, Commitment)
             -> [Query]
             -> [AuthPaths]
-            -> Maybe PolynomialValues
+            -> Bool
 verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
   let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
       offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
@@ -344,8 +343,6 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
       ays = fst3 . unQuery <$> qs
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs
-      polyVals = PolynomialValues . Map.fromList
-               $ (zip aIndices (unA <$> ays)) <> (zip bIndices (unB <$> bys))
       f = (* unOffset offset) . (unOmega omega ^)
       colinearityChecks = all areColinear
         $ (\(a,b,c) -> [a,b,c])
@@ -364,7 +361,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
         $ zip4 (repeat nextRoot) cIndices cPaths (unC <$> cys)
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
   in if colinearityChecks && authPathChecks
-     then Just polyVals
+     then True
      else if colinearityChecks
-          then trace ("auth path check failed: " <> show (aAuthPathChecks, bAuthPathChecks, cAuthPathChecks)) Nothing
-          else trace "colinearity check failed" Nothing
+          then trace ("auth path check failed: " <> show (aAuthPathChecks, bAuthPathChecks, cAuthPathChecks)) False
+          else trace "colinearity check failed" False
