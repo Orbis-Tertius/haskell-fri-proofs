@@ -14,6 +14,7 @@ module Stark.MerkleTree
 import Codec.Serialise (Serialise, serialise)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Maybe (fromMaybe)
+import Debug.Trace (trace)
 
 import qualified Stark.BinaryTree as Tree
 import Stark.Hash (hash)
@@ -65,7 +66,8 @@ open__ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
 open_ (CapLength capLength) i t =
-    AuthPath . drop ( round (logBase (2 :: Double) (fromIntegral capLength)) )
+    AuthPath . take ( Tree.depth t
+                    - round (logBase (2 :: Double) (fromIntegral capLength)) )
   . unAuthPath $ open__ i t
 
 
@@ -79,16 +81,11 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
     AuthPath [] ->
       let z = fromMaybe (error "capLeaves index out of range 0")
             $ capLeaves Tree.!! i
-      in unIndex i < unCapLength capLength
-         && capLength == CapLength (Tree.size capLeaves)
-         && z == y
-    AuthPath [x] ->
-      let z = fromMaybe (error "capLeaves index out of range 1")
-            $ capLeaves Tree.!! (i `quot` 2)
-          parity = unIndex i `mod` unCapLength capLength
-      in (unIndex i < 2 * unCapLength capLength)
-        && capLength == CapLength (Tree.size capLeaves)
-        && z == (if parity == 0 then mergeCommitments (y, x) else mergeCommitments (x, y))
+      in (unIndex i < unCapLength capLength
+            || trace "index out of range" False)
+         && (capLength == CapLength (Tree.size capLeaves)
+             || trace "wrong CapLength" False)
+         && (z == y || trace "commitment check failed" False)
     AuthPath (x:xs) ->
       if i `mod` 2 == 0
       then verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (y, x))
