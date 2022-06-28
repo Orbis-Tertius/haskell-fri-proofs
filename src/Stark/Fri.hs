@@ -293,8 +293,8 @@ verify config proofStream =
       lastOffset = getLastOffset config
       nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
       lastRoot = fromMaybe (error "could not find last root") $ roots !! (length roots - 1)
-  in case (proofStream ^. #lastCodeword) of
-    (Just lastCodeword) ->
+  in case (proofStream ^. #lastCodeword, roots) of
+    (Just lastCodeword, _:_) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
           lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
                        | i <- [0 .. lastCodewordLength - 1] ]
@@ -323,7 +323,7 @@ verify config proofStream =
                        (proofStream ^. #queries)
                        (proofStream ^. #authPaths)
               ]
-    _ -> trace "missing last codeword" Nothing
+    _ -> trace "missing last codeword or empty roots" Nothing
 
 
 verifyRound :: FriConfiguration
