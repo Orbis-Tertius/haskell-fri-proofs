@@ -66,9 +66,8 @@ open__ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
-open_ (CapLength n) i t =
-    AuthPath . take ( round (logBase (2 :: Double) (fromIntegral (Tree.size t)))
-                    - round (logBase (2 :: Double) (fromIntegral n)) )
+open_ (CapLength capLength) i t =
+    AuthPath . drop ( round (logBase (2 :: Double) (fromIntegral capLength)) )
   . unAuthPath $ open__ i t
 
 
