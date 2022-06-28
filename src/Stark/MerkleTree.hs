@@ -17,7 +17,7 @@ import Data.Maybe (fromMaybe)
 
 import qualified Stark.BinaryTree as Tree
 import Stark.Hash (hash)
-import Stark.Types.AuthPath (AuthPath (AuthPath))
+import Stark.Types.AuthPath (AuthPath (AuthPath, unAuthPath))
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import Stark.Types.CapCommitment (CapCommitment (..))
 import Stark.Types.CapLength (CapLength (..))
@@ -54,17 +54,22 @@ commitCapLeaf (IsLeaf x) = Commitment x
 commitCapLeaf (IsNode x y) = mergeCommitments (commitCapLeaf x, commitCapLeaf y)
 
 
-open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
-open_ _ 0 (IsLeaf _) = AuthPath []
-open_ capLength i t@(IsNode x y) =
+open__ :: Index -> BinaryTree MerkleHash -> AuthPath
+open__ 0 (IsLeaf _) = AuthPath []
+open__ i t@(IsNode x y) =
   let n = Index $ Tree.size t
       m = n `quot` 2
-  in if unIndex n <= unCapLength capLength
-     then (if i < m
-           then (open_ capLength i x) <> AuthPath [commitCapLeaf y]
-           else (open_ capLength (i-m) y) <> AuthPath [commitCapLeaf x])
-     else open_ capLength (if i < m then i else i-m) (if i < m then x else y)
-open_ capLength i t = error ("open_ pattern match failure: " <> show (capLength, i, t))
+  in if i < m
+     then (open__ i x) <> AuthPath [commitCapLeaf y]
+     else (open__ (i-m) y) <> AuthPath [commitCapLeaf x]
+open__ i t = error ("open_ pattern match failure: " <> show (i, t))
+
+
+open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
+open_ (CapLength n) i t =
+    AuthPath . take ( round (logBase (2 :: Double) (fromIntegral (Tree.size t)))
+                    - round (logBase (2 :: Double) (fromIntegral n)) )
+  . unAuthPath $ open__ i t
 
 
 open :: Serialise a => CapLength -> Index -> BinaryTree a -> AuthPath
