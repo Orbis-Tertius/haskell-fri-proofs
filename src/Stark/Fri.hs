@@ -53,6 +53,7 @@ import Stark.FiniteField (sample)
 import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), PolynomialValues (..), A (..), B (..), C (..), Query (..), AuthPaths (..))
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
+import Stark.Prelude (uncurry4)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Index (Index (..))
@@ -367,7 +368,3 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
      else if colinearityChecks
           then trace ("auth path check failed: " <> show (aAuthPathChecks, bAuthPathChecks, cAuthPathChecks)) Nothing
           else trace "colinearity check failed" Nothing
-
-
-uncurry4 :: (a -> b -> c -> d -> e) -> (a, b, c, d) -> e
-uncurry4 f (a, b, c, d) = f a b c d

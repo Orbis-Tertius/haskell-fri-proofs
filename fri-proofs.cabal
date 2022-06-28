@@ -14,6 +14,7 @@ library
     Stark.Fri.Types
     Stark.Hash
     Stark.MerkleTree
+    Stark.Prelude
     Stark.MultivariatePolynomial
     Stark.UnivariatePolynomial
     Stark.Types.AuthPath
@@ -56,6 +57,7 @@ test-suite spec
     Spec.Gen
     Spec.Prelude
     Spec.Stark.FriSpec
+    Spec.Stark.MerkleTreeSpec
     Spec.Stark.UnivariatePolynomialSpec
 
   build-tools: sydtest-discover
