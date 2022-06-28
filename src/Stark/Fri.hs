@@ -123,10 +123,6 @@ fiatShamirChallenge :: ProofStream -> Challenge
 fiatShamirChallenge = Challenge . sample . unRandomSeed . fiatShamirSeed
 
 
--- codeword = [two.inverse() *
---   ( (one + alpha / (offset * (omega^i)) ) * codeword[i]
---   + (one - alpha / (offset * (omega^i)) ) * codeword[len(codeword)//2 + i] )
---   for i in range(len(codeword)//2)]
 splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
 splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
   let (l, r) = splitAt (length codeword `quot` 2) codeword
