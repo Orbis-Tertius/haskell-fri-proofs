@@ -82,7 +82,7 @@ genQuery = Query <$> ((,,) <$> (A <$> genScalar) <*> (B <$> genScalar) <*> (C <$
 
 
 genAuthPath :: Gen AuthPath
-genAuthPath = AuthPath <$> listOf (MerkleHash <$> genByteString)
+genAuthPath = AuthPath <$> listOf1 (MerkleHash <$> genByteString)
 
 
 genByteString :: Gen ByteString

@@ -59,11 +59,13 @@ verify_ :: Commitment -> Index -> AuthPath -> MerkleHash -> Bool
 verify_ c i p h =
   case p of
     AuthPath [] -> error "tried to verify empty path"
-    AuthPath [x] -> c == Commitment
-      (mergeHashes
-           (if i == 0 then (h, x)
-            else if i == 1 then (x, h)
-            else error "impossible case in MerkleTree.verify"))
+    AuthPath [x] ->
+      (i == 0 || i == 1)
+        && c == Commitment
+            (mergeHashes
+               (if i == 0 then (h, x)
+                else if i == 1 then (x, h)
+                else error "impossible case in MerkleTree.verify"))
     AuthPath (x:xs) ->
       if i `mod` 2 == 0
       then verify_ c (i `quot` 2) (AuthPath xs) (mergeHashes (h, x))

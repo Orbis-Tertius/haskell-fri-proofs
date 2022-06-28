@@ -1,7 +1,7 @@
 module Spec.Stark.MerkleTreeSpec ( spec ) where
 
 
-import Spec.Gen (genBinaryTree, genScalar)
+import Spec.Gen (genBinaryTree, genScalar, genCommitment, genAuthPath)
 import Spec.Prelude
 import Stark.MerkleTree (commit, open, verify)
 import Stark.Prelude (uncurry4)
@@ -18,4 +18,9 @@ spec = describe "MerkleTree" $ do
             x = xs !! unIndex i
         in (c, i, p, x) `shouldSatisfy` uncurry4 verify
 
-  -- it "rejects random inputs" $ return ()
+  it "rejects random inputs" $
+    forAll ((,,,) <$> genCommitment
+                  <*> (Index <$> choose (0, 1024))
+                  <*> genAuthPath
+                  <*> genScalar)
+      $ (`shouldNotSatisfy` uncurry4 verify)
