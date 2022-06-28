@@ -9,4 +9,4 @@ import Data.ByteString (ByteString)
 
 
 newtype MerkleHash = MerkleHash { unMerkleHash :: ByteString }
-  deriving (Eq, Serialise)
+  deriving (Eq, Serialise, Show)

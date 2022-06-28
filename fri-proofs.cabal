@@ -14,13 +14,13 @@ library
     Stark.Fri.Types
     Stark.Hash
     Stark.MerkleTree
+    Stark.Prelude
     Stark.MultivariatePolynomial
     Stark.UnivariatePolynomial
     Stark.Types.AuthPath
     Stark.Types.BinaryTree
     Stark.Types.Commitment
     Stark.Types.Index
-    Stark.Types.Leaf
     Stark.Types.MerkleHash
     Stark.Types.MultivariatePolynomial
     Stark.Types.Scalar
@@ -41,6 +41,50 @@ library
     serialise
 
   hs-source-dirs: src
+  default-language: Haskell2010
+  ghc-options:
+          -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
+          -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
+          -threaded -rtsopts -with-rtsopts=-N
+
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+
+  other-modules:
+    Spec.Gen
+    Spec.Prelude
+    Spec.Stark.FriSpec
+    Spec.Stark.MerkleTreeSpec
+    Spec.Stark.UnivariatePolynomialSpec
+
+  build-tools: sydtest-discover
+
+  build-depends:
+    base >= 4.9 && < 5,
+    blake2,
+    bytestring,
+    containers,
+    extra,
+    finite-field,
+    generic-lens,
+    genvalidity,
+    genvalidity-sydtest,
+    genvalidity-sydtest-aeson,
+    hedgehog,
+    lens,
+    listsafe,
+    polynomial-algebra,
+    QuickCheck,
+    serialise,
+    sydtest,
+    sydtest-discover,
+    validity,
+
+    fri-proofs
+
+  hs-source-dirs: test
   default-language: Haskell2010
   ghc-options:
           -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns

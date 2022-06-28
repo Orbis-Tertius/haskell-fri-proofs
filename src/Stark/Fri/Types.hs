@@ -14,44 +14,44 @@ module Stark.Fri.Types
   , SampleSize (SampleSize, unSampleSize)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
-  , AY (AY, unAY)
-  , BY (BY, unBY)
-  , CY (CY, unCY)
+  , A (A, unA)
+  , B (B, unB)
+  , C (C, unC)
   , Query (Query, unQuery)
+  , AuthPaths (AuthPaths, unAuthPaths)
   , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
-  , PolynomialValues (PolynomialValues, unPolynomialValues)
   , FriConfiguration (FriConfiguration)
   ) where
 
 
 import Codec.Serialise (Serialise)
 import Data.ByteString (ByteString)
-import Data.Map (Map)
 import GHC.Generics (Generic)
 
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
-import Stark.Types.Index (Index)
 import Stark.Types.Scalar (Scalar)
 
 
 newtype Offset = Offset { unOffset :: Scalar }
-  deriving (Eq, Ord, Num)
+  deriving (Eq, Ord, Num, Show)
 
 
 newtype Omega = Omega { unOmega :: Scalar }
-  deriving (Eq, Ord, Num)
+  deriving (Eq, Ord, Num, Show, Generic)
 
 
 newtype DomainLength = DomainLength { unDomainLength :: Int }
-  deriving Generic
+  deriving (Generic, Show)
 
 
 newtype ExpansionFactor = ExpansionFactor { unExpansionFactor :: Rational }
+  deriving (Show)
 
 
 newtype NumColinearityTests = NumColinearityTests { unNumColinearityTests :: Int }
+  deriving (Show)
 
 
 newtype ListSize = ListSize { unListSize :: Int }
@@ -71,41 +71,44 @@ newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
 
 
 newtype Codeword = Codeword { unCodeword :: [Scalar] }
-  deriving Serialise
+  deriving (Eq, Serialise, Show)
 
 
-newtype AY = AY { unAY :: Scalar }
-  deriving (Generic, Serialise)
+newtype A a = A { unA :: a }
+  deriving (Eq, Generic, Serialise, Show)
 
-newtype BY = BY { unBY :: Scalar}
-  deriving (Generic, Serialise)
+newtype B a = B { unB :: a }
+  deriving (Eq, Generic, Serialise, Show)
 
-newtype CY = CY { unCY :: Scalar }
-  deriving (Generic, Serialise)
+newtype C a = C { unC :: a }
+  deriving (Eq, Generic, Serialise, Show)
 
 
-newtype Query = Query { unQuery :: (AY, BY, CY) }
-  deriving (Generic, Serialise)
+type ABC a = (A a, B a, C a)
+
+
+newtype Query = Query { unQuery :: ABC Scalar }
+  deriving (Eq, Generic, Serialise, Show)
+
+
+newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
+  deriving (Eq, Generic, Serialise, Show)
 
 
 data ProofStream =
   ProofStream
   { commitments :: [Commitment]
-  , queries :: [Query]
+  , queries :: [[Query]]
   , lastCodeword :: Maybe Codeword
-  , authPaths :: [AuthPath]
+  , authPaths :: [[AuthPaths]]
   }
-  deriving Generic
+  deriving (Eq, Generic, Show)
 
 instance Serialise ProofStream
 
 
 newtype Challenge = Challenge { unChallenge :: Scalar }
   deriving Serialise
-
-
-newtype PolynomialValues = PolynomialValues { unPolynomialValues :: Map Index Scalar }
-  deriving (Semigroup, Monoid)
 
 
 data FriConfiguration =
@@ -116,4 +119,4 @@ data FriConfiguration =
   , expansionFactor :: ExpansionFactor
   , numColinearityTests :: NumColinearityTests
   }
-  deriving Generic
+  deriving (Generic, Show)

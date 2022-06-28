@@ -10,4 +10,4 @@ import Stark.Types.MerkleHash (MerkleHash)
 
 
 newtype AuthPath = AuthPath { unAuthPath :: [MerkleHash] }
-  deriving (Semigroup, Monoid, Serialise)
+  deriving (Eq, Semigroup, Monoid, Serialise, Show)
