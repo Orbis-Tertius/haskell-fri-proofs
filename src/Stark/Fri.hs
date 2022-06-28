@@ -239,7 +239,7 @@ queryPhase numColinearityTests codewords indices proofStream =
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` (Index (length (unCodeword (e 1 (codewords !! i))) `quot` 2)))
+      ( (`mod` (Index (length (unCodeword (e 1 (codewords !! (i+1)))) `quot` 2)))
         <$> indices'
       , queryRound numColinearityTests (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
       , i+1
