@@ -21,7 +21,6 @@ library
     Stark.Types.BinaryTree
     Stark.Types.Commitment
     Stark.Types.Index
-    Stark.Types.Leaf
     Stark.Types.MerkleHash
     Stark.Types.MultivariatePolynomial
     Stark.Types.Scalar

@@ -21,19 +21,16 @@ module Stark.Fri.Types
   , AuthPaths (AuthPaths, unAuthPaths)
   , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
-  , PolynomialValues (PolynomialValues, unPolynomialValues)
   , FriConfiguration (FriConfiguration)
   ) where
 
 
 import Codec.Serialise (Serialise)
 import Data.ByteString (ByteString)
-import Data.Map (Map)
 import GHC.Generics (Generic)
 
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.Commitment (Commitment)
-import Stark.Types.Index (Index)
 import Stark.Types.Scalar (Scalar)
 
 
@@ -112,10 +109,6 @@ instance Serialise ProofStream
 
 newtype Challenge = Challenge { unChallenge :: Scalar }
   deriving Serialise
-
-
-newtype PolynomialValues = PolynomialValues { unPolynomialValues :: Map Index Scalar }
-  deriving (Eq, Semigroup, Monoid, Show)
 
 
 data FriConfiguration =
