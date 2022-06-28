@@ -374,7 +374,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
   in if colinearityChecks && authPathChecks
      then Just polyVals
      else if colinearityChecks
-          then trace "auth path check failed" Nothing
+          then trace ("auth path check failed: " <> show (aAuthPathChecks, bAuthPathChecks, cAuthPathChecks)) Nothing
           else trace "colinearity check failed" Nothing
 
 
