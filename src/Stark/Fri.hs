@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# OPTIONS_GHC -Wno-unused-matches #-}
 
 module Stark.Fri
   ( getMaxDegree
@@ -206,12 +205,11 @@ commitRound (proofStream, codewords, codeword, omega, offset) =
         two = 2
 
 
-queryRound :: NumColinearityTests
-           -> (Codeword, Codeword)
+queryRound :: (Codeword, Codeword)
            -> [Index]
            -> ProofStream
            -> ProofStream
-queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodeword)
+queryRound (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
   let aIndices = cIndices
       bIndices = (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
@@ -231,8 +229,8 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
      (addQueries leafProofElems proofStream)
 
 
-queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
-queryPhase numColinearityTests codewords indices proofStream =
+queryPhase :: [Codeword] -> [Index] -> ProofStream -> ProofStream
+queryPhase codewords indices proofStream =
   snd3 . fromMaybe (error "could not find last query round")
     $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
   where
@@ -240,7 +238,7 @@ queryPhase numColinearityTests codewords indices proofStream =
     f (indices', proofStream', i) =
       ( (`mod` (Index (length (unCodeword (e 1 (codewords !! (i+1)))) `quot` 2)))
         <$> indices'
-      , queryRound numColinearityTests (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
+      , queryRound (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
       , i+1
       )
 
@@ -259,7 +257,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
           (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords !! (1 :: Int))))))
           (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords !! (length codewords - 1))))))
           (SampleSize (unNumColinearityTests numColinearityTests))
-        proofStream1 = queryPhase numColinearityTests codewords indices proofStream0
+        proofStream1 = queryPhase codewords indices proofStream0
     in (proofStream1, indices)
   | otherwise = error "domain length does not match length of initial codeword"
 
