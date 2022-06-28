@@ -41,12 +41,10 @@ commit capLength = commit_ capLength . fmap hashData
 commit_ :: CapLength -> BinaryTree MerkleHash -> CapCommitment
 commit_ _ (IsLeaf x) = CapCommitment (IsLeaf (Commitment x))
 commit_ capLength t@(IsNode x y) =
-  let n = Tree.size t
-  in if n <= unCapLength capLength
-     then CapCommitment . IsLeaf $ commitCapLeaf t
-     else CapCommitment $ IsNode
-          (unCapCommitment (commit_ capLength x))
-          (unCapCommitment (commit_ capLength y))
+  if capLength > 1
+  then let f = unCapCommitment . commit_ (capLength `quot` 2)
+    in CapCommitment $ IsNode (f x) (f y)
+  else CapCommitment . IsLeaf $ commitCapLeaf t
 
 
 commitCapLeaf :: BinaryTree MerkleHash -> Commitment
@@ -87,11 +85,10 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
     AuthPath [x] ->
       let z = fromMaybe (error "capLeaves index out of range 1")
             $ capLeaves Tree.!! (i `quot` 2)
+          parity = unIndex i `mod` unCapLength capLength
       in (unIndex i < 2 * unCapLength capLength)
         && capLength == CapLength (Tree.size capLeaves)
-        && z == (if i == 0 then mergeCommitments (y, x)
-                 else if i == 1 then mergeCommitments (x, y)
-                 else error "impossible case in MerkleTree.verify")
+        && z == (if parity == 0 then mergeCommitments (y, x) else mergeCommitments (x, y))
     AuthPath (x:xs) ->
       if i `mod` 2 == 0
       then verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (y, x))
