@@ -54,7 +54,6 @@ commitCapLeaf (IsLeaf x) = Commitment x
 commitCapLeaf (IsNode x y) = mergeCommitments (commitCapLeaf x, commitCapLeaf y)
 
 
--- wrong: skip down to cap and add paths down from there
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
 open_ _ 0 (IsLeaf _) = AuthPath []
 open_ capLength i t@(IsNode x y) =
@@ -75,11 +74,17 @@ open capLength i = open_ capLength i . fmap hashData
 verify_ :: CapLength -> CapCommitment -> Index -> AuthPath -> Commitment -> Bool
 verify_ capLength c@(CapCommitment capLeaves) i p y =
   case p of
-    AuthPath [] -> error "tried to verify empty path"
+    AuthPath [] ->
+      let z = fromMaybe (error "capLeaves index out of range 0")
+            $ capLeaves Tree.!! i
+      in unIndex i < unCapLength capLength
+         && capLength == CapLength (Tree.size capLeaves)
+         && z == y
     AuthPath [x] ->
-      let z = fromMaybe (error "capLeaves index out of range")
+      let z = fromMaybe (error "capLeaves index out of range 1")
             $ capLeaves Tree.!! (i `quot` 2)
       in (unIndex i < 2 * unCapLength capLength)
+        && capLength == CapLength (Tree.size capLeaves)
         && z == (if i == 0 then mergeCommitments (y, x)
                  else if i == 1 then mergeCommitments (x, y)
                  else error "impossible case in MerkleTree.verify")

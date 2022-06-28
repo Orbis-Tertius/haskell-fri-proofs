@@ -30,7 +30,7 @@ fromList xs =
 
 
 (!!) :: BinaryTree a -> Index -> Maybe a
-(IsLeaf x) !! 1 = Just x
+(IsLeaf x) !! 0 = Just x
 (IsLeaf _) !! _ = Nothing
 (IsNode x y) !! i =
   let n = size x in
