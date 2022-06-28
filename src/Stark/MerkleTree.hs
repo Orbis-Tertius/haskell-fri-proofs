@@ -15,8 +15,9 @@ import qualified Stark.BinaryTree as Tree
 import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath (AuthPath))
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
+import Stark.Types.CapLength (CapLength (..))
 import Stark.Types.Commitment (Commitment (Commitment, unCommitment))
-import Stark.Types.Index (Index (Index))
+import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 
 
@@ -28,31 +29,41 @@ mergeHashes :: (MerkleHash, MerkleHash) -> MerkleHash
 mergeHashes (h, k) = hashData (h, k)
 
 
-commit :: Serialise a => BinaryTree a -> Commitment
-commit = commit_ . fmap hashData
+commit :: Serialise a => CapLength -> BinaryTree a -> Commitment
+commit capLength = commit_ capLength . fmap hashData
 
 
-commit_ :: BinaryTree MerkleHash -> Commitment
-commit_ (IsLeaf x) = Commitment x
-commit_ (IsNode x y) =
-  Commitment
-  ( mergeHashes ( unCommitment (commit_ x)
-                , unCommitment (commit_ y)) )
+commit_ :: CapLength -> BinaryTree MerkleHash -> Commitment
+commit_ _ (IsLeaf x) = Commitment (IsLeaf x)
+commit_ capLength t@(IsNode x y) =
+  let n = Tree.size t
+  in if n <= unCapLength capLength
+     then Commitment . IsLeaf $ commitLeaf t
+     else Commitment $ IsNode
+          (unCommitment (commit_ capLength x))
+          (unCommitment (commit_ capLength y))
 
 
-open_ :: Index -> BinaryTree MerkleHash -> AuthPath
-open_ 0 (IsLeaf _) = AuthPath []
-open_ i t@(IsNode x y) =
+commitLeaf :: BinaryTree MerkleHash -> MerkleHash
+commitLeaf (IsLeaf x) = x
+commitLeaf (IsNode x y) = mergeHashes (commitLeaf x, commitLeaf y)
+
+
+open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
+open_ _ 0 (IsLeaf _) = AuthPath []
+open_ capLength i t@(IsNode x y) =
   let n = Index . fromIntegral $ Tree.size t
       m = n `quot` 2
-  in if i < m
-     then (open_ i x) <> AuthPath [unCommitment $ commit_ y]
-     else (open_ (i-m) y) <> AuthPath [unCommitment $ commit_ x]
-open_ i t = error ("open_ pattern match failure: " <> show (i, t))
+  in if unIndex n <= unCapLength capLength
+     then AuthPath []
+     else if i < m
+     then (open_ capLength i x) <> AuthPath [commitLeaf y]
+     else (open_ capLength (i-m) y) <> AuthPath [commitLeaf x]
+open_ capLength i t = error ("open_ pattern match failure: " <> show (capLength, i, t))
 
 
-open :: Serialise a => Index -> BinaryTree a -> AuthPath
-open i xs = open_ i (hashData <$> xs)
+open :: Serialise a => CapLength -> Index -> BinaryTree a -> AuthPath
+open capLength i = open_ capLength i . fmap hashData
 
 
 verify_ :: Commitment -> Index -> AuthPath -> MerkleHash -> Bool

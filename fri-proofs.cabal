@@ -19,6 +19,7 @@ library
     Stark.UnivariatePolynomial
     Stark.Types.AuthPath
     Stark.Types.BinaryTree
+    Stark.Types.CapLength
     Stark.Types.Commitment
     Stark.Types.Index
     Stark.Types.MerkleHash

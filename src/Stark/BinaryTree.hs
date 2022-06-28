@@ -8,12 +8,12 @@ module Stark.BinaryTree
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 
 
-depth :: BinaryTree a -> Integer
+depth :: BinaryTree a -> Int
 depth (IsLeaf _) = 0
 depth (IsNode x _) = 1 + depth x
 
 
-size :: BinaryTree a -> Integer
+size :: BinaryTree a -> Int
 size = (2 ^) . depth
 
 

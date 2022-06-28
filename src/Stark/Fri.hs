@@ -53,6 +53,7 @@ import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
 import Stark.Types.AuthPath (AuthPath)
+import Stark.Types.CapLength (CapLength (..))
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Index (Index (..))
 import Stark.Types.Scalar (Scalar)
@@ -64,13 +65,14 @@ getMaxDegree :: DomainLength -> Int
 getMaxDegree (DomainLength d) = floor (logBase 2 (fromIntegral d) :: Double)
 
 
-numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> Int
-numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) =
-  if fromIntegral d > e && 4 * n < d
+numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> CapLength -> Int
+numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLength n') =
+  if fromIntegral d > e && d > n' && 4 * n < d
   then 1 + numRounds
            (DomainLength (d `div` 2))
            (ExpansionFactor e)
            (NumColinearityTests n)
+           (CapLength n')
   else 0
 
 
@@ -161,20 +163,21 @@ commitCodeword :: Codeword -> Commitment
 commitCodeword = Merkle.commit . fromMaybe (error "codeword is not a binary tree") . fromList . unCodeword
 
 
-openCodeword :: Codeword -> Index -> AuthPath
-openCodeword (Codeword xs) (Index i) =
-  Merkle.open (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
+openCodeword :: CapLength -> Codeword -> Index -> AuthPath
+openCodeword capLength (Codeword xs) (Index i) =
+  Merkle.open capLength (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
 
 
 commitPhase :: DomainLength
             -> ExpansionFactor
             -> NumColinearityTests
+            -> CapLength
             -> Omega
             -> Offset
             -> Codeword
             -> (ProofStream, [Codeword])
-commitPhase domainLength expansionFactor numColinearityTests omega offset codeword
-  = let n = numRounds domainLength expansionFactor numColinearityTests
+commitPhase domainLength expansionFactor numColinearityTests capLength omega offset codeword
+  = let n = numRounds domainLength expansionFactor numColinearityTests capLength
         (proofStream', codewords', codeword', _, _) =
           fromMaybe (error "could not find last commit round") $
           (iterate commitRound (emptyProofStream, [], codeword, omega, offset))
@@ -201,11 +204,12 @@ commitRound (proofStream, codewords, codeword, omega, offset) =
         two = 2
 
 
-queryRound :: (Codeword, Codeword)
+queryRound :: CapLength
+           -> (Codeword, Codeword)
            -> [Index]
            -> ProofStream
            -> ProofStream
-queryRound (Codeword currentCodeword, Codeword nextCodeword)
+queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
   let aIndices = cIndices
       bIndices = (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
@@ -216,17 +220,17 @@ queryRound (Codeword currentCodeword, Codeword nextCodeword)
          ((nextCodeword !!) <$> cIndices)
       authPathProofElems =
         ( \(a, b, c) -> AuthPaths $
-          ( A $ openCodeword (Codeword currentCodeword) a
-          , B $ openCodeword (Codeword currentCodeword) b
-          , C $ openCodeword (Codeword nextCodeword) c
+          ( A $ openCodeword capLength (Codeword currentCodeword) a
+          , B $ openCodeword capLength (Codeword currentCodeword) b
+          , C $ openCodeword capLength (Codeword nextCodeword) c
           )
         ) <$> (zip3 aIndices bIndices cIndices)
   in addAuthPaths authPathProofElems
      (addQueries leafProofElems proofStream)
 
 
-queryPhase :: [Codeword] -> [Index] -> ProofStream -> ProofStream
-queryPhase codewords indices proofStream =
+queryPhase :: CapLength -> [Codeword] -> [Index] -> ProofStream -> ProofStream
+queryPhase capLength codewords indices proofStream =
   snd3 . fromMaybe (error "could not find last query round")
     $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
   where
@@ -234,7 +238,7 @@ queryPhase codewords indices proofStream =
     f (indices', proofStream', i) =
       ( (`mod` (Index (length (unCodeword (e 1 (codewords !! (i+1)))) `quot` 2)))
         <$> indices'
-      , queryRound (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
+      , queryRound capLength (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
       , i+1
       )
 
@@ -243,30 +247,30 @@ queryPhase codewords indices proofStream =
 
 
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
-prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests) codeword
+prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests capLength) codeword
   | unDomainLength domainLength == length (unCodeword codeword) =
     let (proofStream0, codewords) =
-          commitPhase domainLength expansionFactor numColinearityTests
+          commitPhase domainLength expansionFactor numColinearityTests capLength
                       omega offset codeword
         indices = Set.elems $ sampleIndices
           (fiatShamirSeed proofStream0)
           (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords !! (1 :: Int))))))
           (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords !! (length codewords - 1))))))
           (SampleSize (unNumColinearityTests numColinearityTests))
-        proofStream1 = queryPhase codewords indices proofStream0
+        proofStream1 = queryPhase capLength codewords indices proofStream0
     in (proofStream1, indices)
   | otherwise = error "domain length does not match length of initial codeword"
 
 
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
-  let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
   in (config ^. #omega) ^ (2 * (nr - 1))
 
 
 getLastOffset :: FriConfiguration -> Offset
 getLastOffset config =
-  let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+  let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
   in (config ^. #offset) ^ (2 * (nr - 1))
 
 
@@ -284,7 +288,7 @@ verify config proofStream =
       alphas = getAlphas roots
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
-      nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests)
+      nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
       lastRoot = fromMaybe (error "could not find last root") $ roots !! (length roots - 1)
   in case (proofStream ^. #lastCodeword, roots) of
     (Just lastCodeword, _:_) ->

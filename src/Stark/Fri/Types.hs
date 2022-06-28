@@ -30,6 +30,7 @@ import Data.ByteString (ByteString)
 import GHC.Generics (Generic)
 
 import Stark.Types.AuthPath (AuthPath)
+import Stark.Types.CapLength (CapLength)
 import Stark.Types.Commitment (Commitment)
 import Stark.Types.Scalar (Scalar)
 
@@ -118,5 +119,6 @@ data FriConfiguration =
   , domainLength :: DomainLength
   , expansionFactor :: ExpansionFactor
   , numColinearityTests :: NumColinearityTests
+  , capLength :: CapLength
   }
   deriving (Generic, Show)
