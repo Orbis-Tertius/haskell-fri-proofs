@@ -103,7 +103,7 @@ data ProofStream =
   { commitments :: [Commitment]
   , queries :: [Query]
   , lastCodeword :: Maybe Codeword
-  , authPaths :: [AuthPaths]
+  , authPaths :: [[AuthPaths]]
   }
   deriving (Eq, Generic, Show)
 

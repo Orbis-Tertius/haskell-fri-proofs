@@ -157,7 +157,7 @@ addCodeword c (ProofStream commitments queries Nothing authPaths)
 addCodeword _ _ = error "tried to add the last codeword but it is already present"
 
 
-addAuthPaths :: AuthPaths -> ProofStream -> ProofStream
+addAuthPaths :: [AuthPaths] -> ProofStream -> ProofStream
 addAuthPaths ps (ProofStream commitments queries codewords authPaths)
   = ProofStream commitments queries codewords (authPaths ++ [ps])
 
@@ -227,9 +227,8 @@ queryRound (NumColinearityTests n) (Codeword currentCodeword, Codeword nextCodew
           , C $ openCodeword (Codeword nextCodeword) c
           )
         ) <$> (zip3 aIndices bIndices cIndices)
-  in foldl (flip addAuthPaths)
+  in addAuthPaths authPathProofElems
      (foldl (flip addQuery) proofStream leafProofElems)
-     authPathProofElems
 
 
 queryPhase :: NumColinearityTests -> [Codeword] -> [Index] -> ProofStream -> ProofStream
@@ -329,7 +328,7 @@ verify config proofStream =
                        alphas
                        (zip roots (drop 1 roots))
                        (segment nt (proofStream ^. #queries))
-                       (segment nt (proofStream ^. #authPaths))
+                       (proofStream ^. #authPaths)
               ]
     _ -> trace "missing last codeword" Nothing
 

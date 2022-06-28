@@ -58,7 +58,7 @@ genProofStream config =
   <$> listOf genCommitment
   <*> listOf genQuery
   <*> oneof [pure Nothing, Just <$> genCodeword config]
-  <*> listOf genAuthPaths
+  <*> listOf (listOf genAuthPaths)
 
 
 genAuthPaths :: Gen AuthPaths
