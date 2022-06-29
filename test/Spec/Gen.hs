@@ -44,11 +44,10 @@ import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = pure defaultFriConfiguration
+genFriConfiguration = defaultFriConfiguration . CapLength . (2^) <$> choose (0 :: Int, 4)
 
 
--- TODO: more than one FRI configuration, and nontrivial caps
-defaultFriConfiguration :: FriConfiguration
+defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
    FriConfiguration
   (Offset generator)
@@ -56,7 +55,6 @@ defaultFriConfiguration =
   (DomainLength dl)
   (ExpansionFactor 2)
   (NumColinearityTests 4)
-  (CapLength 1)
   where
     dl = 256
 
