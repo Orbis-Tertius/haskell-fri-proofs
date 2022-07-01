@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 
 
@@ -10,6 +11,7 @@ module Spec.Gen
   , genQuery
   , genAuthPath
   , genCommitment
+  , genCapCommitment
   , genByteString
   , genScalar
   , genLowDegreePoly
@@ -33,6 +35,8 @@ import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), 
 import Stark.Fri (getMaxDegree)
 import Stark.Types.AuthPath (AuthPath (..))
 import Stark.Types.BinaryTree (BinaryTree)
+import Stark.Types.CapCommitment (CapCommitment (..))
+import Stark.Types.CapLength (CapLength (..))
 import Stark.Types.Commitment (Commitment (..))
 import Stark.Types.MerkleHash (MerkleHash (..))
 import Stark.Types.Scalar (Scalar (..))
@@ -40,10 +44,10 @@ import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = pure defaultFriConfiguration
+genFriConfiguration = defaultFriConfiguration . CapLength . (2^) <$> choose (0 :: Int, 4)
 
 
-defaultFriConfiguration :: FriConfiguration
+defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
    FriConfiguration
   (Offset generator)
@@ -59,7 +63,7 @@ defaultFriConfiguration =
 genProofStream :: FriConfiguration -> Gen ProofStream
 genProofStream config =
   ProofStream
-  <$> listOf genCommitment
+  <$> listOf genCapCommitment
   <*> listOf (listOf genQuery)
   <*> oneof [pure Nothing, Just <$> genCodeword config]
   <*> listOf (listOf genAuthPaths)
@@ -77,12 +81,19 @@ genCommitment :: Gen Commitment
 genCommitment = Commitment . MerkleHash <$> genByteString
 
 
+genCapCommitment :: Gen CapCommitment
+genCapCommitment = do
+  n :: Int <- (2^) <$> choose (0, 6 :: Int)
+  CapCommitment . fromMaybe (error "could not generate binary tree")
+    . BinaryTree.fromList <$> vectorOf n genCommitment
+
+
 genQuery :: Gen Query
 genQuery = Query <$> ((,,) <$> (A <$> genScalar) <*> (B <$> genScalar) <*> (C <$> genScalar))
 
 
 genAuthPath :: Gen AuthPath
-genAuthPath = AuthPath <$> listOf1 (MerkleHash <$> genByteString)
+genAuthPath = AuthPath <$> listOf1 (Commitment . MerkleHash <$> genByteString)
 
 
 genByteString :: Gen ByteString
