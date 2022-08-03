@@ -1,9 +1,24 @@
 module Plonk.Types.Circuit
   ( Circuit (..)
   , NumRows (..)
+  , NumCols (..)
   , ColTypes (..)
+  , PolyDegreeBound (..)
+  , Constraints (..)
+  , Constraint (..)
+  , RelativeCellRef (..)
+  , Polynomial (..)
+  , Monomial (..)
+  , Exponent (..)
+  , FixedValues (..)
+  , CellIndex (..)
+  , RowIndex (..)
+  , RelativeRowIndex (..)
+  , ColIndex (..)
   ) where
 
+
+import Data.Map (Map)
 
 import Stark.Types.Scalar (Scalar)
 
@@ -39,10 +54,10 @@ newtype NumRows = NumRows { unNumRows :: Int }
 newtype PolyDegreeBound = PolyDegreeBound { unDegreeBound :: Int }
 
 
-newtype Constraints = Constraints { unConstraint :: [Constraint] }
+newtype Constraints = Constraints { unConstraints :: [Constraint] }
 
 
-newtype Constraint = Polynomial RelativeCellRef
+newtype Constraint = Constraint { unConstraint :: Polynomial RelativeCellRef }
 
 
 data RelativeCellRef = RelativeCellRef RelativeRowIndex ColIndex
