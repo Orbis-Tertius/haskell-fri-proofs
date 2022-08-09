@@ -40,14 +40,14 @@ data Circuit f =
 --}
 
 
-type P :: Type
-data P = Instance | Advice | Fixed
+type FAI :: Type
+data FAI = Instance | Advice | Fixed
 
-type Q :: Type
-data Q = EqCon | NEqCon
+type EN :: Type
+data EN = EqCon | NEqCon
 
 type ColType :: Type
-data ColType = MkCol P Q
+data ColType = MkCol FAI EN
 
 type C :: Nat -> Type
 type C n = Vect n ColType
