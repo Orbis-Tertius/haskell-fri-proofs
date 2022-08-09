@@ -1,10 +1,11 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 module Plonk.Types.Circuit
   ( Circuit (..)
-  , NumRows (..)
-  , NumCols (..)
-  , ColTypes (..)
-  , PolyDegreeBound (..)
-  , Constraints (..)
   , Constraint (..)
   , RelativeCellRef (..)
   , Polynomial (..)
@@ -19,10 +20,15 @@ module Plonk.Types.Circuit
 
 
 import Data.Map (Map)
+import Data.Type.Natural hiding (Zero)
+import qualified Data.Type.Natural as N
+import Data.Kind
+import GHC.TypeNats
 
 import Stark.Types.Scalar (Scalar)
 
 
+{--
 data Circuit f =
   Circuit
   { numRows :: NumRows
@@ -31,23 +37,51 @@ data Circuit f =
   , constraints :: Constraints
   , fixedValues :: FixedValues
   }
+--}
 
 
-data ColTypes =
-  ColTypes
-  { numInstanceCols :: NumCols Instance
-  , numAdviceCols :: NumCols Advice
-  , numFixedCols :: NumCols Fixed
-  }
+type P :: Type
+data P = Instance | Advice | Fixed
+
+type Q :: Type
+data Q = EqCon | NEqCon
+
+type ColType :: Type
+data ColType = MkCol P Q
+
+type C :: Nat -> Type
+type C n = Vect n ColType
 
 
-newtype NumCols a = NumCols { unNumCols :: Int }
 
-data Instance
-data Advice
-data Fixed
+data Vect :: Nat -> Type -> Type where
+  Nil :: Vect N.Zero a
+  (:-) :: a -> Vect n a -> Vect (S n) a
+
+infixr 7 :-
 
 
+
+
+data Circuit :: forall (n :: Nat). Vect n ColType -> Nat -> Type -> Type where
+  CNil :: Circuit Nil n a
+  (:&) :: Vect n a -> Circuit ps n a -> Circuit (p :- ps) n a
+
+infixr 7 :&
+
+type MyC :: C 3
+type MyC = 'MkCol Instance EqCon :- 'MkCol Advice NEqCon :- 'MkCol Fixed EqCon :- Nil
+
+data Z2 = Zero | One
+
+f :: Circuit MyC 3 Z2
+f = (One  :- Zero :- One :- Nil)
+ :& (Zero :- One  :- Zero :- Nil)
+ :& (One  :- Zero :- Zero :- Nil)
+ :& CNil
+
+
+{-
 newtype NumRows = NumRows { unNumRows :: Int } 
 
 
@@ -85,3 +119,4 @@ newtype RelativeRowIndex = RelativeRowIndex { unRelativeRowIndex :: Int }
 
 
 newtype ColIndex = ColIndex { unColIndex :: Int }
+-}
