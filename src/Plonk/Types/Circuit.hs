@@ -28,18 +28,6 @@ import GHC.TypeNats
 import Stark.Types.Scalar (Scalar)
 
 
-{--
-data Circuit f =
-  Circuit
-  { numRows :: NumRows
-  , colTypes :: ColTypes
-  , degreeBound :: PolyDegreeBound
-  , constraints :: Constraints
-  , fixedValues :: FixedValues
-  }
---}
-
-
 type FAI :: Type
 data FAI = Instance | Advice | Fixed
 
@@ -53,7 +41,6 @@ type C :: Nat -> Type
 type C n = Vect n ColType
 
 
-
 data Vect :: Nat -> Type -> Type where
   Nil :: Vect N.Zero a
   (:-) :: a -> Vect n a -> Vect (S n) a
@@ -61,11 +48,50 @@ data Vect :: Nat -> Type -> Type where
 infixr 7 :-
 
 
+type NumCols :: Type
+type NumCols = Nat
 
 
-data Circuit :: forall (n :: Nat). Vect n ColType -> Nat -> Type -> Type where
-  CNil :: Circuit Nil n a
-  (:&) :: Vect n a -> Circuit ps n a -> Circuit (p :- ps) n a
+type DegreeBound :: Type
+type DegreeBound = Nat
+
+
+type GateConstraint :: NumCols -> DegreeBound -> Type -> Type
+newtype GateConstraint n d a = GateConstraint { unGateConstraint :: Polynomial a (RelativeCellRef n) d }
+
+
+type RelativeCellRef :: NumCols -> Type
+data RelativeCellRef n = RelativeCellRef RelativeRowIndex (ColIndex n)
+
+
+type Fin :: Nat -> Type
+data Fin n where
+  FZ :: Fin n
+  FS :: Fin n -> Fin (S n)
+
+
+type ColIndex :: NumCols -> Type
+newtype ColIndex n = ColIndex { unColIndex :: Fin n }
+
+
+type RelativeRowIndex :: Type
+newtype RelativeRowIndex = RelativeRowIndex { unRelativeRowIndex :: Int }
+
+
+type Polynomial :: Type -> Type -> DegreeBound -> Type
+newtype Polynomial a v d = Polynomial { unPolynomial :: [Monomial a v d] }
+
+
+type Monomial :: Type -> Type -> DegreeBound -> Type
+data Monomial a v d = Monomial a (Vect d v)
+
+
+data Circuit :: forall (n :: Nat). Vect n ColType -> NumCols -> DegreeBound -> Type -> Type where
+  CNil :: Circuit Nil n d a
+  (:&) :: Vect n a -> Circuit ps n d a -> Circuit ((MkCol Fixed e) :- ps) n d a
+  (:*) :: Circuit ps n d a -> Circuit ((MkCol Advice e) :- ps) n d a
+  (:^) :: Circuit ps n d a -> Circuit ((MkCol Instance e) :- ps) n d a
+  (:+) :: GateConstraint n d a -> Circuit p n d a -> Circuit p n d a
 
 infixr 7 :&
 
@@ -74,49 +100,8 @@ type MyC = 'MkCol Instance EqCon :- 'MkCol Advice NEqCon :- 'MkCol Fixed EqCon :
 
 data Z2 = Zero | One
 
-f :: Circuit MyC 3 Z2
-f = (One  :- Zero :- One :- Nil)
- :& (Zero :- One  :- Zero :- Nil)
- :& (One  :- Zero :- Zero :- Nil)
- :& CNil
-
-
-{-
-newtype NumRows = NumRows { unNumRows :: Int } 
-
-
-newtype PolyDegreeBound = PolyDegreeBound { unDegreeBound :: Int }
-
-
-newtype Constraints = Constraints { unConstraints :: [Constraint] }
-
-
-newtype Constraint = Constraint { unConstraint :: Polynomial RelativeCellRef }
-
-
-data RelativeCellRef = RelativeCellRef RelativeRowIndex ColIndex
-
-
-newtype Polynomial v = Polynomial { unPolynomial :: [Monomial v] }
-
-
-data Monomial v = Monomial Scalar (Map v Exponent)
-
-
-newtype Exponent = Exponent { unExponent :: Int }
-
-
-newtype FixedValues = FixedValues { unFixedValues :: CellIndex -> Scalar }
-
-
-data CellIndex = CellIndex RowIndex
-
-
-newtype RowIndex = RowIndex { unRowIndex :: Int }
-
-
-newtype RelativeRowIndex = RelativeRowIndex { unRelativeRowIndex :: Int }
-
-
-newtype ColIndex = ColIndex { unColIndex :: Int }
--}
+-- f :: Circuit MyC 3 d Z2
+-- f = (One  :- Zero :- One :- Nil)
+--  :& (Zero :- One  :- Zero :- Nil)
+--  :& (One  :- Zero :- Zero :- Nil)
+--  :& CNil
