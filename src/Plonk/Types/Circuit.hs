@@ -2,31 +2,47 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
+{-# LANGUAGE UndecidableInstances #-}
+
+
 module Plonk.Types.Circuit
-  ( Circuit (..)
-  , Constraint (..)
+  ( Vect (..)
+  , Length
+  , Fin (..)
+  , CircuitShape (..)
+  , Circuit' (..)
+  , Circuit
+  , CircuitWithData
+  , Constraint
+  , GateConstraint (..)
   , RelativeCellRef (..)
   , Polynomial (..)
   , Monomial (..)
-  , Exponent (..)
-  , FixedValues (..)
-  , CellIndex (..)
-  , RowIndex (..)
   , RelativeRowIndex (..)
   , ColIndex (..)
+  , Z2 (..)
+  , f
   ) where
 
 
-import Data.Map (Map)
 import Data.Type.Natural hiding (Zero)
 import qualified Data.Type.Natural as N
 import Data.Kind
-import GHC.TypeNats
+import qualified GHC.TypeLits as TL
 
-import Stark.Types.Scalar (Scalar)
 
+data Vect :: Nat -> Type -> Type where
+  Nil :: Vect N.Zero a
+  (:-) :: a -> Vect n a -> Vect (S n) a
+
+infixr 7 :-
+
+type family Length (a :: [b]) :: Nat
+type instance (Length '[]) = 0
+type instance Length (a ': as) = 1 TL.+ Length as
 
 type FAI :: Type
 data FAI = Instance | Advice | Fixed
@@ -36,16 +52,6 @@ data EN = EqCon | NEqCon
 
 type ColType :: Type
 data ColType = MkCol FAI EN
-
-type C :: Nat -> Type
-type C n = Vect n ColType
-
-
-data Vect :: Nat -> Type -> Type where
-  Nil :: Vect N.Zero a
-  (:-) :: a -> Vect n a -> Vect (S n) a
-
-infixr 7 :-
 
 
 type NumCols :: Type
@@ -90,37 +96,39 @@ type NumRows :: Type
 type NumRows = Nat
 
 
-data CircuitShape :: forall (n :: Nat). Vect n ColType -> NumRows -> DegreeBound -> Type -> Type where
-  CNil :: CircuitShape Nil m d a
-  (:&) :: Vect m a -> CircuitShape ps m d a -> CircuitShape ((MkCol Fixed e) :- ps) m d a
-  CAdvice :: CircuitShape ps m d a -> CircuitShape ((MkCol Advice e) :- ps) m d a
-  CInstance :: CircuitShape ps m d a -> CircuitShape ((MkCol Instance e) :- ps) m d a
+data CircuitShape :: [ColType] -> NumRows -> DegreeBound -> Type -> Type -> Type where
+  CNil :: CircuitShape '[] m d a b
+  (:&) :: Vect m a -> CircuitShape ps m d a b -> CircuitShape (('MkCol 'Fixed e) : ps) m d a b
+  (:*) :: Vect m b -> CircuitShape ps m d a b -> CircuitShape (('MkCol 'Advice e) : ps) m d a b
+  (:^) :: Vect m b -> CircuitShape ps m d a b -> CircuitShape (('MkCol 'Instance e) : ps) m d a b
 
 
-type Circuit :: forall (n :: Nat). Vect n ColType -> NumRows -> DegreeBound -> Type -> Type
-data Circuit ps m d a =
+type Circuit' :: [ColType] -> NumRows -> DegreeBound -> Type -> Type -> Type
+data Circuit' ps m d a b =
   Circuit
-  { shape :: CircuitShape ps m d a
-  , constraints :: [GateConstraint n d a]
+  { shape :: CircuitShape ps m d a b
+  , constraints :: [GateConstraint (Length ps) d a]
   }
 
 
-data InstanceData :: forall (n :: Nat). Vect n ColType -> NumRows -> Type where
-  INil :: InstanceData Nil m
-  IConsFixed :: (y :: InstanceData v m) -> InstanceData ((MkCol Fixed e) :- v) (xs :& y)
+type Circuit :: [ColType] -> NumRows -> DegreeBound -> Type -> Type
+type Circuit ps m d a = Circuit' ps m d a ()
+
+
+type CircuitWithData :: [ColType] -> NumRows -> DegreeBound -> Type -> Type
+type CircuitWithData ps m d a = Circuit' ps m d a a
 
 
 infixr 7 :&
 infixr 7 :*
 infixr 7 :^
-infixr 7 :+
 
-type MyC :: C 3
-type MyC = 'MkCol Instance EqCon :- 'MkCol Advice NEqCon :- 'MkCol Fixed EqCon :- Nil
+type MyC :: [ColType]
+type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon ]
 
 data Z2 = Zero | One
 
-f :: Circuit MyC 3 d Z2
+f :: CircuitShape MyC 3 d Z2 Z2
 f =  (One  :- Zero :- One :- Nil)
   :^ (Zero :- One  :- Zero :- Nil)
   :* (One  :- Zero :- Zero :- Nil)
