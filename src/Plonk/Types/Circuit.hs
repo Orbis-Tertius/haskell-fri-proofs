@@ -85,15 +85,29 @@ newtype Polynomial a v d = Polynomial { unPolynomial :: [Monomial a v d] }
 type Monomial :: Type -> Type -> DegreeBound -> Type
 data Monomial a v d = Monomial a (Vect d v)
 
+
 type NumRows :: Type
 type NumRows = Nat
 
-data Circuit :: forall (n :: Nat). Vect n ColType -> NumRows -> DegreeBound -> Type -> Type where
-  CNil :: Circuit Nil m d a
-  (:&) :: Vect m a -> Circuit ps m d a -> Circuit ((MkCol Fixed e) :- ps) m d a
-  (:*) :: Vect m a -> Circuit ps m d a -> Circuit ((MkCol Advice e) :- ps) m d a
-  (:^) :: Vect m a -> Circuit ps m d a -> Circuit ((MkCol Instance e) :- ps) m d a
-  (:+) :: GateConstraint n d a -> Circuit ps m d a -> Circuit ps m d a
+
+data CircuitShape :: forall (n :: Nat). Vect n ColType -> NumRows -> DegreeBound -> Type -> Type where
+  CNil :: CircuitShape Nil m d a
+  (:&) :: Vect m a -> CircuitShape ps m d a -> CircuitShape ((MkCol Fixed e) :- ps) m d a
+  CAdvice :: CircuitShape ps m d a -> CircuitShape ((MkCol Advice e) :- ps) m d a
+  CInstance :: CircuitShape ps m d a -> CircuitShape ((MkCol Instance e) :- ps) m d a
+
+
+type Circuit :: forall (n :: Nat). Vect n ColType -> NumRows -> DegreeBound -> Type -> Type
+data Circuit ps m d a =
+  Circuit
+  { shape :: CircuitShape ps m d a
+  , constraints :: [GateConstraint n d a]
+  }
+
+
+data InstanceData :: forall (n :: Nat). Vect n ColType -> NumRows -> Type where
+  INil :: InstanceData Nil m
+  IConsFixed :: (y :: InstanceData v m) -> InstanceData ((MkCol Fixed e) :- v) (xs :& y)
 
 
 infixr 7 :&
