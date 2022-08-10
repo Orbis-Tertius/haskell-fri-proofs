@@ -85,23 +85,29 @@ newtype Polynomial a v d = Polynomial { unPolynomial :: [Monomial a v d] }
 type Monomial :: Type -> Type -> DegreeBound -> Type
 data Monomial a v d = Monomial a (Vect d v)
 
+type NumRows :: Type
+type NumRows = Nat
 
-data Circuit :: forall (n :: Nat). Vect n ColType -> NumCols -> DegreeBound -> Type -> Type where
-  CNil :: Circuit Nil n d a
-  (:&) :: Vect n a -> Circuit ps n d a -> Circuit ((MkCol Fixed e) :- ps) n d a
-  (:*) :: Circuit ps n d a -> Circuit ((MkCol Advice e) :- ps) n d a
-  (:^) :: Circuit ps n d a -> Circuit ((MkCol Instance e) :- ps) n d a
-  (:+) :: GateConstraint n d a -> Circuit p n d a -> Circuit p n d a
+data Circuit :: forall (n :: Nat). Vect n ColType -> NumRows -> DegreeBound -> Type -> Type where
+  CNil :: Circuit Nil m d a
+  (:&) :: Vect m a -> Circuit ps m d a -> Circuit ((MkCol Fixed e) :- ps) m d a
+  (:*) :: Vect m a -> Circuit ps m d a -> Circuit ((MkCol Advice e) :- ps) m d a
+  (:^) :: Vect m a -> Circuit ps m d a -> Circuit ((MkCol Instance e) :- ps) m d a
+  (:+) :: GateConstraint n d a -> Circuit ps m d a -> Circuit ps m d a
+
 
 infixr 7 :&
+infixr 7 :*
+infixr 7 :^
+infixr 7 :+
 
 type MyC :: C 3
 type MyC = 'MkCol Instance EqCon :- 'MkCol Advice NEqCon :- 'MkCol Fixed EqCon :- Nil
 
 data Z2 = Zero | One
 
--- f :: Circuit MyC 3 d Z2
--- f = (One  :- Zero :- One :- Nil)
---  :& (Zero :- One  :- Zero :- Nil)
---  :& (One  :- Zero :- Zero :- Nil)
---  :& CNil
+f :: Circuit MyC 3 d Z2
+f =  (One  :- Zero :- One :- Nil)
+  :^ (Zero :- One  :- Zero :- Nil)
+  :* (One  :- Zero :- Zero :- Nil)
+  :& CNil
