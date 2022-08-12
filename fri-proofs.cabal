@@ -9,6 +9,7 @@ maintainer:    morgan.thomas@platonic.systems
 library
   exposed-modules:
     Plonk.Types.Circuit
+    Plonk.Arithmetization
     Stark.BinaryTree
     Stark.FiniteField
     Stark.Fri
