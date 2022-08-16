@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
@@ -13,7 +14,7 @@ module Plonk.Types.Circuit
   , Length
   , Fin (..)
   , CircuitShape (..)
-  , Circuit' (..)
+  , Circuit' (Circuit)
   , Circuit
   , CircuitWithData'
   , CircuitWithData
@@ -38,6 +39,7 @@ import Data.Map (Map)
 import Data.Type.Natural hiding (Zero)
 import qualified Data.Type.Natural as N
 import Data.Kind
+import GHC.Generics (Generic)
 import qualified GHC.TypeLits as TL
 
 
@@ -138,6 +140,7 @@ data Circuit' f ps d a b =
   { shape :: CircuitShape f ps d a b
   , constraints :: [GateConstraint (Length ps) d a]
   }
+  deriving Generic
 
 
 type Circuit :: [ColType] -> NumRows -> DegreeBound -> Type -> Type
