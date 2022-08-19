@@ -16,8 +16,6 @@ module Plonk.Types.Circuit
   , CircuitShape (..)
   , Circuit' (Circuit)
   , Circuit
-  , CircuitWithData'
-  , CircuitWithData
   , Constraint
   , GateConstraint (..)
   , RelativeCellRef (..)
@@ -32,9 +30,13 @@ module Plonk.Types.Circuit
   , Exponent (..)
   , Challenge (..)
   , f
+  , HasData(..)
   ) where
 
 
+import Data.Functor.Compose
+import Data.Functor.Identity
+import Data.Functor.Const
 import Data.Map (Map)
 import Data.Type.Natural hiding (Zero)
 import qualified Data.Type.Natural as N
@@ -96,7 +98,6 @@ newtype RelativeRowIndex = RelativeRowIndex { unRelativeRowIndex :: Int }
 type Polynomial :: Type -> Type -> DegreeBound -> Type
 newtype Polynomial a v d = Polynomial { unPolynomial :: [Monomial a v d] }
 
-
 type Monomial :: Type -> Type -> DegreeBound -> Type
 data Monomial a v d = Monomial a (Vect d (Maybe v))
 
@@ -118,61 +119,54 @@ type NumRows = Nat
 data CircuitShape
     :: (Type -> Type)
     -> [ColType]
+    -> HasData
     -> DegreeBound
     -> Type
-    -> Type
     -> Type where
-  CNil :: CircuitShape f '[] d a b
-  (:&) :: f a -> CircuitShape f ps d a b -> CircuitShape f (('MkCol 'Fixed e) : ps) d a b
-  (:*) :: f b -> CircuitShape f ps d a b -> CircuitShape f (('MkCol 'Advice e) : ps) d a b
-  (:^) :: f b -> CircuitShape f ps d a b -> CircuitShape f (('MkCol 'Instance e) : ps) d a b
+  CNil :: CircuitShape f '[] h d a
+  (:&) :: (Compose f (F h j)) a -> CircuitShape f ps h d a -> CircuitShape f (('MkCol j e) : ps) h d a
+
+type HasData :: Type
+data HasData where
+  WithData :: HasData
+  WithNoData :: HasData
+
+type F :: HasData -> FAI -> (Type -> Type)
+type family F (y :: HasData) (x :: FAI) :: Type -> Type where
+  F _ 'Fixed    = Identity
+  F 'WithData _ = Identity
+  F _ _         = Const ()
 
 
 type Circuit'
   :: (Type -> Type)
   -> [ColType]
+  -> HasData
   -> DegreeBound
   -> Type
   -> Type
-  -> Type
-data Circuit' f ps d a b =
+data Circuit' f ps h d a =
   Circuit
-  { shape :: CircuitShape f ps d a b
+  { shape :: CircuitShape f ps h d a
   , constraints :: [GateConstraint (Length ps) d a]
   }
   deriving Generic
 
 
-type Circuit :: [ColType] -> NumRows -> DegreeBound -> Type -> Type
-type Circuit ps m d a = Circuit' (Vect m) ps d a ()
-
-
-type CircuitWithData'
-  :: (Type -> Type)
-  -> [ColType]
-  -> DegreeBound
-  -> Type
-  -> Type
-type CircuitWithData' f ps d a = Circuit' f ps d a a
-
-
-type CircuitWithData :: [ColType] -> NumRows -> DegreeBound -> Type -> Type
-type CircuitWithData ps m d a = Circuit' (Vect m) ps d a a
-
+type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type
+type Circuit ps h m d a = Circuit' (Vect m) ps h d a
 
 infixr 7 :&
-infixr 7 :*
-infixr 7 :^
 
 type MyC :: [ColType]
 type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon ]
 
 data Z2 = Zero | One
 
-f :: CircuitShape (Vect 3) MyC d Z2 Z2
-f =  (One  :- Zero :- One :- Nil)
-  :^ (Zero :- One  :- Zero :- Nil)
-  :* (One  :- Zero :- Zero :- Nil)
+f :: CircuitShape (Vect 3) MyC 'WithData d Z2
+f =  Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
+  :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
+  :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
   :& CNil
 
 

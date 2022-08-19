@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE RankNTypes #-}
 
 
@@ -24,19 +25,19 @@ columnVectorToPoly = todo -- this can be done with an FFT (Faez)
 
 circuitWithDataToPolys
   :: Domain m a
-  -> CircuitWithData ps m d a
-  -> Maybe (CircuitWithData' UnivariatePolynomial ps d a)
+  -> Circuit ps 'WithData m d a
+  -> Maybe (Circuit' UnivariatePolynomial ps 'WithData d a)
 circuitWithDataToPolys dom = circTraverse (columnVectorToPoly dom)
 
 
 circTraverse :: (h a -> g (f a))
-             -> CircuitWithData' h ps d a
-             -> g (CircuitWithData' f ps d a)
+             -> Circuit' h ps 'WithData d a
+             -> g (Circuit' f ps 'WithData d a)
 circTraverse = todo
 
 
 plugInDataToGateConstraint
-  :: CircuitShape UnivariatePolynomial ps d a a
+  :: CircuitShape UnivariatePolynomial ps 'WithData d a
   -> GateConstraint (Length ps) d a
   -> Maybe (UnivariatePolynomial a)
 plugInDataToGateConstraint = todo
@@ -50,7 +51,7 @@ linearlyCombineGatePolys = todo
 
 
 combineCircuitPolys
-  :: CircuitWithData' UnivariatePolynomial ps d a
+  :: Circuit' UnivariatePolynomial ps 'WithData d a
   -> Challenge a
   -> Maybe (UnivariatePolynomial a)
 combineCircuitPolys (Circuit shape gates) challenge =
