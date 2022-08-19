@@ -4,56 +4,56 @@
 module Stark.MultivariatePolynomial
   ( isZero
   , constant
-  , linearBasis
   , fromUnivariate
   , evaluate
   , evaluateSymbolic
+  , evaluateSymbolicToUni
   ) where
 
 
 import Prelude hiding ((!!))
-import Data.List.Safe ((!!))
 import Data.Map (elems, singleton, mapKeys)
-import Data.Maybe (fromMaybe)
-import Math.Algebra.Polynomial.Class (Polynomial (evalP, subsP), fromIndex)
+import Math.Algebra.Polynomial.Class (Polynomial (evalP, subsP))
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
-import Math.Algebra.Polynomial.Univariate (unUni)
-import Math.Algebra.Polynomial.Multivariate.Infinite (Poly (Poly), unPoly, XInf (XInf))
+import Math.Algebra.Polynomial.Monomial.Generic (Monom (Monom))
+import Math.Algebra.Polynomial.Pretty (Pretty)
+import Math.Algebra.Polynomial.Univariate (unUni, U (U))
+import Math.Algebra.Polynomial.Multivariate.Generic (Poly (Poly), unPoly)
 
 import Stark.Types.MultivariatePolynomial (MultivariatePolynomial)
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
-import Stark.Types.Variable (Variable (Variable))
+import qualified Stark.UnivariatePolynomial as Uni
 
 
-isZero :: MultivariatePolynomial -> Bool
+isZero :: MultivariatePolynomial a -> Bool
 isZero = all (== 0) . elems . unFreeMod . unPoly
 
 
-constant :: Scalar -> MultivariatePolynomial
-constant coef = Poly (FreeMod (singleton (XInf [0]) coef))
+constant :: Ord a => Scalar -> MultivariatePolynomial a
+constant coef = Poly (FreeMod (singleton (Monom mempty) coef))
 
 
-linearBasis :: Int -> [MultivariatePolynomial]
-linearBasis n =
-  Poly . FreeMod . flip singleton 1 . XInf <$>
-  [ replicate (i-1) 0 ++ [1] ++ replicate (n-i) 0
-  | i <- [1..n] ]
+fromUnivariate :: Ord a => UnivariatePolynomial -> a -> MultivariatePolynomial a
+fromUnivariate p x =
+  Poly . FreeMod . mapKeys (Monom . singleton x . unU) . unFreeMod . unUni $ p
+  where unU (U y) = y
 
 
-fromUnivariate :: UnivariatePolynomial -> Variable -> MultivariatePolynomial
-fromUnivariate p (Variable i) =
-  Poly . FreeMod . mapKeys (const x) . unFreeMod . unUni $ p
-  where
-    x :: XInf x
-    x = XInf $ replicate (i-1) 0 ++ [1]
+evaluate :: Ord a => Pretty a => MultivariatePolynomial a -> (a -> Scalar) -> Scalar
+evaluate p xs = evalP id xs p
 
 
-evaluate :: MultivariatePolynomial -> [Scalar] -> Scalar
-evaluate p xs = evalP id (fromMaybe 0 . (xs !!) . fromIndex) p
+evaluateSymbolic :: Ord a => Pretty a
+                 => MultivariatePolynomial a
+                 -> (a -> MultivariatePolynomial a)
+                 -> MultivariatePolynomial a
+evaluateSymbolic p qs = subsP qs p
 
 
-evaluateSymbolic :: MultivariatePolynomial
-                 -> [MultivariatePolynomial]
-                 -> MultivariatePolynomial
-evaluateSymbolic p qs = subsP (fromMaybe 0 . (qs !!) . fromIndex) p
+evaluateSymbolicToUni
+  :: Ord a => Pretty a
+  => MultivariatePolynomial a
+  -> (a -> UnivariatePolynomial)
+  -> UnivariatePolynomial
+evaluateSymbolicToUni p qs = evalP Uni.constant qs p

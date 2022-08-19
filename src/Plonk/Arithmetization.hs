@@ -17,67 +17,88 @@ module Plonk.Arithmetization
 import Plonk.Types.Circuit
 import Data.Functor.Identity
 import Data.Functor.Compose
+import Math.Algebra.Polynomial.Univariate (Univariate)
 import Stark.Types.Scalar (Scalar)
 
 
 columnVectorToPoly
   :: Domain n a
   -> Vect n a
-  -> Maybe (UnivariatePolynomial a)
+  -> Maybe (Univariate a)
 columnVectorToPoly = todo -- this can be done with an FFT (Faez)
 
 
 circuitWithDataToPolys
   :: Domain m a
   -> Circuit ps 'WithData m d a
-  -> Maybe (Circuit' UnivariatePolynomial ps 'WithData d a)
+  -> Maybe (Circuit' Univariate ps 'WithData d a)
 circuitWithDataToPolys dom = circTraverse (columnVectorToPoly dom)
 
 
-circTraverse :: (h a -> g (f a))
+circTraverse :: Applicative g
+             => Functor f
+             => Functor h
+             => (h a -> g (f a))
              -> Circuit' h ps 'WithData d a
              -> g (Circuit' f ps 'WithData d a)
-circTraverse _ = todo
+circTraverse k (Circuit shape constraints) =
+   flip Circuit constraints <$> circShapeTraverse k shape
+
 
 circShapeTraverse :: Applicative g
-                  => ((Compose h Identity) a -> g ((Compose f Identity) a))
+                  => Functor f
+                  => Functor h
+                  => (h a -> g (f a))
                   -> CircuitShape h ps 'WithData d a
                   -> g (CircuitShape f ps 'WithData d a)
 circShapeTraverse _ CNil = pure CNil
-circShapeTraverse k (x :& xs) = (:&) <$> k x <*> circShapeTraverse k xs
+circShapeTraverse k (x :& xs) =
+  (:&) <$> wrapInIdentity k x <*> circShapeTraverse k xs
+
+
+wrapInIdentity
+  :: Functor g
+  => Functor f
+  => Functor h
+  => (h a -> g (f a))
+  -> (Compose h Identity) a -> g ((Compose f Identity) a)
+wrapInIdentity f (Compose xs) =
+  Compose . fmap Identity
+    <$> f (runIdentity <$> xs)
+
 
 plugInDataToGateConstraint
-  :: CircuitShape UnivariatePolynomial ps 'WithData d a
+  :: CircuitShape Univariate ps 'WithData d a
   -> GateConstraint (Length ps) d a
-  -> Maybe (UnivariatePolynomial a)
+  -> Maybe (Univariate a)
 plugInDataToGateConstraint = todo
 
 
 linearlyCombineGatePolys
   :: Challenge a
-  -> [UnivariatePolynomial a]
-  -> UnivariatePolynomial a
+  -> [Univariate a]
+  -> Univariate a
 linearlyCombineGatePolys = todo
 
 
 combineCircuitPolys
-  :: Circuit' UnivariatePolynomial ps 'WithData d a
+  :: Circuit' Univariate ps 'WithData d a
   -> Challenge a
-  -> Maybe (UnivariatePolynomial a)
+  -> Maybe (Univariate a)
 combineCircuitPolys (Circuit shape gates) challenge =
   linearlyCombineGatePolys challenge <$>
     sequence (plugInDataToGateConstraint shape <$> gates)
 
 
-getZerofier :: Domain n a -> UnivariatePolynomial a
+getZerofier :: Domain n a -> Univariate a
 getZerofier = todo -- this can be done with an FFT (Faez)
 
 
 -- returns the quotient if the denominator
 -- perfectly divides the numerator.
-divUniPoly :: UnivariatePolynomial Scalar
-           -> UnivariatePolynomial Scalar
-           -> Maybe (UnivariatePolynomial a)
+divUniPoly :: Univariate Scalar
+           -> Univariate Scalar
+           -> Maybe (Univariate a)
 divUniPoly = todo -- can be done with Euclidean algorithm
 
 

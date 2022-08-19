@@ -4,9 +4,9 @@
 module Stark.Types.MultivariatePolynomial ( MultivariatePolynomial ) where
 
 
-import Math.Algebra.Polynomial.Multivariate.Infinite (Poly)
+import Math.Algebra.Polynomial.Multivariate.Generic (Poly)
 
 import Stark.Types.Scalar (Scalar)
 
 
-type MultivariatePolynomial = Poly Scalar "x"
+type MultivariatePolynomial v = Poly Scalar v

@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
@@ -19,17 +20,14 @@ module Plonk.Types.Circuit
   , Constraint
   , GateConstraint (..)
   , RelativeCellRef (..)
-  , Polynomial (..)
-  , Monomial (..)
   , RelativeRowIndex (..)
   , ColIndex (..)
   , Z2 (..)
   , Domain (..)
   , DomainGenerator (..)
-  , UnivariatePolynomial (..)
   , Exponent (..)
   , Challenge (..)
-  , f
+  , example
   , HasData(..)
   , Entry
   , FAI(..)
@@ -41,12 +39,12 @@ module Plonk.Types.Circuit
 import Data.Functor.Compose
 import Data.Functor.Identity
 import Data.Functor.Const
-import Data.Map (Map)
 import Data.Type.Natural hiding (Zero)
 import qualified Data.Type.Natural as N
 import Data.Kind
 import GHC.Generics (Generic)
 import qualified GHC.TypeLits as TL
+import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 
 
 data Vect :: Nat -> Type -> Type where
@@ -54,6 +52,11 @@ data Vect :: Nat -> Type -> Type where
   (:-) :: a -> Vect n a -> Vect (S n) a
 
 infixr 7 :-
+
+instance Functor (Vect m) where
+  fmap _ Nil = Nil
+  fmap f (x :- xs) = f x :- fmap f xs
+
 
 type family Length (a :: [b]) :: Nat
 type instance (Length '[]) = 0
@@ -78,7 +81,8 @@ type DegreeBound = Nat
 
 
 type GateConstraint :: NumCols -> DegreeBound -> Type -> Type
-newtype GateConstraint n d a = GateConstraint { unGateConstraint :: Polynomial a (RelativeCellRef n) d }
+newtype GateConstraint n d a = GateConstraint
+  { unGateConstraint :: Multi.Poly a (RelativeCellRef n) }
 
 
 type RelativeCellRef :: NumCols -> Type
@@ -97,19 +101,6 @@ newtype ColIndex n = ColIndex { unColIndex :: Fin n }
 
 type RelativeRowIndex :: Type
 newtype RelativeRowIndex = RelativeRowIndex { unRelativeRowIndex :: Int }
-
-
-type Polynomial :: Type -> Type -> DegreeBound -> Type
-newtype Polynomial a v d = Polynomial { unPolynomial :: [Monomial a v d] }
-
-type Monomial :: Type -> Type -> DegreeBound -> Type
-data Monomial a v d = Monomial a (Vect d (Maybe v))
-
-
-type UnivariatePolynomial :: Type -> Type
-newtype UnivariatePolynomial a
-  = UnivariatePolynomial
-  { unUnivariatePolynomial :: Map Exponent a }
 
 
 type Exponent :: Type
@@ -166,11 +157,11 @@ type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'Eq
 
 data Z2 = Zero | One
 
-f :: CircuitShape (Vect 3) MyC 'WithData d Z2
-f =  Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
-  :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
-  :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
-  :& CNil
+example :: CircuitShape (Vect 3) MyC 'WithData d Z2
+example = Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
+       :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
+       :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
+       :& CNil
 
 
 type Domain :: NumRows -> Type -> Type
