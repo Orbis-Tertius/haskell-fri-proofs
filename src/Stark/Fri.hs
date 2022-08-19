@@ -81,7 +81,7 @@ evalDomain (Offset o) (Omega m) (DomainLength d)
   = [o * (m ^ i) | i <- [0..d-1]]
 
 
-getCodeword :: FriConfiguration -> UnivariatePolynomial -> Codeword
+getCodeword :: FriConfiguration -> UnivariatePolynomial Scalar -> Codeword
 getCodeword config poly =
   Codeword $ evaluate poly <$> evalDomain (config ^. #offset) (config ^. #omega) (config ^. #domainLength)
 

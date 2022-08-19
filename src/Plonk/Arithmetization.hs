@@ -17,21 +17,21 @@ module Plonk.Arithmetization
 import Plonk.Types.Circuit
 import Data.Functor.Identity
 import Data.Functor.Compose
-import Math.Algebra.Polynomial.Univariate (Univariate)
 import Stark.Types.Scalar (Scalar)
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 
 
 columnVectorToPoly
   :: Domain n a
   -> Vect n a
-  -> Maybe (Univariate a)
+  -> Maybe (UnivariatePolynomial a)
 columnVectorToPoly = todo -- this can be done with an FFT (Faez)
 
 
 circuitWithDataToPolys
   :: Domain m a
   -> Circuit ps 'WithData m d a
-  -> Maybe (Circuit' Univariate ps 'WithData d a)
+  -> Maybe (Circuit' UnivariatePolynomial ps 'WithData d a)
 circuitWithDataToPolys dom = circTraverse (columnVectorToPoly dom)
 
 
@@ -68,37 +68,37 @@ wrapInIdentity f (Compose xs) =
 
 
 plugInDataToGateConstraint
-  :: CircuitShape Univariate ps 'WithData d a
+  :: CircuitShape UnivariatePolynomial ps 'WithData d a
   -> GateConstraint (Length ps) d a
-  -> Maybe (Univariate a)
+  -> Maybe (UnivariatePolynomial a)
 plugInDataToGateConstraint = todo
 
 
 linearlyCombineGatePolys
   :: Challenge a
-  -> [Univariate a]
-  -> Univariate a
+  -> [UnivariatePolynomial a]
+  -> UnivariatePolynomial a
 linearlyCombineGatePolys = todo
 
 
 combineCircuitPolys
-  :: Circuit' Univariate ps 'WithData d a
+  :: Circuit' UnivariatePolynomial ps 'WithData d a
   -> Challenge a
-  -> Maybe (Univariate a)
+  -> Maybe (UnivariatePolynomial a)
 combineCircuitPolys (Circuit shape gates) challenge =
   linearlyCombineGatePolys challenge <$>
     sequence (plugInDataToGateConstraint shape <$> gates)
 
 
-getZerofier :: Domain n a -> Univariate a
+getZerofier :: Domain n a -> UnivariatePolynomial a
 getZerofier = todo -- this can be done with an FFT (Faez)
 
 
 -- returns the quotient if the denominator
 -- perfectly divides the numerator.
-divUniPoly :: Univariate Scalar
-           -> Univariate Scalar
-           -> Maybe (Univariate a)
+divUniPoly :: UnivariatePolynomial Scalar
+           -> UnivariatePolynomial Scalar
+           -> Maybe (UnivariatePolynomial a)
 divUniPoly = todo -- can be done with Euclidean algorithm
 
 

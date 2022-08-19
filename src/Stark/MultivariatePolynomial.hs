@@ -22,7 +22,7 @@ import Math.Algebra.Polynomial.Multivariate.Generic (Poly (Poly), unPoly)
 
 import Stark.Types.MultivariatePolynomial (MultivariatePolynomial)
 import Stark.Types.Scalar (Scalar)
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
 import qualified Stark.UnivariatePolynomial as Uni
 
 
@@ -34,8 +34,8 @@ constant :: Ord a => Scalar -> MultivariatePolynomial a
 constant coef = Poly (FreeMod (singleton (Monom mempty) coef))
 
 
-fromUnivariate :: Ord a => UnivariatePolynomial -> a -> MultivariatePolynomial a
-fromUnivariate p x =
+fromUnivariate :: Ord a => UnivariatePolynomial Scalar -> a -> MultivariatePolynomial a
+fromUnivariate (UnivariatePolynomial p) x =
   Poly . FreeMod . mapKeys (Monom . singleton x . unU) . unFreeMod . unUni $ p
   where unU (U y) = y
 
@@ -54,6 +54,6 @@ evaluateSymbolic p qs = subsP qs p
 evaluateSymbolicToUni
   :: Ord a => Pretty a
   => MultivariatePolynomial a
-  -> (a -> UnivariatePolynomial)
-  -> UnivariatePolynomial
+  -> (a -> UnivariatePolynomial Scalar)
+  -> UnivariatePolynomial Scalar
 evaluateSymbolicToUni p qs = evalP Uni.constant qs p

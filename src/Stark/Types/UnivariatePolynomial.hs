@@ -1,12 +1,19 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
-module Stark.Types.UnivariatePolynomial ( UnivariatePolynomial ) where
+module Stark.Types.UnivariatePolynomial ( UnivariatePolynomial (..) ) where
 
 
-import Math.Algebra.Polynomial.Univariate (Univariate)
+import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
+import Math.Algebra.Polynomial.Univariate (Univariate (Uni))
 
-import Stark.Types.Scalar (Scalar)
 
+newtype UnivariatePolynomial a =
+  UnivariatePolynomial
+  { unUnivariatePolynomial :: Univariate a "x" }
+  deriving (Eq, Ord, Num)
 
-type UnivariatePolynomial = Univariate Scalar "x"
+instance Functor UnivariatePolynomial where
+  fmap f (UnivariatePolynomial (Uni (FreeMod p))) =
+    UnivariatePolynomial (Uni (FreeMod (f <$> p)))

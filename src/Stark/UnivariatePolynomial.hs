@@ -12,45 +12,45 @@ module Stark.UnivariatePolynomial
 
 import Control.Arrow ((***))
 import Data.Map (lookupMax, singleton, elems)
-import Math.Algebra.Polynomial.Class (Polynomial (evalP))
+import Math.Algebra.Polynomial.Class (Polynomial (evalP), Ring)
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
 import Math.Algebra.Polynomial.Univariate (Univariate (Uni), unUni, U (U), fromQUni)
 import Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 import qualified Data.FiniteField.PrimeField as PrimeField
 
 import Stark.Types.Scalar (Scalar (unScalar))
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
 
 
-degree :: UnivariatePolynomial -> Int
-degree p =
+degree :: UnivariatePolynomial a -> Int
+degree (UnivariatePolynomial p) =
   case lookupMax (unFreeMod (unUni p)) of
     Just (U i, _) -> i
     Nothing -> -1
 
 
-isZero :: UnivariatePolynomial -> Bool
-isZero = all (== 0) . elems . unFreeMod . unUni
+isZero :: Eq a => Num a => UnivariatePolynomial a -> Bool
+isZero = all (== 0) . elems . unFreeMod . unUni . unUnivariatePolynomial
 
 
-leadingCoefficient :: UnivariatePolynomial -> Maybe Scalar
-leadingCoefficient p = snd <$> lookupMax (unFreeMod (unUni p))
+leadingCoefficient :: UnivariatePolynomial a -> Maybe a
+leadingCoefficient (UnivariatePolynomial p) = snd <$> lookupMax (unFreeMod (unUni p))
 
 
-evaluate :: UnivariatePolynomial -> Scalar -> Scalar
-evaluate p x = evalP id (const x) p
+evaluate :: Ring a => UnivariatePolynomial a -> a -> a
+evaluate (UnivariatePolynomial p) x = evalP id (const x) p
 
 
-linear :: Scalar -> UnivariatePolynomial
-linear coef = Uni (FreeMod (singleton (U 1) coef))
+linear :: Scalar -> UnivariatePolynomial Scalar
+linear coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 1) coef)))
 
 
-constant :: Scalar -> UnivariatePolynomial
-constant coef = Uni (FreeMod (singleton (U 0) coef))
+constant :: Scalar -> UnivariatePolynomial Scalar
+constant coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 0) coef)))
 
 
-interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial
-interpolate f = fromQUni $ lagrangeInterp ((g *** g) <$> f)
+interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
+interpolate f = UnivariatePolynomial . fromQUni $ lagrangeInterp ((g *** g) <$> f)
   where
     g :: Scalar -> Rational
     g = fromIntegral . PrimeField.toInteger . unScalar
