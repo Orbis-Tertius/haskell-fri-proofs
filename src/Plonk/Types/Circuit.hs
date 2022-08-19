@@ -31,6 +31,10 @@ module Plonk.Types.Circuit
   , Challenge (..)
   , f
   , HasData(..)
+  , Entry
+  , FAI(..)
+  , ColType
+  , DegreeBound  
   ) where
 
 
@@ -124,18 +128,18 @@ data CircuitShape
     -> Type
     -> Type where
   CNil :: CircuitShape f '[] h d a
-  (:&) :: (Compose f (F h j)) a -> CircuitShape f ps h d a -> CircuitShape f (('MkCol j e) : ps) h d a
+  (:&) :: (Compose f (Entry h j)) a -> CircuitShape f ps h d a -> CircuitShape f (('MkCol j e) : ps) h d a
 
 type HasData :: Type
 data HasData where
   WithData :: HasData
   WithNoData :: HasData
 
-type F :: HasData -> FAI -> (Type -> Type)
-type family F (y :: HasData) (x :: FAI) :: Type -> Type where
-  F _ 'Fixed    = Identity
-  F 'WithData _ = Identity
-  F _ _         = Const ()
+type Entry :: HasData -> FAI -> (Type -> Type)
+type family Entry (y :: HasData) (x :: FAI) :: Type -> Type where
+  Entry _ 'Fixed    = Identity
+  Entry 'WithData _ = Identity
+  Entry _ _         = Const ()
 
 type Circuit'
   :: (Type -> Type)
