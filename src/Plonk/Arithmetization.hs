@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 
 
@@ -6,6 +7,7 @@ module Plonk.Arithmetization
   ( columnVectorToPoly
   , circuitWithDataToPolys
   , circTraverse
+  , circShapeTraverse
   , combineCircuitPolys
   , getZerofier
   , divUniPoly
@@ -13,6 +15,8 @@ module Plonk.Arithmetization
 
 
 import Plonk.Types.Circuit
+import Data.Functor.Identity
+import Data.Functor.Compose
 import Stark.Types.Scalar (Scalar)
 
 
@@ -33,8 +37,14 @@ circuitWithDataToPolys dom = circTraverse (columnVectorToPoly dom)
 circTraverse :: (h a -> g (f a))
              -> Circuit' h ps 'WithData d a
              -> g (Circuit' f ps 'WithData d a)
-circTraverse = todo
+circTraverse _ = todo
 
+circShapeTraverse :: Applicative g
+                  => ((Compose h Identity) a -> g ((Compose f Identity) a))
+                  -> CircuitShape h ps 'WithData d a
+                  -> g (CircuitShape f ps 'WithData d a)
+circShapeTraverse _ CNil = pure CNil
+circShapeTraverse k (x :& xs) = (:&) <$> k x <*> circShapeTraverse k xs
 
 plugInDataToGateConstraint
   :: CircuitShape UnivariatePolynomial ps 'WithData d a

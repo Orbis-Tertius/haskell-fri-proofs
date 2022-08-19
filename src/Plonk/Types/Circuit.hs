@@ -137,7 +137,6 @@ type family F (y :: HasData) (x :: FAI) :: Type -> Type where
   F 'WithData _ = Identity
   F _ _         = Const ()
 
-
 type Circuit'
   :: (Type -> Type)
   -> [ColType]
