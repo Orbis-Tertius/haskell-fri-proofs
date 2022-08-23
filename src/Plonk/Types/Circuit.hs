@@ -41,18 +41,19 @@ module Plonk.Types.Circuit
 import Data.Functor.Compose
 import Data.Functor.Identity
 import Data.Functor.Const
-import Data.Type.Natural hiding (Zero)
-import qualified Data.Type.Natural as N
+--import Data.Type.Natural hiding (Zero)
+--import qualified Data.Type.Natural as N
+import Data.Vinyl.TypeLevel (Nat (..))
 import Data.Kind
 import GHC.Generics (Generic)
-import qualified GHC.TypeLits as TL
+--import qualified GHC.TypeLits as TL
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
 
 data Vect :: Nat -> Type -> Type where
-  Nil :: Vect N.Zero a
-  (:-) :: a -> Vect n a -> Vect (S n) a
+  Nil :: Vect 'Z a
+  (:-) :: a -> Vect n a -> Vect ('S n) a
 
 infixr 7 :-
 
@@ -62,8 +63,8 @@ instance Functor (Vect m) where
 
 
 type family Length (a :: [b]) :: Nat
-type instance (Length '[]) = 0
-type instance Length (a ': as) = 1 TL.+ Length as
+type instance (Length '[]) = 'Z
+type instance Length (a ': as) = 'S (Length as)
 
 type FAI :: Type
 data FAI = Instance | Advice | Fixed
@@ -99,11 +100,11 @@ instance Pretty (RelativeCellRef n) where
 type Fin :: Nat -> Type
 data Fin n where
   FZ :: Fin n
-  FS :: Fin n -> Fin (S n)
+  FS :: Fin n -> Fin ('S n)
 
 deriving instance Show (Fin n)
 
-finInj :: Fin n -> Fin (S n)
+finInj :: Fin n -> Fin ('S n)
 finInj FZ = FZ
 finInj (FS n) = FS (finInj n)
 
@@ -182,7 +183,7 @@ type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'Eq
 
 data Z2 = Zero | One
 
-example :: CircuitShape (Vect 3) MyC 'WithData d Z2
+example :: CircuitShape (Vect ('S ('S ('S 'Z)))) MyC 'WithData d Z2
 example = Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
        :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
        :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)

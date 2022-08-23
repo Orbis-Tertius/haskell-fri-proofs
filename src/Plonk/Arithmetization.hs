@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 
@@ -18,14 +20,17 @@ module Plonk.Arithmetization
   ) where
 
 
-import Math.Algebra.Polynomial.Class (AlmostPolynomial (sumP, scaleP, scalarP), Polynomial (evalP), Ring)
+import Math.Algebra.Polynomial.Class (AlmostPolynomial (sumP, scaleP, scalarP), Polynomial (evalP), Ring, subsP, monomP)
+import Math.Algebra.Polynomial.Univariate (U (..))
 import Plonk.Types.Circuit
 import Data.Functor.Identity
 import Data.Functor.Compose
-import Data.Kind (Type)
-import Data.Type.Natural (Nat (S), type (+))
+--import Data.Kind (Type)
+--import Data.Type.Natural (Nat, type (+), Succ)
+
 
 import Stark.Types.Scalar (Scalar)
+import Data.Vinyl.TypeLevel (Nat (..))
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
 
 
@@ -76,34 +81,31 @@ wrapInIdentity f (Compose xs) =
 
 
 plugInDataToGateConstraint
-  :: Ring a => Foo ps
+  :: Ring a => Foo ps n
   => DomainGenerator a
   -> CircuitShape UnivariatePolynomial ps 'WithData d a
-  -> GateConstraint (F ps) d a
+  -> GateConstraint n d a
   -> UnivariatePolynomial a
 plugInDataToGateConstraint omega shape (GateConstraint poly) =
   evalP scalarP (relativeCellRefToPoly omega shape) poly
 
 
- 
-class Foo ps where
-  type F ps :: Nat
+type Foo :: [ColType] -> Nat -> Constraint 
+class Foo ps n where
   relativeCellRefToPoly
     :: Ring a
     => DomainGenerator a
     -> CircuitShape UnivariatePolynomial ps 'WithData d a
-    -> RelativeCellRef (F ps) -> UnivariatePolynomial a
+    -> RelativeCellRef n -> UnivariatePolynomial a
 
-instance Foo '[] where
-  type F '[] = 0
+instance Foo '[] 'Z where
   relativeCellRefToPoly _ _ _ = 1 -- impossible
 
 
-instance Foo xs => Foo ('MkCol j k ': xs) where
-  type F ('MkCol j k : xs) = S (F xs)
+instance Foo xs z => Foo ('MkCol j k ': xs) ('S z) where
   relativeCellRefToPoly
     omega
-    (col0 :& cols)
+    (col0 :& _)
     (RelativeCellRef i (ColIndex FZ)) =
     rotateColPoly omega i (runIdentity <$> getCompose col0)
   relativeCellRefToPoly
@@ -115,11 +117,13 @@ instance Foo xs => Foo ('MkCol j k ': xs) where
 
 
 rotateColPoly
-  :: DomainGenerator a
+  :: Ring a
+  => DomainGenerator a
   -> RelativeRowIndex
   -> UnivariatePolynomial a
   -> UnivariatePolynomial a
-rotateColPoly = todo
+rotateColPoly (DomainGenerator omega) (RelativeRowIndex i) =
+  subsP (const (scaleP (omega ^ i) (monomP (U 1))))
 
 
 linearlyCombineGatePolys
@@ -133,7 +137,8 @@ linearlyCombineGatePolys (Challenge gamma) polys =
 
 
 combineCircuitPolys
-  :: Foo ps => Ring a
+  :: n ~ Length ps 
+  => Foo ps n => Ring a
   => DomainGenerator a
   -> Circuit' UnivariatePolynomial ps 'WithData d a
   -> Challenge a
