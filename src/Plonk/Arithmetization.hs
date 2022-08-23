@@ -23,7 +23,7 @@ import Plonk.Types.Circuit
 import Data.Functor.Identity
 import Data.Functor.Compose
 import Data.Kind (Type)
-import Data.Type.Natural (Nat)
+import Data.Type.Natural (Nat (S), type (+))
 
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
@@ -79,7 +79,7 @@ plugInDataToGateConstraint
   :: Ring a => Foo ps
   => DomainGenerator a
   -> CircuitShape UnivariatePolynomial ps 'WithData d a
-  -> GateConstraint (Length ps) d a
+  -> GateConstraint (F ps) d a
   -> UnivariatePolynomial a
 plugInDataToGateConstraint omega shape (GateConstraint poly) =
   evalP scalarP (relativeCellRefToPoly omega shape) poly
@@ -92,15 +92,15 @@ class Foo ps where
     :: Ring a
     => DomainGenerator a
     -> CircuitShape UnivariatePolynomial ps 'WithData d a
-    -> RelativeCellRef (Length ps) -> UnivariatePolynomial a
+    -> RelativeCellRef (F ps) -> UnivariatePolynomial a
 
 instance Foo '[] where
-  type F '[] = Length '[]
+  type F '[] = 0
   relativeCellRefToPoly _ _ _ = 1 -- impossible
 
 
 instance Foo xs => Foo ('MkCol j k ': xs) where
-  type F ('MkCol j k : xs) = Length ('MkCol j k : xs)
+  type F ('MkCol j k : xs) = S (F xs)
   relativeCellRefToPoly
     omega
     (col0 :& cols)
