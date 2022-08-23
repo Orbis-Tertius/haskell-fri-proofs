@@ -1,6 +1,10 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 
 module Plonk.Arithmetization
@@ -14,11 +18,15 @@ module Plonk.Arithmetization
   ) where
 
 
+import Math.Algebra.Polynomial.Class (AlmostPolynomial (sumP, scaleP, scalarP), Polynomial (evalP), Ring)
 import Plonk.Types.Circuit
 import Data.Functor.Identity
 import Data.Functor.Compose
+import Data.Kind (Type)
+import Data.Type.Natural (Nat)
+
 import Stark.Types.Scalar (Scalar)
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
 
 
 columnVectorToPoly
@@ -68,26 +76,71 @@ wrapInIdentity f (Compose xs) =
 
 
 plugInDataToGateConstraint
-  :: CircuitShape UnivariatePolynomial ps 'WithData d a
+  :: Ring a => Foo ps
+  => DomainGenerator a
+  -> CircuitShape UnivariatePolynomial ps 'WithData d a
   -> GateConstraint (Length ps) d a
-  -> Maybe (UnivariatePolynomial a)
-plugInDataToGateConstraint = todo
+  -> UnivariatePolynomial a
+plugInDataToGateConstraint omega shape (GateConstraint poly) =
+  evalP scalarP (relativeCellRefToPoly omega shape) poly
+
+
+ 
+class Foo ps where
+  type F ps :: Nat
+  relativeCellRefToPoly
+    :: Ring a
+    => DomainGenerator a
+    -> CircuitShape UnivariatePolynomial ps 'WithData d a
+    -> RelativeCellRef (Length ps) -> UnivariatePolynomial a
+
+instance Foo '[] where
+  type F '[] = Length '[]
+  relativeCellRefToPoly _ _ _ = 1 -- impossible
+
+
+instance Foo xs => Foo ('MkCol j k ': xs) where
+  type F ('MkCol j k : xs) = Length ('MkCol j k : xs)
+  relativeCellRefToPoly
+    omega
+    (col0 :& cols)
+    (RelativeCellRef i (ColIndex FZ)) =
+    rotateColPoly omega i (runIdentity <$> getCompose col0)
+  relativeCellRefToPoly
+    omega
+    (_ :& cols)
+    (RelativeCellRef i (ColIndex (FS n))) =
+      relativeCellRefToPoly omega cols
+        (RelativeCellRef i (ColIndex n))
+
+
+rotateColPoly
+  :: DomainGenerator a
+  -> RelativeRowIndex
+  -> UnivariatePolynomial a
+  -> UnivariatePolynomial a
+rotateColPoly = todo
 
 
 linearlyCombineGatePolys
-  :: Challenge a
+  :: Ring a
+  => Challenge a
   -> [UnivariatePolynomial a]
   -> UnivariatePolynomial a
-linearlyCombineGatePolys = todo
+linearlyCombineGatePolys (Challenge gamma) polys =
+  UnivariatePolynomial . sumP
+    $ zipWith scaleP (iterate (* gamma) 1) (unUnivariatePolynomial <$> polys)
 
 
 combineCircuitPolys
-  :: Circuit' UnivariatePolynomial ps 'WithData d a
+  :: Foo ps => Ring a
+  => DomainGenerator a
+  -> Circuit' UnivariatePolynomial ps 'WithData d a
   -> Challenge a
-  -> Maybe (UnivariatePolynomial a)
-combineCircuitPolys (Circuit shape gates) challenge =
-  linearlyCombineGatePolys challenge <$>
-    sequence (plugInDataToGateConstraint shape <$> gates)
+  -> UnivariatePolynomial a
+combineCircuitPolys omega (Circuit shape gates) challenge =
+  linearlyCombineGatePolys challenge $
+    plugInDataToGateConstraint omega shape <$> gates
 
 
 getZerofier :: Domain n a -> UnivariatePolynomial a
