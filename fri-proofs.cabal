@@ -10,6 +10,7 @@ library
   exposed-modules:
     Plonk.Arithmetization
     Plonk.Types.Circuit
+    Plonk.Types.Fin
     Stark.BinaryTree
     Stark.FiniteField
     Stark.Fri
@@ -53,10 +54,13 @@ library
     -Wno-safe -Wno-unsafe
 
   default-extensions:
+    DataKinds
     DeriveFunctor
     DeriveGeneric
     DerivingStrategies
+    GADTs
     GeneralisedNewtypeDeriving
+    StandaloneDeriving
     StandaloneKindSignatures
 
 test-suite spec

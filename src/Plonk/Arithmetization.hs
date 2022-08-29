@@ -37,12 +37,12 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      ColIndex (ColIndex),
                                                      ColType (MkCol), Domain,
                                                      DomainGenerator (DomainGenerator),
-                                                     Fin (FS, FZ),
                                                      GateConstraint (GateConstraint),
                                                      HasData (WithData), Length,
                                                      RelativeCellRef (RelativeCellRef),
                                                      RelativeRowIndex (RelativeRowIndex),
                                                      Vect)
+import Plonk.Types.Fin (Fin(FZ, FS))
 import           Stark.Types.Scalar                 (Scalar)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
