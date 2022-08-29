@@ -15,7 +15,7 @@ module Plonk.Types.Circuit
   ( Vect (..)
   , Length
   , CircuitShape (..)
-  , Circuit' (Circuit)
+  , CircuitM (CircuitM)
   , Circuit
   , Constraint
   , GateConstraint (..)
@@ -133,15 +133,15 @@ type family Entry (y :: HasData) (x :: FAI) :: Type -> Type where
   Entry 'WithData _ = Identity
   Entry _ _         = Const ()
 
-type Circuit'
+type CircuitM
   :: (Type -> Type)
   -> [ColType]
   -> HasData
   -> DegreeBound
   -> Type
   -> Type
-data Circuit' f ps h d a =
-  Circuit
+data CircuitM f ps h d a =
+  CircuitM
   { shape       :: CircuitShape f ps h d a
   , constraints :: [GateConstraint (Length ps) d a]
   }
@@ -149,7 +149,7 @@ data Circuit' f ps h d a =
 
 
 type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type
-type Circuit ps h m d a = Circuit' (Vect m) ps h d a
+type Circuit ps h m = CircuitM (Vect m) ps h
 
 infixr 7 :&
 

@@ -32,7 +32,7 @@ import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, 
 import           Math.Algebra.Polynomial.Univariate (U (U))
 import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      Circuit,
-                                                     Circuit' (Circuit),
+                                                     CircuitM (CircuitM),
                                                      CircuitShape (CNil, (:&)),
                                                      ColIndex (ColIndex),
                                                      ColType (MkCol), Domain,
@@ -57,7 +57,7 @@ columnVectorToPoly = todo -- this can be done with an FFT (Faez)
 circuitWithDataToPolys
   :: Domain m a
   -> Circuit ps 'WithData m d a
-  -> Maybe (Circuit' UnivariatePolynomial ps 'WithData d a)
+  -> Maybe (CircuitM UnivariatePolynomial ps 'WithData d a)
 circuitWithDataToPolys dom = circTraverse (columnVectorToPoly dom)
 
 
@@ -65,10 +65,10 @@ circTraverse :: Applicative g
              => Functor f
              => Functor h
              => (h a -> g (f a))
-             -> Circuit' h ps 'WithData d a
-             -> g (Circuit' f ps 'WithData d a)
-circTraverse k (Circuit shape constraints) =
-   flip Circuit constraints <$> circShapeTraverse k shape
+             -> CircuitM h ps 'WithData d a
+             -> g (CircuitM f ps 'WithData d a)
+circTraverse k (CircuitM shape constraints) =
+   flip CircuitM constraints <$> circShapeTraverse k shape
 
 
 circShapeTraverse :: Applicative g
@@ -153,10 +153,10 @@ combineCircuitPolys
   :: n ~ Length ps
   => Foo ps n => Ring a
   => DomainGenerator a
-  -> Circuit' UnivariatePolynomial ps 'WithData d a
+  -> CircuitM UnivariatePolynomial ps 'WithData d a
   -> Challenge a
   -> UnivariatePolynomial a
-combineCircuitPolys omega (Circuit shape gates) challenge =
+combineCircuitPolys omega (CircuitM shape gates) challenge =
   linearlyCombineGatePolys challenge $
     plugInDataToGateConstraint omega shape <$> gates
 
