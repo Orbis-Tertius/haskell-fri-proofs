@@ -69,32 +69,23 @@ test-suite spec
     Spec.Stark.MerkleTreeSpec
     Spec.Stark.UnivariatePolynomialSpec
 
-  build-tools:      sydtest-discover >=0
   build-depends:
     , base                       >=4.9 && <5
-    , blake2
     , bytestring
     , containers
-    , extra
-    , finite-field
     , fri-proofs
     , generic-lens
-    , genvalidity
-    , genvalidity-sydtest
-    , genvalidity-sydtest-aeson
     , hedgehog
     , lens
-    , listsafe
     , polynomial-algebra
     , QuickCheck
-    , serialise
-    , sydtest
-    , sydtest-discover
-    , validity
+    , tasty
+    , tasty-hedgehog
 
   hs-source-dirs:   test
   default-language: GHC2021
   ghc-options:
-    -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
-    -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
-    -Wno-safe -Wno-unsafe -threaded -rtsopts -with-rtsopts=-N
+    -Weverything -Werror -Wno-all-missed-specialisations
+    -Wno-implicit-prelude -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module -Wno-safe -Wno-unsafe -threaded
+    -rtsopts -with-rtsopts=-N

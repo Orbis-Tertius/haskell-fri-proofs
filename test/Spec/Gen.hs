@@ -26,35 +26,37 @@ import           Data.Generics.Labels               ()
 import qualified Data.Map                           as Map
 import           Data.Maybe                         (fromMaybe)
 import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
-import           Math.Algebra.Polynomial.Univariate (U (..), Univariate (Uni))
+import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 
-import           Spec.Prelude
+import Hedgehog (Gen)
+import Hedgehog.Gen (choice, list)
+import qualified Hedgehog.Range as Range
 import qualified Stark.BinaryTree                   as BinaryTree
 import           Stark.FiniteField                  (cardinality, generator,
                                                      primitiveNthRoot)
 import           Stark.Fri                          (getMaxDegree)
-import           Stark.Fri.Types                    (A (..), AuthPaths (..),
-                                                     B (..), C (..),
-                                                     Codeword (..),
-                                                     DomainLength (..),
-                                                     ExpansionFactor (..),
-                                                     FriConfiguration (..),
-                                                     NumColinearityTests (..),
-                                                     Offset (..), Omega (..),
-                                                     ProofStream (..),
-                                                     Query (..))
-import           Stark.Types.AuthPath               (AuthPath (..))
+import           Stark.Fri.Types                    (A (A), AuthPaths (AuthPaths),
+                                                     B (B), C (C),
+                                                     Codeword (Codeword),
+                                                     DomainLength (DomainLength),
+                                                     ExpansionFactor (ExpansionFactor),
+                                                     FriConfiguration (FriConfiguration),
+                                                     NumColinearityTests (NumColinearityTests),
+                                                     Offset (Offset), Omega (Omega),
+                                                     ProofStream (ProofStream),
+                                                     Query (Query))
+import           Stark.Types.AuthPath               (AuthPath (AuthPath))
 import           Stark.Types.BinaryTree             (BinaryTree)
-import           Stark.Types.CapCommitment          (CapCommitment (..))
-import           Stark.Types.CapLength              (CapLength (..))
-import           Stark.Types.Commitment             (Commitment (..))
-import           Stark.Types.MerkleHash             (MerkleHash (..))
-import           Stark.Types.Scalar                 (Scalar (..))
+import           Stark.Types.CapCommitment          (CapCommitment (CapCommitment))
+import           Stark.Types.CapLength              (CapLength (CapLength))
+import           Stark.Types.Commitment             (Commitment (Commitment))
+import           Stark.Types.MerkleHash             (MerkleHash (MerkleHash))
+import           Stark.Types.Scalar                 (Scalar (Scalar))
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
 
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = defaultFriConfiguration . CapLength . (2^) <$> choose (0 :: Int, 4)
+genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> choose (0 :: Int, 4)
 
 
 defaultFriConfiguration :: CapLength -> FriConfiguration
@@ -66,6 +68,7 @@ defaultFriConfiguration =
   (ExpansionFactor 2)
   (NumColinearityTests 4)
   where
+    dl :: Int
     dl = 256
 
 
@@ -73,10 +76,10 @@ defaultFriConfiguration =
 genProofStream :: FriConfiguration -> Gen ProofStream
 genProofStream config =
   ProofStream
-  <$> listOf genCapCommitment
-  <*> listOf (listOf genQuery)
-  <*> oneof [pure Nothing, Just <$> genCodeword config]
-  <*> listOf (listOf genAuthPaths)
+  <$> list (Range.linear 1 10) genCapCommitment
+  <*> list (Range.linear 1 10) (list (Range.linear 1 10) genQuery)
+  <*> choice [pure Nothing, Just <$> genCodeword config]
+  <*> list (Range.linear 1 10) (list (Range.linear 1 10) genAuthPaths)
 
 
 genAuthPaths :: Gen AuthPaths
@@ -93,7 +96,7 @@ genCommitment = Commitment . MerkleHash <$> genByteString
 
 genCapCommitment :: Gen CapCommitment
 genCapCommitment = do
-  n :: Int <- (2^) <$> choose (0, 6 :: Int)
+  n :: Int <- (2 ^) <$> choose (0, 6 :: Int)
   CapCommitment . fromMaybe (error "could not generate binary tree")
     . BinaryTree.fromList <$> vectorOf n genCommitment
 
@@ -103,11 +106,11 @@ genQuery = Query <$> ((,,) <$> (A <$> genScalar) <*> (B <$> genScalar) <*> (C <$
 
 
 genAuthPath :: Gen AuthPath
-genAuthPath = AuthPath <$> listOf1 (Commitment . MerkleHash <$> genByteString)
+genAuthPath = AuthPath <$> list (Range.linear 1 10) (Commitment . MerkleHash <$> genByteString)
 
 
 genByteString :: Gen ByteString
-genByteString = BS.pack <$> listOf chooseAny
+genByteString = BS.pack <$> list (Range.linear 1 10) chooseAny
 
 
 genCodeword :: FriConfiguration -> Gen Codeword
@@ -121,7 +124,8 @@ genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial Scalar)
 genLowDegreePoly config = do
   let maxDegree = getMaxDegree (config ^. #domainLength)
   coefs <- vectorOf maxDegree genScalar
-  let monos = U <$> [0..maxDegree-1]
+  let monos :: [U x]
+      monos = U <$> [0..maxDegree-1]
   pure . UnivariatePolynomial . Uni . FreeMod . Map.fromList
     . filter ((/= 0) . snd) $ zip monos coefs
 

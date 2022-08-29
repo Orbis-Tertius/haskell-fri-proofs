@@ -9,7 +9,7 @@ import           Spec.Prelude
 import           Stark.UnivariatePolynomial (areColinear, evaluate, interpolate)
 
 
-spec :: Spec
+spec :: TestTree
 spec = describe "UnivariatePolynomial" $
   modifyMaxSize (const 8) $ do
     interpolateSpec

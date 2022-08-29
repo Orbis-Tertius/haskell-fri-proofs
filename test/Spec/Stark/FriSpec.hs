@@ -1,29 +1,29 @@
-module Spec.Stark.FriSpec ( spec ) where
+{-# LANGUAGE OverloadedStrings #-}
+module Spec.Stark.FriSpec ( testFri ) where
 
 
+import Hedgehog (Property, forAll, property, (===))
 import           Spec.Gen     (genFriConfiguration, genLowDegreePoly,
                                genProofStream)
-import           Spec.Prelude
 import           Stark.Fri    (getCodeword, prove, verify)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.Hedgehog (testPropertyNamed)
 
 
-spec :: Spec
-spec = describe "Fri" $ do
-  soundnessTest
-  completenessTest
+testFri :: TestTree
+testFri = testGroup "Fri" [
+  testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
+  testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" propCompleteness
+  ]
 
+propSoundness :: Property
+propSoundness = property $ do
+  config <- forAll genFriConfiguration
+  proof <- genProofStream config
+  verify config proof === False
 
-soundnessTest :: Spec
-soundnessTest =
-  it "rejects invalid proofs" $
-    forAll genFriConfiguration $ \config ->
-      forAll (genProofStream config) $ \proof ->
-        verify config proof `shouldBe` False
-
-
-completenessTest :: Spec
-completenessTest =
-  it "creates proofs of true statements which are accepted" $
-    forAll genFriConfiguration $ \config ->
-      forAll (genLowDegreePoly config) $ \poly ->
-        verify config (fst (prove config (getCodeword config poly))) `shouldBe` True
+propCompleteness :: Property
+propCompleteness =
+  forAll genFriConfiguration $ \config ->
+    forAll (genLowDegreePoly config) $ \poly ->
+      verify config (fst (prove config (getCodeword config poly))) === True
