@@ -49,9 +49,9 @@ library
   hs-source-dirs:     src
   default-language:   GHC2021
   ghc-options:
-    -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
-    -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
-    -Wno-safe -Wno-unsafe
+    -Weverything -Werror -Wno-all-missed-specialisations
+    -Wno-implicit-prelude -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module -Wno-safe -Wno-unsafe
 
   default-extensions:
     DataKinds
