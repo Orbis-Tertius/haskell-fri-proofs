@@ -1,6 +1,3 @@
-{-# LANGUAGE OverloadedLabels #-}
-
-
 module Spec.Stark.FriSpec ( spec ) where
 
 

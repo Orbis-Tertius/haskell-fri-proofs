@@ -31,4 +31,4 @@ spec = describe "MerkleTree" $ do
                     <*> (Index <$> choose (0, 1024))
                     <*> genAuthPath
                     <*> genScalar)
-        $ (`shouldNotSatisfy` uncurry4 (verify capLength))
+        (`shouldNotSatisfy` uncurry4 (verify capLength))

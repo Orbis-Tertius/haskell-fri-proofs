@@ -142,7 +142,7 @@ data CircuitShape
     -> Type
     -> Type where
   CNil :: CircuitShape f '[] h d a
-  (:&) :: (Compose f (Entry h j)) a -> CircuitShape f ps h d a -> CircuitShape f (('MkCol j e) : ps) h d a
+  (:&) :: (Compose f (Entry h j)) a -> CircuitShape f ps h d a -> CircuitShape f ('MkCol j e : ps) h d a
 
 type HasData :: Type
 data HasData where

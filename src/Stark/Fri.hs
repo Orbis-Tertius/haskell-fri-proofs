@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLabels #-}
-
 module Stark.Fri
   ( getMaxDegree
   , numRounds
@@ -200,7 +199,7 @@ commitPhase domainLength expansionFactor numColinearityTests capLength omega off
   = let n = numRounds domainLength expansionFactor numColinearityTests capLength
         (proofStream', codewords', codeword', _, _) =
           fromMaybe (error "could not find last commit round") $
-          (iterate (commitRound capLength) (emptyProofStream, [], codeword, omega, offset))
+          iterate (commitRound capLength) (emptyProofStream, [], codeword, omega, offset)
           L.!! (n-1)
     in ( addCodeword codeword'
          ( addCommitment (commitCodeword capLength codeword')
@@ -233,19 +232,19 @@ queryRound :: CapLength
 queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
   let aIndices = cIndices
-      bIndices = (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
+      bIndices = (+ Index (length currentCodeword `quot` 2)) <$> cIndices
       leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
          zipWith3 (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
          ((currentCodeword L.!!) <$> aIndices)
          ((currentCodeword L.!!) <$> bIndices)
          ((nextCodeword L.!!) <$> cIndices)
       authPathProofElems =
-        ( \(a, b, c) -> AuthPaths $
+        ( \(a, b, c) -> AuthPaths
           ( A $ openCodeword capLength (Codeword currentCodeword) a
           , B $ openCodeword capLength (Codeword currentCodeword) b
           , C $ openCodeword capLength (Codeword nextCodeword) c
           )
-        ) <$> (zip3 aIndices bIndices cIndices)
+        ) <$> zip3 aIndices bIndices cIndices
   in addAuthPaths authPathProofElems
      (addQueries leafProofElems proofStream)
 
@@ -253,11 +252,11 @@ queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
 queryPhase :: CapLength -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase capLength codewords indices proofStream =
   snd3 . fromMaybe (error "could not find last query round")
-    $ (iterate f (indices, proofStream, 0)) L.!! max 0 (length codewords - 2)
+    $ iterate f (indices, proofStream, 0) L.!! max 0 (length codewords - 2)
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` (Index (length (unCodeword (e 1 (codewords L.!! (i+1)))) `quot` 2)))
+      ( (`mod` Index (length (unCodeword (e 1 (codewords L.!! (i+1)))) `quot` 2))
         <$> indices'
       , queryRound capLength (e 2 (codewords L.!! i), e 3 (codewords L.!! (i+1))) indices' proofStream'
       , i+1
@@ -358,7 +357,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
   let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
       offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
-      cIndices = (`mod` (fromIntegral (dl `shift` negate (r+1)))) <$> topLevelIndices
+      cIndices = (`mod` fromIntegral (dl `shift` negate (r+1))) <$> topLevelIndices
       aIndices = cIndices
       bIndices = (+ fromIntegral (dl `shift` negate (r+1))) <$> aIndices
       ays = fst3 . unQuery <$> qs
@@ -382,9 +381,8 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
       cAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
         $ zip4 (repeat nextRoot) cIndices cPaths (unC <$> cys)
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
-  in if colinearityChecks && authPathChecks
-     then True
-     else if colinearityChecks
+  in (colinearityChecks && authPathChecks) ||
+     if colinearityChecks
           then trace ("auth path check failed: " <> show (aAuthPathChecks, bAuthPathChecks, cAuthPathChecks)) False
           else trace "colinearity check failed" False
   where

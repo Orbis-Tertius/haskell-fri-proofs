@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedLabels    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
 
 
 module Spec.Gen
@@ -112,9 +111,9 @@ genByteString = BS.pack <$> listOf chooseAny
 
 genCodeword :: FriConfiguration -> Gen Codeword
 genCodeword config =
-  Codeword <$> (sequence $ replicate
+  Codeword <$> replicateM
   (config ^. #domainLength . #unDomainLength)
-  genScalar)
+  genScalar
 
 
 genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial a)

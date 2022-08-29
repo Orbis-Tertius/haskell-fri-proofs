@@ -1,6 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
-
 module Stark.MerkleTree
   ( commit
   , commit_
@@ -59,8 +56,8 @@ open__ i t@(IsNode x y) =
   let n = Index $ Tree.size t
       m = n `quot` 2
   in if i < m
-     then (open__ i x) <> AuthPath [commitCapLeaf y]
-     else (open__ (i-m) y) <> AuthPath [commitCapLeaf x]
+     then open__ i x <> AuthPath [commitCapLeaf y]
+     else open__ (i-m) y <> AuthPath [commitCapLeaf x]
 open__ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 
@@ -87,7 +84,7 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
              || trace "wrong CapLength" False)
          && (z == y || trace "commitment check failed" False)
     AuthPath (x:xs) ->
-      if i `mod` 2 == 0
+      if even i
       then verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (y, x))
       else verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (x, y))
 
