@@ -1,43 +1,46 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
-module Spec.Stark.MerkleTreeSpec ( spec ) where
+module Spec.Stark.MerkleTreeSpec ( testMerkleTree ) where
 
 
-import Hedgehog (Property)
+import Hedgehog (Property, property, assert, forAll)
+import Hedgehog.Gen (enum)
 import           Spec.Gen              (genAuthPath, genBinaryTree,
                                         genCapCommitment, genScalar)
-import           Spec.Prelude
 import           Stark.MerkleTree      (commit, open, verify)
 import           Stark.Prelude         (uncurry4)
-import           Stark.Types.CapLength (CapLength (..))
-import           Stark.Types.Index     (Index (..))
-import Test.Tasty (TestTree)
+import           Stark.Types.CapLength (CapLength (CapLength))
+import           Stark.Types.Index     (Index (Index, unIndex))
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.Hedgehog (testPropertyNamed)
 
 
 testMerkleTree :: TestTree
 testMerkleTree = testGroup "Merkle Tree" [
-  testPropertynamed "successfully verifies openings of commitments" "propVerifiesOpenings" propVerifiesOpenings,
-  testPropertynamed "rejects random inputs" "propRejectsRandomInputs" propRejectsRandomInputs
+  testPropertyNamed "successfully verifies openings of commitments" "propVerifiesOpenings" propVerifiesOpenings,
+  testPropertyNamed "rejects random inputs" "propRejectsRandomInputs" propRejectsRandomInputs
   ]
 
 
 propVerifiesOpenings :: Property
-ptopVerifiesOpenings = property $ do
-  forAll (genBinaryTree genScalar) $ \(s, xs, t) ->
-    forAll (choose (0, round (logBase (2 :: Double) (fromIntegral s)))) $ \(n :: Int) ->
-      let capLength = 2 ^ n
-      in forAll (Index <$> choose (0, s-1)) $ \i ->
-        let c = commit capLength t
-            p = open capLength i t
-            x = xs !! unIndex i
-        in (c, i, p, x) `shouldSatisfy` uncurry4 (verify capLength)
+propVerifiesOpenings = property $ do
+  (s, xs, t) <- forAll (genBinaryTree genScalar)
+  n <- forAll $ enum (0 :: Int) (round (logBase (2 :: Double) (fromIntegral s)))
+  let capLength :: CapLength
+      capLength = 2 ^ n
+  i <- forAll (Index <$> enum 0 (s - 1))
+  let c = commit capLength t
+      p = open capLength i t
+      x = xs !! unIndex i
+  assert $ uncurry4 (verify capLength) (c, i, p ,x)
 
 propRejectsRandomInputs :: Property
 propRejectsRandomInputs = property $ do
-  forAll (CapLength . (2^) <$> choose (0 :: Int, 8)) $ \capLength ->
-    forAll ((,,,) <$> genCapCommitment
-                  <*> (Index <$> choose (0, 1024))
-                  <*> genAuthPath
-                  <*> genScalar)
-      (`shouldNotSatisfy` uncurry4 (verify capLength))
+  capLength <- forAll (CapLength . (2 ^) <$> enum (0 :: Int) 8)
+  (c, i, p, x) <- forAll ((,,,) <$> genCapCommitment
+                               <*> (Index <$> enum 0 1024)
+                              <*> genAuthPath
+                            <*> genScalar)
+  assert $ not $ uncurry4 (verify capLength) (c, i, p ,x)

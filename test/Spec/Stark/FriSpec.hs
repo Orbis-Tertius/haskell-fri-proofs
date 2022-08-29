@@ -19,11 +19,11 @@ testFri = testGroup "Fri" [
 propSoundness :: Property
 propSoundness = property $ do
   config <- forAll genFriConfiguration
-  proof <- genProofStream config
+  proof <- forAll $ genProofStream config
   verify config proof === False
 
 propCompleteness :: Property
-propCompleteness =
-  forAll genFriConfiguration $ \config ->
-    forAll (genLowDegreePoly config) $ \poly ->
-      verify config (fst (prove config (getCodeword config poly))) === True
+propCompleteness = property $ do
+  config <- forAll genFriConfiguration
+  poly <- forAll (genLowDegreePoly config)
+  verify config (fst (prove config (getCodeword config poly))) === True

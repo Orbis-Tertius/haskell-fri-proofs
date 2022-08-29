@@ -21,7 +21,6 @@ module Spec.Gen
 import           Control.Lens                       ((^.))
 import           Control.Monad                      (replicateM)
 import           Data.ByteString                    (ByteString)
-import qualified Data.ByteString                    as BS
 import           Data.Generics.Labels               ()
 import qualified Data.Map                           as Map
 import           Data.Maybe                         (fromMaybe)
@@ -29,7 +28,7 @@ import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 
 import Hedgehog (Gen)
-import Hedgehog.Gen (choice, list)
+import Hedgehog.Gen (choice, list, enum, bytes)
 import qualified Hedgehog.Range as Range
 import qualified Stark.BinaryTree                   as BinaryTree
 import           Stark.FiniteField                  (cardinality, generator,
@@ -56,7 +55,7 @@ import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (Univa
 
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> choose (0 :: Int, 4)
+genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> enum (0 :: Int) 4
 
 
 defaultFriConfiguration :: CapLength -> FriConfiguration
@@ -96,9 +95,9 @@ genCommitment = Commitment . MerkleHash <$> genByteString
 
 genCapCommitment :: Gen CapCommitment
 genCapCommitment = do
-  n :: Int <- (2 ^) <$> choose (0, 6 :: Int)
+  n :: Int <- (2 ^) <$> enum (0 :: Int) 6
   CapCommitment . fromMaybe (error "could not generate binary tree")
-    . BinaryTree.fromList <$> vectorOf n genCommitment
+    . BinaryTree.fromList <$> list (Range.singleton n) genCommitment
 
 
 genQuery :: Gen Query
@@ -110,7 +109,7 @@ genAuthPath = AuthPath <$> list (Range.linear 1 10) (Commitment . MerkleHash <$>
 
 
 genByteString :: Gen ByteString
-genByteString = BS.pack <$> list (Range.linear 1 10) chooseAny
+genByteString = bytes (Range.linear 1 10)
 
 
 genCodeword :: FriConfiguration -> Gen Codeword
@@ -123,7 +122,7 @@ genCodeword config =
 genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial Scalar)
 genLowDegreePoly config = do
   let maxDegree = getMaxDegree (config ^. #domainLength)
-  coefs <- vectorOf maxDegree genScalar
+  coefs <- list (Range.singleton maxDegree) genScalar
   let monos :: [U x]
       monos = U <$> [0..maxDegree-1]
   pure . UnivariatePolynomial . Uni . FreeMod . Map.fromList
@@ -131,17 +130,17 @@ genLowDegreePoly config = do
 
 
 genScalar :: Gen Scalar
-genScalar = Scalar . fromIntegral <$> choose (0, cardinality - 1)
+genScalar = Scalar . fromIntegral <$> enum 0 (cardinality - 1)
 
 
 genBinaryTreeSize :: Gen Int
-genBinaryTreeSize = (2 ^) <$> chooseInt (1, 8)
+genBinaryTreeSize = (2 ^) <$> enum (1 :: Int) 8
 
 
 genBinaryTree :: Gen a -> Gen (Int, [a], BinaryTree a)
 genBinaryTree g = do
   n <- genBinaryTreeSize
-  xs <- vectorOf n g
+  xs <- list (Range.singleton n) g
   return (n, xs,
     fromMaybe (error "failed to generate binary tree")
       . BinaryTree.fromList $ xs)
