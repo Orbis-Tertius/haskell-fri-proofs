@@ -4,12 +4,12 @@
 module Stark.Types.Scalar ( Scalar (Scalar, unScalar) ) where
 
 
-import Codec.Serialise (Serialise (encode, decode))
-import Data.FiniteField.PrimeField as P (PrimeField, toInteger)
-import GHC.Generics (Generic)
-import Math.Algebra.Polynomial.Class (Ring)
-import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
-import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+import           Codec.Serialise                (Serialise (decode, encode))
+import           Data.FiniteField.PrimeField    as P (PrimeField, toInteger)
+import           GHC.Generics                   (Generic)
+import           Math.Algebra.Polynomial.Class  (Ring)
+import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
+import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
 
 newtype Scalar = Scalar { unScalar :: PrimeField 270497897142230380135924736767050121217 }

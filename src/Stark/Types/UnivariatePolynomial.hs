@@ -1,16 +1,18 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DerivingStrategies         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 
 module Stark.Types.UnivariatePolynomial ( UnivariatePolynomial (..) ) where
 
 
-import Math.Algebra.Polynomial.Class (AlmostPolynomial, Polynomial)
-import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod), FreeModule)
-import Math.Algebra.Polynomial.Pretty (Pretty)
-import Math.Algebra.Polynomial.Univariate (Univariate (Uni))
+import           Math.Algebra.Polynomial.Class      (AlmostPolynomial,
+                                                     Polynomial)
+import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod),
+                                                     FreeModule)
+import           Math.Algebra.Polynomial.Pretty     (Pretty)
+import           Math.Algebra.Polynomial.Univariate (Univariate (Uni))
 
 
 newtype UnivariatePolynomial a =

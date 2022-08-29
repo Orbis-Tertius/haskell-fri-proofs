@@ -1,15 +1,14 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingStrategies #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE DerivingStrategies         #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE PolyKinds                  #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE StandaloneKindSignatures   #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 
 module Plonk.Types.Circuit
@@ -34,19 +33,19 @@ module Plonk.Types.Circuit
   , Entry
   , FAI(..)
   , ColType (..)
-  , DegreeBound  
+  , DegreeBound
   , finInj
   ) where
 
 
-import Data.Functor.Identity (Identity(Identity))
-import Data.Functor.Compose (Compose(Compose))
-import Data.Functor.Const (Const)
-import Data.Vinyl.TypeLevel (Nat (S, Z))
-import Data.Kind (Type, Constraint)
-import GHC.Generics (Generic)
+import           Data.Functor.Compose                         (Compose (Compose))
+import           Data.Functor.Const                           (Const)
+import           Data.Functor.Identity                        (Identity (Identity))
+import           Data.Kind                                    (Constraint, Type)
+import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
+import           GHC.Generics                                 (Generic)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
-import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
 
 
 data Vect :: Nat -> Type -> Type where
@@ -56,7 +55,7 @@ data Vect :: Nat -> Type -> Type where
 infixr 7 :-
 
 instance Functor (Vect m) where
-  fmap _ Nil = Nil
+  fmap _ Nil       = Nil
   fmap f (x :- xs) = f x :- fmap f xs
 
 
@@ -103,17 +102,17 @@ data Fin n where
 deriving stock instance Show (Fin n)
 
 finInj :: Fin n -> Fin ('S n)
-finInj FZ = FZ
+finInj FZ     = FZ
 finInj (FS n) = FS (finInj n)
 
 instance Eq (Fin n) where
-  FZ == FZ = True
+  FZ == FZ     = True
   FS n == FS m = finInj n == finInj m
-  _ == _ = False
+  _ == _       = False
 
 instance Ord (Fin n) where
-  FZ <= _ = True
-  FS _ <= FZ = False
+  FZ <= _      = True
+  FS _ <= FZ   = False
   FS n <= FS m = finInj n <= finInj m
 
 
@@ -165,7 +164,7 @@ type Circuit'
   -> Type
 data Circuit' f ps h d a =
   Circuit
-  { shape :: CircuitShape f ps h d a
+  { shape       :: CircuitShape f ps h d a
   , constraints :: [GateConstraint (Length ps) d a]
   }
   deriving stock Generic

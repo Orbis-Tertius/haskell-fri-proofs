@@ -1,12 +1,12 @@
 module Spec.Stark.UnivariatePolynomialSpec ( spec ) where
 
 
-import Control.Monad (forM_)
-import Data.List (nub)
+import           Control.Monad              (forM_)
+import           Data.List                  (nub)
 
-import Spec.Gen (genScalar)
-import Spec.Prelude
-import Stark.UnivariatePolynomial (areColinear, evaluate, interpolate)
+import           Spec.Gen                   (genScalar)
+import           Spec.Prelude
+import           Stark.UnivariatePolynomial (areColinear, evaluate, interpolate)
 
 
 spec :: Spec
@@ -39,4 +39,4 @@ areColinearSpec = describe "areColinear" $ do
          let y x = m * x + b
              ys = y <$> xs
          in (x', y x' + 1) : zip xs ys `shouldNotSatisfy` areColinear
-   
+

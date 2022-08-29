@@ -10,23 +10,27 @@ module Stark.UnivariatePolynomial
   ) where
 
 
-import Control.Arrow ((***))
-import Data.Map (lookupMax, singleton, elems)
-import Math.Algebra.Polynomial.Class (Polynomial (evalP), Ring)
-import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
-import Math.Algebra.Polynomial.Univariate (Univariate (Uni), unUni, U (U), fromQUni)
-import Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
-import qualified Data.FiniteField.PrimeField as PrimeField
+import           Control.Arrow                               ((***))
+import qualified Data.FiniteField.PrimeField                 as PrimeField
+import           Data.Map                                    (elems, lookupMax,
+                                                              singleton)
+import           Math.Algebra.Polynomial.Class               (Polynomial (evalP),
+                                                              Ring)
+import           Math.Algebra.Polynomial.FreeModule          (FreeMod (FreeMod, unFreeMod))
+import           Math.Algebra.Polynomial.Univariate          (U (U),
+                                                              Univariate (Uni),
+                                                              fromQUni, unUni)
+import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 
-import Stark.Types.Scalar (Scalar (unScalar))
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
+import           Stark.Types.Scalar                          (Scalar (unScalar))
+import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 degree :: UnivariatePolynomial a -> Int
 degree (UnivariatePolynomial p) =
   case lookupMax (unFreeMod (unUni p)) of
     Just (U i, _) -> i
-    Nothing -> -1
+    Nothing       -> -1
 
 
 isZero :: Eq a => Num a => UnivariatePolynomial a -> Bool

@@ -21,14 +21,14 @@ module Stark.Fri.Types
   ) where
 
 
-import Codec.Serialise (Serialise)
-import Data.ByteString (ByteString)
-import GHC.Generics (Generic)
+import           Codec.Serialise           (Serialise)
+import           Data.ByteString           (ByteString)
+import           GHC.Generics              (Generic)
 
-import Stark.Types.AuthPath (AuthPath)
-import Stark.Types.CapCommitment (CapCommitment)
-import Stark.Types.CapLength (CapLength)
-import Stark.Types.Scalar (Scalar)
+import           Stark.Types.AuthPath      (AuthPath)
+import           Stark.Types.CapCommitment (CapCommitment)
+import           Stark.Types.CapLength     (CapLength)
+import           Stark.Types.Scalar        (Scalar)
 
 
 newtype Offset = Offset { unOffset :: Scalar }
@@ -102,10 +102,10 @@ newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
 
 data ProofStream =
   ProofStream
-  { commitments :: [CapCommitment]
-  , queries :: [[Query]]
+  { commitments  :: [CapCommitment]
+  , queries      :: [[Query]]
   , lastCodeword :: Maybe Codeword
-  , authPaths :: [[AuthPaths]]
+  , authPaths    :: [[AuthPaths]]
   }
   deriving stock (Eq, Generic, Show)
 
@@ -118,11 +118,11 @@ newtype Challenge = Challenge { unChallenge :: Scalar }
 
 data FriConfiguration =
   FriConfiguration
-  { offset :: Offset
-  , omega :: Omega
-  , domainLength :: DomainLength
-  , expansionFactor :: ExpansionFactor
+  { offset              :: Offset
+  , omega               :: Omega
+  , domainLength        :: DomainLength
+  , expansionFactor     :: ExpansionFactor
   , numColinearityTests :: NumColinearityTests
-  , capLength :: CapLength
+  , capLength           :: CapLength
   }
   deriving stock (Generic, Show)

@@ -1,8 +1,8 @@
 module Stark.Types.BinaryTree ( BinaryTree (IsLeaf, IsNode) ) where
 
 
-import Codec.Serialise (Serialise)
-import GHC.Generics (Generic)
+import           Codec.Serialise (Serialise)
+import           GHC.Generics    (Generic)
 
 
 -- IMPORTANT: This is assumed (but not guaranteed) to be a perfect

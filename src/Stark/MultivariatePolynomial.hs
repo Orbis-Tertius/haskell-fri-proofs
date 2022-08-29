@@ -8,18 +8,20 @@ module Stark.MultivariatePolynomial
   ) where
 
 
-import Data.Map (elems, singleton, mapKeys)
-import Math.Algebra.Polynomial.Class (Polynomial (evalP, subsP))
-import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
-import Math.Algebra.Polynomial.Monomial.Generic (Monom (Monom))
-import Math.Algebra.Polynomial.Pretty (Pretty)
-import Math.Algebra.Polynomial.Univariate (unUni, U (U))
-import Math.Algebra.Polynomial.Multivariate.Generic (Poly (Poly), unPoly)
+import           Data.Map                                     (elems, mapKeys,
+                                                               singleton)
+import           Math.Algebra.Polynomial.Class                (Polynomial (evalP, subsP))
+import           Math.Algebra.Polynomial.FreeModule           (FreeMod (FreeMod, unFreeMod))
+import           Math.Algebra.Polynomial.Monomial.Generic     (Monom (Monom))
+import           Math.Algebra.Polynomial.Multivariate.Generic (Poly (Poly),
+                                                               unPoly)
+import           Math.Algebra.Polynomial.Pretty               (Pretty)
+import           Math.Algebra.Polynomial.Univariate           (U (U), unUni)
 
-import Stark.Types.MultivariatePolynomial (MultivariatePolynomial)
-import Stark.Types.Scalar (Scalar)
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial))
-import qualified Stark.UnivariatePolynomial as Uni
+import           Stark.Types.MultivariatePolynomial           (MultivariatePolynomial)
+import           Stark.Types.Scalar                           (Scalar)
+import           Stark.Types.UnivariatePolynomial             (UnivariatePolynomial (UnivariatePolynomial))
+import qualified Stark.UnivariatePolynomial                   as Uni
 
 
 isZero :: MultivariatePolynomial a -> Bool

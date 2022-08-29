@@ -4,12 +4,13 @@
 module Spec.Stark.MerkleTreeSpec ( spec ) where
 
 
-import Spec.Gen (genBinaryTree, genScalar, genCapCommitment, genAuthPath)
-import Spec.Prelude
-import Stark.MerkleTree (commit, open, verify)
-import Stark.Prelude (uncurry4)
-import Stark.Types.CapLength (CapLength (..))
-import Stark.Types.Index (Index (..))
+import           Spec.Gen              (genAuthPath, genBinaryTree,
+                                        genCapCommitment, genScalar)
+import           Spec.Prelude
+import           Stark.MerkleTree      (commit, open, verify)
+import           Stark.Prelude         (uncurry4)
+import           Stark.Types.CapLength (CapLength (..))
+import           Stark.Types.Index     (Index (..))
 
 
 spec :: Spec

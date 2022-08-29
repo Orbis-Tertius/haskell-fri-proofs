@@ -1,7 +1,7 @@
 module Stark.Types.Index ( Index (Index, unIndex) ) where
 
 
-import Data.Bits (Bits)
+import           Data.Bits (Bits)
 
 
 newtype Index = Index { unIndex :: Int }

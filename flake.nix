@@ -15,22 +15,26 @@
 
     flake-utils.url = "github:numtide/flake-utils";
     sydtest-src = {
-        url = "github:NorfairKing/sydtest/314d53ae175b540817a24d4211dab24fe6cb9232";
-        flake = false;
-      };
+      url = "github:NorfairKing/sydtest/314d53ae175b540817a24d4211dab24fe6cb9232";
+      flake = false;
+    };
     validity-src = {
-        url = "github:NorfairKing/validity/f5e5d69b3502cdd9243b412c31ba9619b9e89462";
-        flake = false;
-      };
+      url = "github:NorfairKing/validity/f5e5d69b3502cdd9243b412c31ba9619b9e89462";
+      flake = false;
+    };
 
     #HaskellNix is implemented using a set nixpkgs.follows; allowing for flake-build
     haskellNix = {
       inputs.nixpkgs.follows = "nixpkgs";
       url = "github:input-output-hk/haskell.nix";
     };
+
+    lint-utils = {
+      url = "git+https://gitlab.homotopic.tech/nix/lint-utils";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, sydtest-src, validity-src, haskellNix,  flake-compat, flake-compat-ci }:
+  outputs = { self, nixpkgs, flake-utils, lint-utils, sydtest-src, validity-src, haskellNix, flake-compat, flake-compat-ci }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         deferPluginErrors = true;
@@ -45,8 +49,7 @@
                 compiler-nix-name = "ghc8107";
                 projectFileName = "cabal.project";
                 modules = [{
-                  packages = {
-                  };
+                  packages = { };
                 }];
                 shell.tools = {
                   cabal = { };
@@ -61,25 +64,32 @@
                 ];
                 shell.shellHook =
                   ''
-                  manual-ci() (
-                    set -e
+                    manual-ci() (
+                      set -e
 
-                    ./ci/lint.sh
-                    cabal test
-                    nix-build
-                  )
+                      ./ci/lint.sh
+                      cabal test
+                      nix-build
+                    )
                   '';
               };
           })
         ];
         pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
         flake = pkgs.fri-proofs.flake { };
-      in flake // {
-        
+      in
+      flake // {
+
         ciNix = flake-compat-ci.lib.recurseIntoFlakeWith {
           flake = self;
           systems = [ "x86_64-linux" ];
         };
         defaultPackage = flake.packages."fri-proofs:lib:fri-proofs";
+        checks = flake.checks // {
+          cabal-fmt = lint-utils.outputs.linters.${system}.cabal-fmt ./.;
+          hlint = lint-utils.outputs.linters.${system}.hlint ./.;
+          nixpkgs-fmt = lint-utils.outputs.linters.${system}.nixpkgs-fmt ./.;
+          stylish-haskell = lint-utils.outputs.linters.${system}.stylish-haskell ./.;
+        };
       });
 }

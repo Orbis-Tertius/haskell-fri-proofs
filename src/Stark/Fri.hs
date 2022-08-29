@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedLabels #-}
-{-# LANGUAGE ViewPatterns #-}
 
 module Stark.Fri
   ( getMaxDegree
@@ -31,36 +30,51 @@ module Stark.Fri
   ) where
 
 
-import Codec.Serialise (serialise)
-import Control.Lens ((^.))
-import Data.Bits (shift, xor)
-import Data.ByteString (ByteString, unpack)
-import Data.ByteString.Lazy (toStrict)
-import Data.Generics.Labels ()
-import Data.List (find, inits, zip4, zip5)
-import qualified Data.List.Safe as L
-import Data.Maybe (fromMaybe)
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Tuple.Extra (fst3, snd3, thd3)
-import Debug.Trace (trace)
+import           Codec.Serialise                  (serialise)
+import           Control.Lens                     ((^.))
+import           Data.Bits                        (shift, xor)
+import           Data.ByteString                  (ByteString, unpack)
+import           Data.ByteString.Lazy             (toStrict)
+import           Data.Generics.Labels             ()
+import           Data.List                        (find, inits, zip4, zip5)
+import qualified Data.List.Safe                   as L
+import           Data.Maybe                       (fromMaybe)
+import           Data.Set                         (Set)
+import qualified Data.Set                         as Set
+import           Data.Tuple.Extra                 (fst3, snd3, thd3)
+import           Debug.Trace                      (trace)
 
-import Stark.BinaryTree (fromList)
-import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (DomainLength, unDomainLength)
-                      , ExpansionFactor (ExpansionFactor)
-                      , NumColinearityTests (NumColinearityTests, unNumColinearityTests)
-                     , Offset (Offset, unOffset), Omega (Omega, unOmega), RandomSeed (RandomSeed, unRandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Codeword (Codeword, unCodeword), ProofStream (ProofStream), Challenge (Challenge, unChallenge), FriConfiguration (FriConfiguration), A (A, unA), B (B, unB), C (C, unC), Query (Query, unQuery), AuthPaths (AuthPaths, unAuthPaths))
-import Stark.Hash (hash)
-import qualified Stark.MerkleTree as Merkle
-import Stark.Prelude (uncurry4)
-import Stark.Types.AuthPath (AuthPath)
-import Stark.Types.CapCommitment (CapCommitment)
-import Stark.Types.CapLength (CapLength(CapLength))
-import Stark.Types.Index (Index (Index, unIndex))
-import Stark.Types.Scalar (Scalar)
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
-import Stark.UnivariatePolynomial (degree, interpolate, areColinear, evaluate)
+import           Stark.BinaryTree                 (fromList)
+import           Stark.FiniteField                (sample)
+import           Stark.Fri.Types                  (A (A, unA),
+                                                   AuthPaths (AuthPaths, unAuthPaths),
+                                                   B (B, unB), C (C, unC),
+                                                   Challenge (Challenge, unChallenge),
+                                                   Codeword (Codeword, unCodeword),
+                                                   DomainLength (DomainLength, unDomainLength),
+                                                   ExpansionFactor (ExpansionFactor),
+                                                   FriConfiguration (FriConfiguration),
+                                                   ListSize (ListSize),
+                                                   NumColinearityTests (NumColinearityTests, unNumColinearityTests),
+                                                   Offset (Offset, unOffset),
+                                                   Omega (Omega, unOmega),
+                                                   ProofStream (ProofStream),
+                                                   Query (Query, unQuery),
+                                                   RandomSeed (RandomSeed, unRandomSeed),
+                                                   ReducedIndex (ReducedIndex),
+                                                   ReducedListSize (ReducedListSize),
+                                                   SampleSize (SampleSize))
+import           Stark.Hash                       (hash)
+import qualified Stark.MerkleTree                 as Merkle
+import           Stark.Prelude                    (uncurry4)
+import           Stark.Types.AuthPath             (AuthPath)
+import           Stark.Types.CapCommitment        (CapCommitment)
+import           Stark.Types.CapLength            (CapLength (CapLength))
+import           Stark.Types.Index                (Index (Index, unIndex))
+import           Stark.Types.Scalar               (Scalar)
+import           Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import           Stark.UnivariatePolynomial       (areColinear, degree,
+                                                   evaluate, interpolate)
 
 
 getMaxDegree :: DomainLength -> Int

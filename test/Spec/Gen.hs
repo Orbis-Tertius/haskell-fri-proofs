@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLabels    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections       #-}
 
 
 module Spec.Gen
@@ -19,28 +19,38 @@ module Spec.Gen
   ) where
 
 
-import Control.Lens ((^.))
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as BS
-import Data.Generics.Labels ()
-import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
-import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
-import Math.Algebra.Polynomial.Univariate (U (..), Univariate (Uni))
+import           Control.Lens                       ((^.))
+import           Data.ByteString                    (ByteString)
+import qualified Data.ByteString                    as BS
+import           Data.Generics.Labels               ()
+import qualified Data.Map                           as Map
+import           Data.Maybe                         (fromMaybe)
+import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
+import           Math.Algebra.Polynomial.Univariate (U (..), Univariate (Uni))
 
-import Spec.Prelude
-import qualified Stark.BinaryTree as BinaryTree
-import Stark.FiniteField (cardinality, generator, primitiveNthRoot)
-import Stark.Fri.Types (FriConfiguration (..), Codeword (..), ProofStream (..), A (..), B (..), C (..), Query (..), Offset (..), DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Omega (..), AuthPaths (..))
-import Stark.Fri (getMaxDegree)
-import Stark.Types.AuthPath (AuthPath (..))
-import Stark.Types.BinaryTree (BinaryTree)
-import Stark.Types.CapCommitment (CapCommitment (..))
-import Stark.Types.CapLength (CapLength (..))
-import Stark.Types.Commitment (Commitment (..))
-import Stark.Types.MerkleHash (MerkleHash (..))
-import Stark.Types.Scalar (Scalar (..))
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+import           Spec.Prelude
+import qualified Stark.BinaryTree                   as BinaryTree
+import           Stark.FiniteField                  (cardinality, generator,
+                                                     primitiveNthRoot)
+import           Stark.Fri                          (getMaxDegree)
+import           Stark.Fri.Types                    (A (..), AuthPaths (..),
+                                                     B (..), C (..),
+                                                     Codeword (..),
+                                                     DomainLength (..),
+                                                     ExpansionFactor (..),
+                                                     FriConfiguration (..),
+                                                     NumColinearityTests (..),
+                                                     Offset (..), Omega (..),
+                                                     ProofStream (..),
+                                                     Query (..))
+import           Stark.Types.AuthPath               (AuthPath (..))
+import           Stark.Types.BinaryTree             (BinaryTree)
+import           Stark.Types.CapCommitment          (CapCommitment (..))
+import           Stark.Types.CapLength              (CapLength (..))
+import           Stark.Types.Commitment             (Commitment (..))
+import           Stark.Types.MerkleHash             (MerkleHash (..))
+import           Stark.Types.Scalar                 (Scalar (..))
+import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial)
 
 
 genFriConfiguration :: Gen FriConfiguration
@@ -128,6 +138,6 @@ genBinaryTree :: Gen a -> Gen (Int, [a], BinaryTree a)
 genBinaryTree g = do
   n <- genBinaryTreeSize
   xs <- vectorOf n g
-  return (n, xs, 
+  return (n, xs,
     fromMaybe (error "failed to generate binary tree")
       . BinaryTree.fromList $ xs)

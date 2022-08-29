@@ -7,12 +7,12 @@ module Stark.FiniteField
   ) where
 
 
-import Control.Monad (guard)
-import Data.Bits (Bits ((.&.)))
-import qualified Data.ByteString as BS
+import           Control.Monad               (guard)
+import           Data.Bits                   (Bits ((.&.)))
+import qualified Data.ByteString             as BS
 
-import Data.FiniteField.PrimeField (PrimeField)
-import Stark.Types.Scalar (Scalar (Scalar))
+import           Data.FiniteField.PrimeField (PrimeField)
+import           Stark.Types.Scalar          (Scalar (Scalar))
 
 
 cardinality :: Integer

@@ -11,20 +11,20 @@ module Stark.MerkleTree
   ) where
 
 
-import Codec.Serialise (Serialise, serialise)
-import qualified Data.ByteString.Lazy as BSL
-import Data.Maybe (fromMaybe)
-import Debug.Trace (trace)
+import           Codec.Serialise           (Serialise, serialise)
+import qualified Data.ByteString.Lazy      as BSL
+import           Data.Maybe                (fromMaybe)
+import           Debug.Trace               (trace)
 
-import qualified Stark.BinaryTree as Tree
-import Stark.Hash (hash)
-import Stark.Types.AuthPath (AuthPath (AuthPath, unAuthPath))
-import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
-import Stark.Types.CapCommitment (CapCommitment (CapCommitment, unCapCommitment))
-import Stark.Types.CapLength (CapLength (CapLength, unCapLength))
-import Stark.Types.Commitment (Commitment (Commitment))
-import Stark.Types.Index (Index (Index, unIndex))
-import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
+import qualified Stark.BinaryTree          as Tree
+import           Stark.Hash                (hash)
+import           Stark.Types.AuthPath      (AuthPath (AuthPath, unAuthPath))
+import           Stark.Types.BinaryTree    (BinaryTree (IsLeaf, IsNode))
+import           Stark.Types.CapCommitment (CapCommitment (CapCommitment, unCapCommitment))
+import           Stark.Types.CapLength     (CapLength (CapLength, unCapLength))
+import           Stark.Types.Commitment    (Commitment (Commitment))
+import           Stark.Types.Index         (Index (Index, unIndex))
+import           Stark.Types.MerkleHash    (MerkleHash (MerkleHash))
 
 
 hashData :: Serialise a => a -> MerkleHash
@@ -49,7 +49,7 @@ commit_ capLength t@(IsNode x y) =
 
 
 commitCapLeaf :: BinaryTree MerkleHash -> Commitment
-commitCapLeaf (IsLeaf x) = Commitment x
+commitCapLeaf (IsLeaf x)   = Commitment x
 commitCapLeaf (IsNode x y) = mergeCommitments (commitCapLeaf x, commitCapLeaf y)
 
 

@@ -6,14 +6,16 @@ module Stark.BinaryTree
   ) where
 
 
-import Prelude (Int, Maybe(Just, Nothing), (+), (^), quot, (<$>), (<), (-), (<*>), (.), splitAt, length, )
+import           Prelude                (Int, Maybe (Just, Nothing), length,
+                                         quot, splitAt, (+), (-), (.), (<$>),
+                                         (<), (<*>), (^))
 
-import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
-import Stark.Types.Index (Index (Index, unIndex))
+import           Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
+import           Stark.Types.Index      (Index (Index, unIndex))
 
 
 depth :: BinaryTree a -> Int
-depth (IsLeaf _) = 0
+depth (IsLeaf _)   = 0
 depth (IsNode x _) = 1 + depth x
 
 

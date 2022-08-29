@@ -1,12 +1,12 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE MultiParamTypeClasses    #-}
+{-# LANGUAGE RankNTypes               #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TypeFamilies             #-}
+{-# LANGUAGE TypeOperators            #-}
+{-# LANGUAGE UndecidableInstances     #-}
 
 
 module Plonk.Arithmetization
@@ -20,15 +20,31 @@ module Plonk.Arithmetization
   ) where
 
 
-import Math.Algebra.Polynomial.Class (AlmostPolynomial (sumP, scaleP, scalarP), Polynomial (evalP), Ring, subsP, monomP)
-import Math.Algebra.Polynomial.Univariate (U (U))
-import Plonk.Types.Circuit (Circuit, Circuit'(Circuit), CircuitShape(CNil, (:&)), DomainGenerator, GateConstraint(GateConstraint), ColType(MkCol), ColIndex(ColIndex), Fin(FZ, FS), Domain, RelativeRowIndex(RelativeRowIndex), Challenge(Challenge), Length, DomainGenerator(DomainGenerator), RelativeRowIndex, Challenge, Vect, HasData(WithData), RelativeCellRef(RelativeCellRef))
-import Data.Functor.Identity (Identity(Identity), runIdentity)
-import Data.Functor.Compose (Compose(Compose), getCompose)
-import Stark.Types.Scalar (Scalar)
-import Data.Vinyl.TypeLevel (Nat (S, Z))
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
-import Data.Kind (Constraint)
+import           Data.Functor.Compose               (Compose (Compose),
+                                                     getCompose)
+import           Data.Functor.Identity              (Identity (Identity),
+                                                     runIdentity)
+import           Data.Kind                          (Constraint)
+import           Data.Vinyl.TypeLevel               (Nat (S, Z))
+import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, scaleP, sumP),
+                                                     Polynomial (evalP), Ring,
+                                                     monomP, subsP)
+import           Math.Algebra.Polynomial.Univariate (U (U))
+import           Plonk.Types.Circuit                (Challenge (Challenge),
+                                                     Circuit,
+                                                     Circuit' (Circuit),
+                                                     CircuitShape (CNil, (:&)),
+                                                     ColIndex (ColIndex),
+                                                     ColType (MkCol), Domain,
+                                                     DomainGenerator (DomainGenerator),
+                                                     Fin (FS, FZ),
+                                                     GateConstraint (GateConstraint),
+                                                     HasData (WithData), Length,
+                                                     RelativeCellRef (RelativeCellRef),
+                                                     RelativeRowIndex (RelativeRowIndex),
+                                                     Vect)
+import           Stark.Types.Scalar                 (Scalar)
+import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 columnVectorToPoly
@@ -87,7 +103,7 @@ plugInDataToGateConstraint omega shape (GateConstraint poly) =
   evalP scalarP (relativeCellRefToPoly omega shape) poly
 
 
-type Foo :: [ColType] -> Nat -> Constraint 
+type Foo :: [ColType] -> Nat -> Constraint
 class Foo ps n where
   relativeCellRefToPoly
     :: Ring a
@@ -134,7 +150,7 @@ linearlyCombineGatePolys (Challenge gamma) polys =
 
 
 combineCircuitPolys
-  :: n ~ Length ps 
+  :: n ~ Length ps
   => Foo ps n => Ring a
   => DomainGenerator a
   -> Circuit' UnivariatePolynomial ps 'WithData d a
