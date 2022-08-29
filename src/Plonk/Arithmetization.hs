@@ -25,7 +25,7 @@ import           Data.Functor.Compose               (Compose (Compose),
 import           Data.Functor.Identity              (Identity (Identity),
                                                      runIdentity)
 import           Data.Kind                          (Constraint)
-import           Data.Vinyl.TypeLevel               (Nat (S, Z))
+import           Data.Vinyl.TypeLevel               (Nat (S))
 import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, scaleP, sumP),
                                                      Polynomial (evalP), Ring,
                                                      monomP, subsP)
@@ -94,7 +94,8 @@ wrapInIdentity f (Compose xs) =
 
 
 plugInDataToGateConstraint
-  :: Ring a => Foo ps n
+  :: Ring a
+  => RelativeCellRefToPoly ps n
   => DomainGenerator a
   -> CircuitShape UnivariatePolynomial ps 'WithData d a
   -> GateConstraint n d a
@@ -103,19 +104,16 @@ plugInDataToGateConstraint omega shape (GateConstraint poly) =
   evalP scalarP (relativeCellRefToPoly omega shape) poly
 
 
-type Foo :: [ColType] -> Nat -> Constraint
-class Foo ps n where
+type RelativeCellRefToPoly :: [ColType] -> Nat -> Constraint
+class RelativeCellRefToPoly ps n where
   relativeCellRefToPoly
     :: Ring a
     => DomainGenerator a
     -> CircuitShape UnivariatePolynomial ps 'WithData d a
-    -> RelativeCellRef n -> UnivariatePolynomial a
+    -> RelativeCellRef n
+    -> UnivariatePolynomial a
 
-instance Foo '[] 'Z where
-  relativeCellRefToPoly _ _ _ = 1 -- impossible
-
-
-instance Foo xs z => Foo ('MkCol j k ': xs) ('S z) where
+instance RelativeCellRefToPoly xs z => RelativeCellRefToPoly ('MkCol j k ': xs) ('S z) where
   relativeCellRefToPoly
     omega
     (col0 :& _)
@@ -151,7 +149,8 @@ linearlyCombineGatePolys (Challenge gamma) polys =
 
 combineCircuitPolys
   :: n ~ Length ps
-  => Foo ps n => Ring a
+  => RelativeCellRefToPoly ps n
+  => Ring a
   => DomainGenerator a
   -> CircuitM UnivariatePolynomial ps 'WithData d a
   -> Challenge a
