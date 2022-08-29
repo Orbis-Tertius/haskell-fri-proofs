@@ -19,7 +19,7 @@ module Spec.Gen
 
 
 import           Control.Lens                       ((^.))
-import Control.Monad (replicateM)
+import           Control.Monad                      (replicateM)
 import           Data.ByteString                    (ByteString)
 import qualified Data.ByteString                    as BS
 import           Data.Generics.Labels               ()
@@ -50,7 +50,7 @@ import           Stark.Types.CapLength              (CapLength (..))
 import           Stark.Types.Commitment             (Commitment (..))
 import           Stark.Types.MerkleHash             (MerkleHash (..))
 import           Stark.Types.Scalar                 (Scalar (..))
-import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial(UnivariatePolynomial))
+import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
 
 
 genFriConfiguration :: Gen FriConfiguration
