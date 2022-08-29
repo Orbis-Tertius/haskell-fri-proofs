@@ -10,4 +10,5 @@ import Stark.Types.Commitment (Commitment)
 
 
 newtype AuthPath = AuthPath { unAuthPath :: [Commitment] }
-  deriving (Eq, Semigroup, Monoid, Serialise, Show)
+  deriving stock (Eq, Show)
+  deriving newtype (Semigroup, Monoid, Serialise)

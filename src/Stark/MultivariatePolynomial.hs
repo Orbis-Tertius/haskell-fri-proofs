@@ -1,6 +1,3 @@
-{-# LANGUAGE NoImplicitPrelude #-}
-
-
 module Stark.MultivariatePolynomial
   ( isZero
   , constant
@@ -11,7 +8,6 @@ module Stark.MultivariatePolynomial
   ) where
 
 
-import Prelude hiding ((!!))
 import Data.Map (elems, singleton, mapKeys)
 import Math.Algebra.Polynomial.Class (Polynomial (evalP, subsP))
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
@@ -22,7 +18,7 @@ import Math.Algebra.Polynomial.Multivariate.Generic (Poly (Poly), unPoly)
 
 import Stark.Types.MultivariatePolynomial (MultivariatePolynomial)
 import Stark.Types.Scalar (Scalar)
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial))
 import qualified Stark.UnivariatePolynomial as Uni
 
 
@@ -37,7 +33,9 @@ constant coef = Poly (FreeMod (singleton (Monom mempty) coef))
 fromUnivariate :: Ord a => UnivariatePolynomial Scalar -> a -> MultivariatePolynomial a
 fromUnivariate (UnivariatePolynomial p) x =
   Poly . FreeMod . mapKeys (Monom . singleton x . unU) . unFreeMod . unUni $ p
-  where unU (U y) = y
+  where
+    unU :: U x -> Int
+    unU (U y) = y
 
 
 evaluate :: Ord a => Pretty a => MultivariatePolynomial a -> (a -> Scalar) -> Scalar

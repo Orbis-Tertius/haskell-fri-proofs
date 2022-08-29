@@ -1,6 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
-
 module Stark.Types.Commitment ( Commitment (Commitment, unCommitment) ) where
 
 
@@ -10,4 +7,5 @@ import Stark.Types.MerkleHash (MerkleHash)
 
 
 newtype Commitment = Commitment { unCommitment :: MerkleHash }
-  deriving (Eq, Serialise, Show)
+  deriving stock (Eq, Show)
+  deriving newtype Serialise

@@ -43,16 +43,25 @@ library
     listsafe,
     polynomial-algebra,
     serialise,
-    type-natural,
     vinyl,
 
   hs-source-dirs: src
   default-language: Haskell2010
   ghc-options:
-          -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
-          -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
-          -threaded -rtsopts -with-rtsopts=-N
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module
+    -Wno-safe
+    -Wno-unsafe
 
+  default-extensions:
+    DeriveFunctor
+    DeriveGeneric
+    DerivingStrategies
+    GeneralisedNewtypeDeriving
+    StandaloneKindSignatures
 
 test-suite spec
   type: exitcode-stdio-1.0
@@ -93,6 +102,12 @@ test-suite spec
   hs-source-dirs: test
   default-language: Haskell2010
   ghc-options:
-          -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
-          -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
-          -threaded -rtsopts -with-rtsopts=-N
+    -Weverything
+    -Wno-all-missed-specialisations
+    -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode
+    -Wno-prepositive-qualified-module
+    -Wno-safe
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N

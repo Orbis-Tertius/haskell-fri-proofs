@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
-
 module Stark.Fri.Types
   ( Offset (Offset, unOffset)
   , Omega (Omega, unOmega)
@@ -36,23 +32,25 @@ import Stark.Types.Scalar (Scalar)
 
 
 newtype Offset = Offset { unOffset :: Scalar }
-  deriving (Eq, Ord, Num, Show)
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype Num
 
 
 newtype Omega = Omega { unOmega :: Scalar }
-  deriving (Eq, Ord, Num, Show, Generic)
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype Num
 
 
 newtype DomainLength = DomainLength { unDomainLength :: Int }
-  deriving (Generic, Show)
+  deriving stock (Eq, Ord, Show, Generic)
 
 
 newtype ExpansionFactor = ExpansionFactor { unExpansionFactor :: Rational }
-  deriving (Show)
+  deriving stock (Show)
 
 
 newtype NumColinearityTests = NumColinearityTests { unNumColinearityTests :: Int }
-  deriving (Show)
+  deriving stock (Show)
 
 
 newtype ListSize = ListSize { unListSize :: Int }
@@ -68,32 +66,38 @@ newtype SampleSize = SampleSize { unSampleSize :: Int }
 
 
 newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
-  deriving (Eq, Ord)
+  deriving stock (Eq, Ord)
 
 
 newtype Codeword = Codeword { unCodeword :: [Scalar] }
-  deriving (Eq, Serialise, Show)
+  deriving stock (Eq, Show)
+  deriving newtype Serialise
 
 
 newtype A a = A { unA :: a }
-  deriving (Eq, Generic, Serialise, Show)
+  deriving stock (Eq, Generic, Show)
+  deriving newtype Serialise
 
 newtype B a = B { unB :: a }
-  deriving (Eq, Generic, Serialise, Show)
+  deriving stock (Eq, Generic, Show)
+  deriving newtype Serialise
 
 newtype C a = C { unC :: a }
-  deriving (Eq, Generic, Serialise, Show)
+  deriving stock (Eq, Generic, Show)
+  deriving newtype Serialise
 
 
 type ABC a = (A a, B a, C a)
 
 
 newtype Query = Query { unQuery :: ABC Scalar }
-  deriving (Eq, Generic, Serialise, Show)
+  deriving stock (Eq, Generic, Show)
+  deriving newtype Serialise
 
 
 newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
-  deriving (Eq, Generic, Serialise, Show)
+  deriving stock (Eq, Generic, Show)
+  deriving newtype Serialise
 
 
 data ProofStream =
@@ -103,13 +107,13 @@ data ProofStream =
   , lastCodeword :: Maybe Codeword
   , authPaths :: [[AuthPaths]]
   }
-  deriving (Eq, Generic, Show)
+  deriving stock (Eq, Generic, Show)
 
 instance Serialise ProofStream
 
 
 newtype Challenge = Challenge { unChallenge :: Scalar }
-  deriving Serialise
+  deriving newtype Serialise
 
 
 data FriConfiguration =
@@ -121,4 +125,4 @@ data FriConfiguration =
   , numColinearityTests :: NumColinearityTests
   , capLength :: CapLength
   }
-  deriving (Generic, Show)
+  deriving stock (Generic, Show)

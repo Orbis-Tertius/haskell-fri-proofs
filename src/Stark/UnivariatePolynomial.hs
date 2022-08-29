@@ -19,7 +19,7 @@ import Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 import qualified Data.FiniteField.PrimeField as PrimeField
 
 import Stark.Types.Scalar (Scalar (unScalar))
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 degree :: UnivariatePolynomial a -> Int

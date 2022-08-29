@@ -38,24 +38,26 @@ import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
 import Data.List (find, inits, zip4, zip5)
-import Data.List.Safe ((!!))
+import qualified Data.List.Safe as L
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tuple.Extra (fst3, snd3, thd3)
 import Debug.Trace (trace)
-import Prelude hiding ((!!))
 
 import Stark.BinaryTree (fromList)
 import Stark.FiniteField (sample)
-import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), A (..), B (..), C (..), Query (..), AuthPaths (..))
+import Stark.Fri.Types (DomainLength (DomainLength, unDomainLength)
+                      , ExpansionFactor (ExpansionFactor)
+                      , NumColinearityTests (NumColinearityTests, unNumColinearityTests)
+                     , Offset (Offset, unOffset), Omega (Omega, unOmega), RandomSeed (RandomSeed, unRandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Codeword (Codeword, unCodeword), ProofStream (ProofStream), Challenge (Challenge, unChallenge), FriConfiguration (FriConfiguration), A (A, unA), B (B, unB), C (C, unC), Query (Query, unQuery), AuthPaths (AuthPaths, unAuthPaths))
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
 import Stark.Types.AuthPath (AuthPath)
-import Stark.Types.CapCommitment (CapCommitment (..))
-import Stark.Types.CapLength (CapLength (..))
-import Stark.Types.Index (Index (..))
+import Stark.Types.CapCommitment (CapCommitment)
+import Stark.Types.CapLength (CapLength(CapLength))
+import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 import Stark.UnivariatePolynomial (degree, interpolate, areColinear, evaluate)
@@ -185,7 +187,7 @@ commitPhase domainLength expansionFactor numColinearityTests capLength omega off
         (proofStream', codewords', codeword', _, _) =
           fromMaybe (error "could not find last commit round") $
           (iterate (commitRound capLength) (emptyProofStream, [], codeword, omega, offset))
-          !! (n-1)
+          L.!! (n-1)
     in ( addCodeword codeword'
          ( addCommitment (commitCodeword capLength codeword')
            proofStream' )
@@ -220,9 +222,9 @@ queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
       bIndices = (+ (Index (length currentCodeword `quot` 2))) <$> cIndices
       leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
          zipWith3 (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
-         ((currentCodeword !!) <$> aIndices)
-         ((currentCodeword !!) <$> bIndices)
-         ((nextCodeword !!) <$> cIndices)
+         ((currentCodeword L.!!) <$> aIndices)
+         ((currentCodeword L.!!) <$> bIndices)
+         ((nextCodeword L.!!) <$> cIndices)
       authPathProofElems =
         ( \(a, b, c) -> AuthPaths $
           ( A $ openCodeword capLength (Codeword currentCodeword) a
@@ -237,13 +239,13 @@ queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
 queryPhase :: CapLength -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase capLength codewords indices proofStream =
   snd3 . fromMaybe (error "could not find last query round")
-    $ (iterate f (indices, proofStream, 0)) !! max 0 (length codewords - 2)
+    $ (iterate f (indices, proofStream, 0)) L.!! max 0 (length codewords - 2)
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` (Index (length (unCodeword (e 1 (codewords !! (i+1)))) `quot` 2)))
+      ( (`mod` (Index (length (unCodeword (e 1 (codewords L.!! (i+1)))) `quot` 2)))
         <$> indices'
-      , queryRound capLength (e 2 (codewords !! i), e 3 (codewords !! (i+1))) indices' proofStream'
+      , queryRound capLength (e 2 (codewords L.!! i), e 3 (codewords L.!! (i+1))) indices' proofStream'
       , i+1
       )
 
@@ -259,8 +261,8 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
                       omega offset codeword
         indices = Set.elems $ sampleIndices
           (fiatShamirSeed proofStream0)
-          (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords !! (1 :: Int))))))
-          (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords !! (length codewords - 1))))))
+          (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords L.!! (1 :: Int))))))
+          (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords L.!! (length codewords - 1))))))
           (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase capLength codewords indices proofStream0
     in (proofStream1, indices)
@@ -294,7 +296,7 @@ verify config proofStream =
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
       nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-      lastRoot = fromMaybe (error "could not find last root") $ roots !! (length roots - 1)
+      lastRoot = fromMaybe (error "could not find last root") $ roots L.!! (length roots - 1)
   in case (proofStream ^. #lastCodeword, roots) of
     (Just lastCodeword, _:_) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
@@ -348,6 +350,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
       ays = fst3 . unQuery <$> qs
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs
+      f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
       colinearityChecks = all areColinear
         $ (\(a,b,c) -> [a,b,c])

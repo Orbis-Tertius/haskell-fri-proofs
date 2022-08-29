@@ -9,4 +9,5 @@ import GHC.Generics (Generic)
 
 
 newtype CapLength = CapLength { unCapLength :: Int }
-  deriving (Generic, Show, Eq, Ord, Num, Enum, Real, Integral)
+  deriving stock (Generic, Show, Eq, Ord)
+  deriving newtype (Num, Enum, Real, Integral)

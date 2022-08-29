@@ -11,4 +11,5 @@ import Stark.Types.Commitment (Commitment)
 
 
 newtype CapCommitment = CapCommitment { unCapCommitment :: BinaryTree Commitment }
-  deriving (Eq, Serialise, Show)
+  deriving stock (Eq, Show)
+  deriving newtype Serialise

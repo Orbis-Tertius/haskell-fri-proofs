@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
@@ -38,15 +39,12 @@ module Plonk.Types.Circuit
   ) where
 
 
-import Data.Functor.Compose
-import Data.Functor.Identity
-import Data.Functor.Const
---import Data.Type.Natural hiding (Zero)
---import qualified Data.Type.Natural as N
-import Data.Vinyl.TypeLevel (Nat (..))
-import Data.Kind
+import Data.Functor.Identity (Identity(Identity))
+import Data.Functor.Compose (Compose(Compose))
+import Data.Functor.Const (Const)
+import Data.Vinyl.TypeLevel (Nat (S, Z))
+import Data.Kind (Type, Constraint)
 import GHC.Generics (Generic)
---import qualified GHC.TypeLits as TL
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
@@ -64,7 +62,7 @@ instance Functor (Vect m) where
 
 type family Length (a :: [b]) :: Nat
 type instance (Length '[]) = 'Z
-type instance Length (a ': as) = 'S (Length as)
+type instance Length (_ ': as) = 'S (Length as)
 
 type FAI :: Type
 data FAI = Instance | Advice | Fixed
@@ -91,7 +89,7 @@ newtype GateConstraint n d a = GateConstraint
 
 type RelativeCellRef :: NumCols -> Type
 data RelativeCellRef n = RelativeCellRef RelativeRowIndex (ColIndex n)
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 instance Pretty (RelativeCellRef n) where
   pretty = show
@@ -102,7 +100,7 @@ data Fin n where
   FZ :: Fin n
   FS :: Fin n -> Fin ('S n)
 
-deriving instance Show (Fin n)
+deriving stock instance Show (Fin n)
 
 finInj :: Fin n -> Fin ('S n)
 finInj FZ = FZ
@@ -121,12 +119,12 @@ instance Ord (Fin n) where
 
 type ColIndex :: NumCols -> Type
 newtype ColIndex n = ColIndex { unColIndex :: Fin n }
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 
 type RelativeRowIndex :: Type
 newtype RelativeRowIndex = RelativeRowIndex { unRelativeRowIndex :: Int }
-  deriving (Eq, Ord, Show)
+  deriving stock (Eq, Ord, Show)
 
 
 type Exponent :: Type
@@ -170,7 +168,7 @@ data Circuit' f ps h d a =
   { shape :: CircuitShape f ps h d a
   , constraints :: [GateConstraint (Length ps) d a]
   }
-  deriving Generic
+  deriving stock Generic
 
 
 type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type

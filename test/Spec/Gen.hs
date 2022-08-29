@@ -107,7 +107,7 @@ genCodeword config =
   genScalar)
 
 
-genLowDegreePoly :: FriConfiguration -> Gen UnivariatePolynomial
+genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial a)
 genLowDegreePoly config = do
   let maxDegree = getMaxDegree (config ^. #domainLength)
   coefs <- vectorOf maxDegree genScalar

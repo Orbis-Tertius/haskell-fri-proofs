@@ -21,17 +21,14 @@ module Plonk.Arithmetization
 
 
 import Math.Algebra.Polynomial.Class (AlmostPolynomial (sumP, scaleP, scalarP), Polynomial (evalP), Ring, subsP, monomP)
-import Math.Algebra.Polynomial.Univariate (U (..))
-import Plonk.Types.Circuit
-import Data.Functor.Identity
-import Data.Functor.Compose
---import Data.Kind (Type)
---import Data.Type.Natural (Nat, type (+), Succ)
-
-
+import Math.Algebra.Polynomial.Univariate (U (U))
+import Plonk.Types.Circuit (Circuit, Circuit'(Circuit), CircuitShape(CNil, (:&)), DomainGenerator, GateConstraint(GateConstraint), ColType(MkCol), ColIndex(ColIndex), Fin(FZ, FS), Domain, RelativeRowIndex(RelativeRowIndex), Challenge(Challenge), Length, DomainGenerator(DomainGenerator), RelativeRowIndex, Challenge, Vect, HasData(WithData), RelativeCellRef(RelativeCellRef))
+import Data.Functor.Identity (Identity(Identity), runIdentity)
+import Data.Functor.Compose (Compose(Compose), getCompose)
 import Stark.Types.Scalar (Scalar)
-import Data.Vinyl.TypeLevel (Nat (..))
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (..))
+import Data.Vinyl.TypeLevel (Nat (S, Z))
+import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
+import Data.Kind (Constraint)
 
 
 columnVectorToPoly

@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds #-}
 module Stark.FiniteField
   ( cardinality
   , generator
@@ -10,6 +11,7 @@ import Control.Monad (guard)
 import Data.Bits (Bits ((.&.)))
 import qualified Data.ByteString as BS
 
+import Data.FiniteField.PrimeField (PrimeField)
 import Stark.Types.Scalar (Scalar (Scalar))
 
 
@@ -29,10 +31,13 @@ primitiveNthRoot n = do
   return . Scalar $ f initRoot initOrder
 
   where
+    initRoot :: PrimeField 270497897142230380135924736767050121217
     initRoot = 85408008396924667383611388730472331217
 
+    initOrder :: Integer
     initOrder = 2 ^ (119 :: Integer)
 
+    f :: Num p => p -> Integer -> p
     f root order =
       if order /= n
         then f (root * root) (order `quot` 2)

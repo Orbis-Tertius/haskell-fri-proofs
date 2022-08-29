@@ -6,7 +6,7 @@ module Stark.BinaryTree
   ) where
 
 
-import Prelude hiding ((!!))
+import Prelude (Int, Maybe(Just, Nothing), (+), (^), quot, (<$>), (<), (-), (<*>), (.), splitAt, length, )
 
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import Stark.Types.Index (Index (Index, unIndex))
