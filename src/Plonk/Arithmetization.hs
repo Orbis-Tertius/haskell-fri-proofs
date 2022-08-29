@@ -42,7 +42,7 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      RelativeCellRef (RelativeCellRef),
                                                      RelativeRowIndex (RelativeRowIndex),
                                                      Vect)
-import Plonk.Types.Fin (Fin(FZ, FS))
+import           Plonk.Types.Fin                    (Fin (FS, FZ))
 import           Stark.Types.Scalar                 (Scalar)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 

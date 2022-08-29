@@ -5,8 +5,8 @@
 module Stark.Types.CapLength (CapLength (CapLength, unCapLength)) where
 
 
+import           Data.Kind    (Type)
 import           GHC.Generics (Generic)
-import Data.Kind (Type)
 
 
 type CapLength :: Type

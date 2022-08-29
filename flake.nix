@@ -82,7 +82,7 @@
           })
         ];
         pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
-       pkgs-2205 = import nixpkgs-2205 { inherit system overlays; };
+        pkgs-2205 = import nixpkgs-2205 { inherit system overlays; };
         flake = pkgs.fri-proofs.flake { };
       in
       flake // {

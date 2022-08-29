@@ -22,8 +22,8 @@ module Stark.Fri.Types
 
 
 import           Codec.Serialise           (Serialise)
-import Data.Kind (Type)
 import           Data.ByteString           (ByteString)
+import           Data.Kind                 (Type)
 import           GHC.Generics              (Generic)
 
 import           Stark.Types.AuthPath      (AuthPath)

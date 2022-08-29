@@ -4,8 +4,8 @@ module Plonk.Types.Fin
   ) where
 
 
-import           Data.Kind                                    (Type)
-import           Data.Vinyl.TypeLevel                         (Nat (S))
+import           Data.Kind            (Type)
+import           Data.Vinyl.TypeLevel (Nat (S))
 
 type Fin :: Nat -> Type
 data Fin n where

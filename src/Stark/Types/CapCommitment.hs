@@ -6,7 +6,7 @@ module Stark.Types.CapCommitment ( CapCommitment (CapCommitment, unCapCommitment
 
 import           Codec.Serialise        (Serialise)
 
-import Data.Kind (Type)
+import           Data.Kind              (Type)
 import           Stark.Types.BinaryTree (BinaryTree)
 import           Stark.Types.Commitment (Commitment)
 

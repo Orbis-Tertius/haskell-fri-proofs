@@ -2,7 +2,7 @@ module Stark.Types.Commitment ( Commitment (Commitment, unCommitment) ) where
 
 
 import           Codec.Serialise        (Serialise)
-import Data.Kind (Type)
+import           Data.Kind              (Type)
 
 import           Stark.Types.MerkleHash (MerkleHash)
 

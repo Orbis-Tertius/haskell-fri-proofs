@@ -2,8 +2,8 @@ module Stark.Types.MerkleHash ( MerkleHash (MerkleHash, unMerkleHash) ) where
 
 
 import           Codec.Serialise (Serialise)
-import Data.Kind (Type)
 import           Data.ByteString (ByteString)
+import           Data.Kind       (Type)
 
 
 type MerkleHash :: Type

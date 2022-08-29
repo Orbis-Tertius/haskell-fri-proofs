@@ -4,7 +4,6 @@
 {-# LANGUAGE GADTs                    #-}
 {-# LANGUAGE PolyKinds                #-}
 {-# LANGUAGE RankNTypes               #-}
-{-# LANGUAGE StandaloneDeriving       #-}
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeFamilies             #-}
 {-# LANGUAGE TypeOperators            #-}
@@ -44,7 +43,7 @@ import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
 import           GHC.Generics                                 (Generic)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
-import Plonk.Types.Fin (Fin)
+import           Plonk.Types.Fin                              (Fin)
 
 type Vect :: Nat -> Type -> Type
 data Vect :: Nat -> Type -> Type where

@@ -7,7 +7,7 @@
 module Stark.Types.UnivariatePolynomial ( UnivariatePolynomial (..) ) where
 
 
-import Data.Kind (Type)
+import           Data.Kind                          (Type)
 import           Math.Algebra.Polynomial.Class      (AlmostPolynomial,
                                                      Polynomial)
 import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod),
