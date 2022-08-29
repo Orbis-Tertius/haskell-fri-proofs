@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
-
 module Stark.Types.CapLength (CapLength (CapLength, unCapLength)) where
 
 

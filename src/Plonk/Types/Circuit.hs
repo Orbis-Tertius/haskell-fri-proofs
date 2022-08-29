@@ -1,13 +1,4 @@
-{-# LANGUAGE DataKinds                #-}
-{-# LANGUAGE DeriveGeneric            #-}
-{-# LANGUAGE DerivingStrategies       #-}
-{-# LANGUAGE GADTs                    #-}
-{-# LANGUAGE PolyKinds                #-}
-{-# LANGUAGE RankNTypes               #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TypeFamilies             #-}
-{-# LANGUAGE TypeOperators            #-}
-{-# LANGUAGE UndecidableInstances     #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 
 module Plonk.Types.Circuit

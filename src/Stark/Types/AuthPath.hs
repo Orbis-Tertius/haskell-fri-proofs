@@ -1,6 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
-
 module Stark.Types.AuthPath ( AuthPath (AuthPath, unAuthPath) ) where
 
 

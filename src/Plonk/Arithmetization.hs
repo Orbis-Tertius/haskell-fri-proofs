@@ -1,14 +1,4 @@
-{-# LANGUAGE DataKinds                #-}
-{-# LANGUAGE FlexibleInstances        #-}
-{-# LANGUAGE GADTs                    #-}
-{-# LANGUAGE MultiParamTypeClasses    #-}
-{-# LANGUAGE RankNTypes               #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TypeFamilies             #-}
-{-# LANGUAGE TypeOperators            #-}
-{-# LANGUAGE UndecidableInstances     #-}
-
-
+{-# LANGUAGE UndecidableInstances #-}
 module Plonk.Arithmetization
   ( columnVectorToPoly
   , circuitWithDataToPolys

@@ -1,6 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-
-
 module Stark.Types.MultivariatePolynomial ( MultivariatePolynomial ) where
 
 

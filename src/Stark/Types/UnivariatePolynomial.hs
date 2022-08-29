@@ -1,9 +1,4 @@
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE DerivingStrategies         #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE UndecidableInstances       #-}
-
-
+{-# LANGUAGE UndecidableInstances #-}
 module Stark.Types.UnivariatePolynomial ( UnivariatePolynomial (..) ) where
 
 

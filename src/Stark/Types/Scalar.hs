@@ -1,6 +1,3 @@
-{-# LANGUAGE DataKinds #-}
-
-
 module Stark.Types.Scalar ( Scalar (Scalar, unScalar) ) where
 
 

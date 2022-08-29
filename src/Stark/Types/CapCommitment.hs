@@ -1,6 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
-
 module Stark.Types.CapCommitment ( CapCommitment (CapCommitment, unCapCommitment) ) where
 
 

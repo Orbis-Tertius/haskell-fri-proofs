@@ -55,13 +55,9 @@ library
 
   default-extensions:
     DataKinds
-    DeriveFunctor
-    DeriveGeneric
     DerivingStrategies
     GADTs
-    GeneralisedNewtypeDeriving
-    StandaloneDeriving
-    StandaloneKindSignatures
+    TypeFamilies
 
 test-suite spec
   type:             exitcode-stdio-1.0
