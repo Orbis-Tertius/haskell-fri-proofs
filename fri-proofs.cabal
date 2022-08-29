@@ -1,24 +1,23 @@
-cabal-version:      2.4
-name:               fri-proofs
-version:            0.1.0.0
-license: NONE
+cabal-version: 2.4
+name:          fri-proofs
+version:       0.1.0.0
+license:
 license-files: LICENSE
 author:        Orbis Labs
 maintainer:    morgan.thomas@platonic.systems
 
 library
   exposed-modules:
-    Plonk.Types.Circuit
     Plonk.Arithmetization
+    Plonk.Types.Circuit
     Stark.BinaryTree
     Stark.FiniteField
     Stark.Fri
     Stark.Fri.Types
     Stark.Hash
     Stark.MerkleTree
-    Stark.Prelude
     Stark.MultivariatePolynomial
-    Stark.UnivariatePolynomial
+    Stark.Prelude
     Stark.Types.AuthPath
     Stark.Types.BinaryTree
     Stark.Types.CapCommitment
@@ -30,31 +29,28 @@ library
     Stark.Types.Scalar
     Stark.Types.UnivariatePolynomial
     Stark.Types.Variable
+    Stark.UnivariatePolynomial
 
   build-depends:
-    base >= 4.9 && < 5,
-    blake2,
-    bytestring,
-    containers,
-    extra,
-    finite-field,
-    generic-lens,
-    lens,
-    listsafe,
-    polynomial-algebra,
-    serialise,
-    vinyl,
+    , base                >=4.9 && <5
+    , blake2
+    , bytestring
+    , containers
+    , extra
+    , finite-field
+    , generic-lens
+    , lens
+    , listsafe
+    , polynomial-algebra
+    , serialise
+    , vinyl
 
-  hs-source-dirs: src
-  default-language: Haskell2010
+  hs-source-dirs:     src
+  default-language:   Haskell2010
   ghc-options:
-    -Weverything
-    -Wno-all-missed-specialisations
-    -Wno-implicit-prelude
-    -Wno-missing-safe-haskell-mode
-    -Wno-prepositive-qualified-module
-    -Wno-safe
-    -Wno-unsafe
+    -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+    -Wno-safe -Wno-unsafe
 
   default-extensions:
     DeriveFunctor
@@ -64,9 +60,8 @@ library
     StandaloneKindSignatures
 
 test-suite spec
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-
+  type:             exitcode-stdio-1.0
+  main-is:          Spec.hs
   other-modules:
     Spec.Gen
     Spec.Prelude
@@ -74,40 +69,32 @@ test-suite spec
     Spec.Stark.MerkleTreeSpec
     Spec.Stark.UnivariatePolynomialSpec
 
-  build-tools: sydtest-discover
-
+  build-tools:      sydtest-discover -any
   build-depends:
-    base >= 4.9 && < 5,
-    blake2,
-    bytestring,
-    containers,
-    extra,
-    finite-field,
-    generic-lens,
-    genvalidity,
-    genvalidity-sydtest,
-    genvalidity-sydtest-aeson,
-    hedgehog,
-    lens,
-    listsafe,
-    polynomial-algebra,
-    QuickCheck,
-    serialise,
-    sydtest,
-    sydtest-discover,
-    validity,
+    , base                       >=4.9 && <5
+    , blake2
+    , bytestring
+    , containers
+    , extra
+    , finite-field
+    , fri-proofs
+    , generic-lens
+    , genvalidity
+    , genvalidity-sydtest
+    , genvalidity-sydtest-aeson
+    , hedgehog
+    , lens
+    , listsafe
+    , polynomial-algebra
+    , QuickCheck
+    , serialise
+    , sydtest
+    , sydtest-discover
+    , validity
 
-    fri-proofs
-
-  hs-source-dirs: test
+  hs-source-dirs:   test
   default-language: Haskell2010
   ghc-options:
-    -Weverything
-    -Wno-all-missed-specialisations
-    -Wno-implicit-prelude
-    -Wno-missing-safe-haskell-mode
-    -Wno-prepositive-qualified-module
-    -Wno-safe
-    -threaded
-    -rtsopts
-    -with-rtsopts=-N
+    -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
+    -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
+    -Wno-safe -threaded -rtsopts -with-rtsopts=-N
