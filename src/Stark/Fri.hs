@@ -127,9 +127,9 @@ sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
   = let index = sampleIndex (hash (seed <> toStrict (serialise counter))) ls
         reducedIndex = ReducedIndex $ unIndex index `mod` rls
     in if reducedIndex `Set.member` reducedIndices
-       then (indices, reducedIndices, counter+1)
+       then (indices, reducedIndices, counter + 1)
        else ( Set.insert index indices
-            , Set.insert reducedIndex reducedIndices, counter+1 )
+            , Set.insert reducedIndex reducedIndices, counter + 1 )
 
 
 fiatShamirSeed :: ProofStream -> RandomSeed
@@ -144,8 +144,8 @@ splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
 splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
   let (l, r) = splitAt (length codeword `quot` 2) codeword
   in Codeword $
-  [ recip 2 * ( ( 1 + alpha / (offset * (omega^i)) ) * xi
-              + ( 1 - alpha / (offset * (omega^i)) ) * xj )
+  [ recip 2 * ( ( 1 + alpha / (offset * (omega ^ i)) ) * xi
+              + ( 1 - alpha / (offset * (omega ^ i)) ) * xj )
   | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]
 
 
@@ -218,7 +218,7 @@ commitRound capLength (proofStream, codewords, codeword, omega, offset) =
   in ( proofStream'
      , codewords ++ [codeword]
      , codeword'
-     , omega^two, offset^two
+     , omega ^ two, offset ^ two
      )
   where two :: Integer
         two = 2
@@ -256,10 +256,10 @@ queryPhase capLength codewords indices proofStream =
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` Index (length (unCodeword (e 1 (codewords L.!! (i+1)))) `quot` 2))
+      ( (`mod` Index (length (unCodeword (e 1 (codewords L.!! (i + 1)))) `quot` 2))
         <$> indices'
-      , queryRound capLength (e 2 (codewords L.!! i), e 3 (codewords L.!! (i+1))) indices' proofStream'
-      , i+1
+      , queryRound capLength (e 2 (codewords L.!! i), e 3 (codewords L.!! (i + 1))) indices' proofStream'
+      , i + 1
       )
 
     e :: Int -> Maybe a -> a
@@ -357,9 +357,9 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
   let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
       offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
-      cIndices = (`mod` fromIntegral (dl `shift` negate (r+1))) <$> topLevelIndices
+      cIndices = (`mod` fromIntegral (dl `shift` negate (r + 1))) <$> topLevelIndices
       aIndices = cIndices
-      bIndices = (+ fromIntegral (dl `shift` negate (r+1))) <$> aIndices
+      bIndices = (+ fromIntegral (dl `shift` negate (r + 1))) <$> aIndices
       ays = fst3 . unQuery <$> qs
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs

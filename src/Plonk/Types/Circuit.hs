@@ -47,7 +47,7 @@ import           GHC.Generics                                 (Generic)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
 
-
+type Vect :: Nat -> Type -> Type
 data Vect :: Nat -> Type -> Type where
   Nil :: Vect 'Z a
   (:-) :: a -> Vect n a -> Vect ('S n) a
@@ -59,6 +59,7 @@ instance Functor (Vect m) where
   fmap f (x :- xs) = f x :- fmap f xs
 
 
+type Length :: [b] -> Nat
 type family Length (a :: [b]) :: Nat
 type instance (Length '[]) = 'Z
 type instance Length (_ ': as) = 'S (Length as)
@@ -134,13 +135,14 @@ type NumRows :: Type
 type NumRows = Nat
 
 
-data CircuitShape
-    :: (Type -> Type)
-    -> [ColType]
-    -> HasData
-    -> DegreeBound
-    -> Type
-    -> Type where
+type CircuitShape
+  :: (Type -> Type)
+  -> [ColType]
+  -> HasData
+  -> DegreeBound
+  -> Type
+  -> Type
+data CircuitShape f ps h d a where
   CNil :: CircuitShape f '[] h d a
   (:&) :: (Compose f (Entry h j)) a -> CircuitShape f ps h d a -> CircuitShape f ('MkCol j e : ps) h d a
 
@@ -178,6 +180,7 @@ infixr 7 :&
 type MyC :: [ColType]
 type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon ]
 
+type Z2 :: Type
 data Z2 = Zero | One
 
 example :: CircuitShape (Vect ('S ('S ('S 'Z)))) MyC 'WithData d Z2
