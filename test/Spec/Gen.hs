@@ -27,21 +27,23 @@ import           Data.Maybe                         (fromMaybe)
 import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 
-import Hedgehog (Gen)
-import Hedgehog.Gen (choice, list, enum, bytes)
-import qualified Hedgehog.Range as Range
+import           Hedgehog                           (Gen)
+import           Hedgehog.Gen                       (bytes, choice, enum, list)
+import qualified Hedgehog.Range                     as Range
 import qualified Stark.BinaryTree                   as BinaryTree
 import           Stark.FiniteField                  (cardinality, generator,
                                                      primitiveNthRoot)
 import           Stark.Fri                          (getMaxDegree)
-import           Stark.Fri.Types                    (A (A), AuthPaths (AuthPaths),
+import           Stark.Fri.Types                    (A (A),
+                                                     AuthPaths (AuthPaths),
                                                      B (B), C (C),
                                                      Codeword (Codeword),
                                                      DomainLength (DomainLength),
                                                      ExpansionFactor (ExpansionFactor),
                                                      FriConfiguration (FriConfiguration),
                                                      NumColinearityTests (NumColinearityTests),
-                                                     Offset (Offset), Omega (Omega),
+                                                     Offset (Offset),
+                                                     Omega (Omega),
                                                      ProofStream (ProofStream),
                                                      Query (Query))
 import           Stark.Types.AuthPath               (AuthPath (AuthPath))

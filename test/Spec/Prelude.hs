@@ -3,5 +3,5 @@ module Spec.Prelude
   ) where
 
 
-import           Test.QuickCheck   (Gen, choose, chooseAny, chooseInt, elements,
-                                    forAll, listOf, listOf1, oneof, vectorOf)
+import           Test.QuickCheck (Gen, choose, chooseAny, chooseInt, elements,
+                                  forAll, listOf, listOf1, oneof, vectorOf)

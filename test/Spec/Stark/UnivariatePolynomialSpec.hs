@@ -2,16 +2,17 @@
 module Spec.Stark.UnivariatePolynomialSpec ( testUnivariatePolynomial ) where
 
 
-import Hedgehog (assert, (===), Property, property, forAll)
-import Hedgehog.Gen (list)
 import           Control.Monad              (forM_)
 import           Data.List                  (nub)
+import           Hedgehog                   (Property, assert, forAll, property,
+                                             (===))
+import           Hedgehog.Gen               (list)
 
+import qualified Hedgehog.Range             as Range
 import           Spec.Gen                   (genScalar)
 import           Stark.UnivariatePolynomial (areColinear, evaluate, interpolate)
-import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.Hedgehog (testPropertyNamed)
-import qualified Hedgehog.Range as Range
+import           Test.Tasty                 (TestTree, testGroup)
+import           Test.Tasty.Hedgehog        (testPropertyNamed)
 
 
 testUnivariatePolynomial :: TestTree

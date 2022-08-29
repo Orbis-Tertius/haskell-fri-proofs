@@ -1,20 +1,20 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 
 module Spec.Stark.MerkleTreeSpec ( testMerkleTree ) where
 
 
-import Hedgehog (Property, property, assert, forAll)
-import Hedgehog.Gen (enum)
+import           Hedgehog              (Property, assert, forAll, property)
+import           Hedgehog.Gen          (enum)
 import           Spec.Gen              (genAuthPath, genBinaryTree,
                                         genCapCommitment, genScalar)
 import           Stark.MerkleTree      (commit, open, verify)
 import           Stark.Prelude         (uncurry4)
 import           Stark.Types.CapLength (CapLength (CapLength))
 import           Stark.Types.Index     (Index (Index, unIndex))
-import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.Hedgehog (testPropertyNamed)
+import           Test.Tasty            (TestTree, testGroup)
+import           Test.Tasty.Hedgehog   (testPropertyNamed)
 
 
 testMerkleTree :: TestTree
