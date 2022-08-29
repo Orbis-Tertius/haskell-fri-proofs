@@ -6,7 +6,7 @@ module Spec.Prelude
   ) where
 
 
-import           Data.GenValidity  (GenValid (..), genValidStructurally,
+import           Data.GenValidity  (GenValid, genValidStructurally,
                                     shrinkValidStructurally)
 import           Test.QuickCheck   (Gen, choose, chooseAny, chooseInt, elements,
                                     forAll, listOf, listOf1, oneof, vectorOf)

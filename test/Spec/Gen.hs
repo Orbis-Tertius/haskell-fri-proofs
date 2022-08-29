@@ -19,6 +19,7 @@ module Spec.Gen
 
 
 import           Control.Lens                       ((^.))
+import Control.Monad (replicateM)
 import           Data.ByteString                    (ByteString)
 import qualified Data.ByteString                    as BS
 import           Data.Generics.Labels               ()
@@ -49,7 +50,7 @@ import           Stark.Types.CapLength              (CapLength (..))
 import           Stark.Types.Commitment             (Commitment (..))
 import           Stark.Types.MerkleHash             (MerkleHash (..))
 import           Stark.Types.Scalar                 (Scalar (..))
-import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial)
+import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial(UnivariatePolynomial))
 
 
 genFriConfiguration :: Gen FriConfiguration
@@ -116,12 +117,12 @@ genCodeword config =
   genScalar
 
 
-genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial a)
+genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial Scalar)
 genLowDegreePoly config = do
   let maxDegree = getMaxDegree (config ^. #domainLength)
   coefs <- vectorOf maxDegree genScalar
   let monos = U <$> [0..maxDegree-1]
-  pure . Uni . FreeMod . Map.fromList
+  pure . UnivariatePolynomial . Uni . FreeMod . Map.fromList
     . filter ((/= 0) . snd) $ zip monos coefs
 
 

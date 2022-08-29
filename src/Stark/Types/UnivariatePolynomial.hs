@@ -18,7 +18,7 @@ import           Math.Algebra.Polynomial.Univariate (Univariate (Uni))
 newtype UnivariatePolynomial a =
   UnivariatePolynomial
   { unUnivariatePolynomial :: Univariate a "x" }
-  deriving stock (Eq, Ord)
+  deriving stock (Eq, Ord, Show)
   deriving newtype (Num, Pretty, FreeModule, AlmostPolynomial, Polynomial)
 
 instance Functor UnivariatePolynomial where
