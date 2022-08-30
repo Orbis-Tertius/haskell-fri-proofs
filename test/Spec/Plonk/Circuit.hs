@@ -17,7 +17,7 @@ type GenCircuitShape
   -> Type
   -> Constraint
 class GenCircuitShape f ps h d a where
-  genCircuitShape :: Gen a -> Gen (CircuitShape f ps h d a)
+  genCircuitShape :: Gen (f a) -> Gen (CircuitShape f ps h d a)
 
 type GenVect :: Nat -> Constraint
 class GenVect m where
@@ -32,7 +32,6 @@ instance GenVect m => GenVect ('S m) where
 instance GenCircuitShape (Vect m) '[] h d a where
   genCircuitShape _ = pure CNil
 
-instance (GenVect m,
-          GenCircuitShape (Vect m) ps 'WithData d a)
-      => GenCircuitShape (Vect m) ('MkCol j k ': ps) 'WithData d a where
-  genCircuitShape f = (:&) <$> (Compose <$> genVect (Identity <$> f)) <*> genCircuitShape f
+instance (Functor f, GenCircuitShape f ps 'WithData d a)
+      => GenCircuitShape f ('MkCol j k ': ps) 'WithData d a where
+  genCircuitShape f = (:&) <$> fmap (Compose . fmap Identity) f <*> genCircuitShape f
