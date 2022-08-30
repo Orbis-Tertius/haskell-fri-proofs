@@ -86,11 +86,6 @@
         flake = pkgs.fri-proofs.flake { };
       in
       flake // {
-
-        ciNix = flake-compat-ci.lib.recurseIntoFlakeWith {
-          flake = self;
-          systems = [ "x86_64-linux" ];
-        };
         defaultPackage = flake.packages."fri-proofs:lib:fri-proofs";
         checks = flake.checks // {
           cabal-fmt = lint-utils.outputs.linters.${system}.cabal-fmt ./.;
