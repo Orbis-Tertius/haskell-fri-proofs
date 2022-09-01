@@ -25,6 +25,7 @@ library
     Plonk.Arithmetization
     Plonk.Types.Circuit
     Plonk.Types.Fin
+    Plonk.Types.Vect
     Stark.BinaryTree
     Stark.FiniteField
     Stark.Fri

@@ -30,9 +30,9 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      GateConstraint (GateConstraint),
                                                      HasData (WithData), Length,
                                                      RelativeCellRef (RelativeCellRef),
-                                                     RelativeRowIndex (RelativeRowIndex),
-                                                     Vect)
+                                                     RelativeRowIndex (RelativeRowIndex))
 import           Plonk.Types.Fin                    (Fin (FS, FZ))
+import           Plonk.Types.Vect                   (Vect)
 import           Stark.Types.Scalar                 (Scalar)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 

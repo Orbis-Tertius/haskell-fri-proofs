@@ -7,7 +7,8 @@ import           Data.Vinyl.TypeLevel  (Nat (S, Z))
 import           Hedgehog              (Gen)
 import           Plonk.Types.Circuit   (CircuitShape (CNil, (:&)),
                                         ColType (MkCol), DegreeBound,
-                                        HasData (WithData), Vect (Nil, (:-)))
+                                        HasData (WithData))
+import           Plonk.Types.Vect      (Vect (Nil, (:-)))
 
 type GenCircuitShape
   :: (Type -> Type)
