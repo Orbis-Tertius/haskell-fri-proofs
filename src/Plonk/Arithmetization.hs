@@ -181,6 +181,5 @@ divUniPoly = todo -- can be done with Euclidean algorithm
 --  * Faez has been working on abstraction for doing this
 --    (applying Fiat-Shamir to an IOP)
 
-
 todo :: a
 todo = todo

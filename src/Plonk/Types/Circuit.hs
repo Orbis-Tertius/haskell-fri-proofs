@@ -16,8 +16,10 @@ module Plonk.Types.Circuit
   , DomainGenerator (..)
   , Exponent (..)
   , Challenge (..)
-  , example
+  , exampleCircuit
+  , exampleCS
   , exampleGC
+  , exampleChallenge
   , HasData(..)
   , Entry
   , FAI(..)
@@ -38,7 +40,7 @@ import Math.Algebra.Polynomial.FreeModule (singleton)
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
 import           Plonk.Types.Fin                              (Fin(FZ))
 import           Plonk.Types.Vect                             (Vect (Nil, (:-)))
-import Data.Ratio ((%))
+import Plonk.Types.Z2 (Z2(Zero, One))
 
 type Length :: [b] -> Nat
 type family Length (a :: [b]) :: Nat
@@ -137,52 +139,22 @@ infixr 7 :&
 type MyC :: [ColType]
 type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon ]
 
-type Z2 :: Type
-data Z2 = Zero | One
- deriving stock (Eq, Show)
-
-instance Num Z2 where
- (+) :: Z2 -> Z2 -> Z2
- Zero + Zero = Zero
- Zero + One = One
- One + Zero = One
- One + One = Zero
-
- (*) :: Z2 -> Z2 -> Z2
- Zero * Zero = Zero
- Zero * One = Zero
- One * Zero = Zero
- One * One = One
-
- (-) :: Z2 -> Z2 -> Z2
- Zero - Zero = Zero
- One - Zero = One
- Zero - One = One
- One - One = Zero
-
- negate :: Z2 -> Z2
- negate = id
-
- abs :: Z2 -> Z2
- abs = id
-
- signum :: Z2 -> Z2
- signum = id
-
- fromInteger :: Integer -> Z2
- fromInteger x = if (x % 2) == 0 then Zero else One
-
-example :: CircuitShape (Vect ('S ('S ('S 'Z)))) MyC 'WithData d Z2
-example = Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
+exampleCS :: CircuitShape (Vect ('S ('S ('S 'Z)))) MyC 'WithData d Z2
+exampleCS = Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
        :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
        :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
        :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
        :& CNil
 
 
-exampleGC :: [GateConstraint ('S ('S ('S 'Z))) ('S ('S 'Z)) Z2]
+exampleGC :: [GateConstraint ('S ('S ('S ('S 'Z)))) ('S ('S 'Z)) Z2]
 exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) One)]
 
+exampleCircuit :: CircuitM (Vect ('S ('S ('S 'Z)))) MyC 'WithData ('S ('S 'Z)) Z2
+exampleCircuit = CircuitM exampleCS exampleGC
+
+exampleChallenge :: Challenge Z2
+exampleChallenge = Challenge Zero
 
 type Domain :: NumRows -> Type -> Type
 newtype Domain d a = Domain (DomainGenerator a)
