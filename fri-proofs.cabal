@@ -23,6 +23,7 @@ library
   import:             globals
   exposed-modules:
     Plonk.Arithmetization
+    Plonk.Example
     Plonk.Types.Circuit
     Plonk.Types.Fin
     Plonk.Types.Vect

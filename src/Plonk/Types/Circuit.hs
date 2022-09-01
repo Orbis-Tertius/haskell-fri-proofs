@@ -16,30 +16,25 @@ module Plonk.Types.Circuit
   , DomainGenerator (..)
   , Exponent (..)
   , Challenge (..)
-  , exampleCircuit
-  , exampleCS
-  , exampleGC
-  , exampleChallenge
   , HasData(..)
   , Entry
   , FAI(..)
+  , EN(..)
   , ColType (..)
   , DegreeBound
   ) where
 
 
-import           Data.Functor.Compose                         (Compose (Compose))
+import           Data.Functor.Compose                         (Compose)
 import           Data.Functor.Const                           (Const)
-import           Data.Functor.Identity                        (Identity (Identity))
+import           Data.Functor.Identity                        (Identity)
 import           Data.Kind                                    (Constraint, Type)
 import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
 import           GHC.Generics                                 (Generic)
-import           Math.Algebra.Polynomial.FreeModule           (singleton)
-import           Math.Algebra.Polynomial.Monomial.Generic     (singletonMonom)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
-import           Plonk.Types.Fin                              (Fin (FZ))
-import           Plonk.Types.Vect                             (Vect (Nil, (:-)))
+import           Plonk.Types.Fin                              (Fin)
+import           Plonk.Types.Vect                             (Vect)
 import           Plonk.Types.Z2                               (Z2 (One, Zero))
 
 type Length :: [b] -> Nat
@@ -135,26 +130,6 @@ type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type
 type Circuit ps h m = CircuitM (Vect m) ps h
 
 infixr 7 :&
-
-type MyC :: [ColType]
-type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon ]
-
-exampleCS :: CircuitShape (Vect ('S ('S ('S 'Z)))) MyC 'WithData d Z2
-exampleCS = Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
-       :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
-       :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
-       :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
-       :& CNil
-
-
-exampleGC :: [GateConstraint ('S ('S ('S ('S 'Z)))) ('S ('S 'Z)) Z2]
-exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) One)]
-
-exampleCircuit :: CircuitM (Vect ('S ('S ('S 'Z)))) MyC 'WithData ('S ('S 'Z)) Z2
-exampleCircuit = CircuitM exampleCS exampleGC
-
-exampleChallenge :: Challenge Z2
-exampleChallenge = Challenge Zero
 
 type Domain :: NumRows -> Type -> Type
 newtype Domain d a = Domain (DomainGenerator a)

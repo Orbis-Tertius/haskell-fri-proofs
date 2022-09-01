@@ -1,14 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 module Spec.Plonk.Circuit (GenVect(genVect), GenCircuitShape(genCircuitShape)) where
 
-import           Data.Functor.Compose  (Compose (Compose))
-import           Data.Kind             (Constraint, Type)
-import           Data.Vinyl.TypeLevel  (Nat (S, Z))
-import           Hedgehog              (Gen)
-import           Plonk.Types.Circuit   (CircuitShape (CNil, (:&)),
-                                        ColType (MkCol), DegreeBound, Entry,
-                                        HasData)
-import           Plonk.Types.Vect      (Vect (Nil, (:-)))
+import           Data.Functor.Compose (Compose (Compose))
+import           Data.Kind            (Constraint, Type)
+import           Data.Vinyl.TypeLevel (Nat (S, Z))
+import           Hedgehog             (Gen)
+import           Plonk.Types.Circuit  (CircuitShape (CNil, (:&)),
+                                       ColType (MkCol), DegreeBound, Entry,
+                                       HasData)
+import           Plonk.Types.Vect     (Vect (Nil, (:-)))
 
 type GenCircuitShape
   :: (Type -> Type)
