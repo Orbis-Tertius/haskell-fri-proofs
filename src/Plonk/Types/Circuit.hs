@@ -34,13 +34,13 @@ import           Data.Functor.Identity                        (Identity (Identit
 import           Data.Kind                                    (Constraint, Type)
 import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
 import           GHC.Generics                                 (Generic)
+import           Math.Algebra.Polynomial.FreeModule           (singleton)
+import           Math.Algebra.Polynomial.Monomial.Generic     (singletonMonom)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
-import  Math.Algebra.Polynomial.Monomial.Generic (singletonMonom)
-import Math.Algebra.Polynomial.FreeModule (singleton)
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
-import           Plonk.Types.Fin                              (Fin(FZ))
+import           Plonk.Types.Fin                              (Fin (FZ))
 import           Plonk.Types.Vect                             (Vect (Nil, (:-)))
-import Plonk.Types.Z2 (Z2(Zero, One))
+import           Plonk.Types.Z2                               (Z2 (One, Zero))
 
 type Length :: [b] -> Nat
 type family Length (a :: [b]) :: Nat

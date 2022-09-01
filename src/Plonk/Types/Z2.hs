@@ -3,8 +3,8 @@ module Plonk.Types.Z2
   ) where
 
 
-import           Data.Kind                                    (Type)
-import Data.Ratio ((%))
+import           Data.Kind  (Type)
+import           Data.Ratio ((%))
 
 type Z2 :: Type
 data Z2 = Zero | One
@@ -13,21 +13,21 @@ data Z2 = Zero | One
 instance Num Z2 where
  (+) :: Z2 -> Z2 -> Z2
  Zero + Zero = Zero
- Zero + One = One
- One + Zero = One
- One + One = Zero
+ Zero + One  = One
+ One + Zero  = One
+ One + One   = Zero
 
  (*) :: Z2 -> Z2 -> Z2
  Zero * Zero = Zero
- Zero * One = Zero
- One * Zero = Zero
- One * One = One
+ Zero * One  = Zero
+ One * Zero  = Zero
+ One * One   = One
 
  (-) :: Z2 -> Z2 -> Z2
  Zero - Zero = Zero
- One - Zero = One
- Zero - One = One
- One - One = Zero
+ One - Zero  = One
+ Zero - One  = One
+ One - One   = Zero
 
  negate :: Z2 -> Z2
  negate = id
