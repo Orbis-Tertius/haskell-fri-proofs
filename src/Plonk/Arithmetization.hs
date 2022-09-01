@@ -31,7 +31,7 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      HasData (WithData), Length,
                                                      RelativeCellRef (MkRelativeCellRef),
                                                      RelativeRowIndex (RelativeRowIndex))
-import           Plonk.Types.Fin                    (Fin (FS, FZ))
+import           Plonk.Types.Fin                    (Fin (FS, FZ), finInj)
 import           Plonk.Types.Vect                   (Vect)
 import           Stark.Types.Scalar                 (Scalar)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
@@ -42,6 +42,11 @@ columnVectorToPoly
   -> Vect n a
   -> Maybe (UnivariatePolynomial a)
 columnVectorToPoly = todo -- this can be done with an FFT (Faez)
+
+
+
+
+
 
 
 circuitWithDataToPolys
