@@ -17,6 +17,7 @@ module Plonk.Types.Circuit
   , Exponent (..)
   , Challenge (..)
   , example
+  , exampleGC
   , HasData(..)
   , Entry
   , FAI(..)
@@ -32,9 +33,12 @@ import           Data.Kind                                    (Constraint, Type)
 import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
 import           GHC.Generics                                 (Generic)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
+import  Math.Algebra.Polynomial.Monomial.Generic (singletonMonom)
+import Math.Algebra.Polynomial.FreeModule (singleton)
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
-import           Plonk.Types.Fin                              (Fin)
+import           Plonk.Types.Fin                              (Fin(FZ))
 import           Plonk.Types.Vect                             (Vect (Nil, (:-)))
+import Data.Ratio ((%))
 
 type Length :: [b] -> Nat
 type family Length (a :: [b]) :: Nat
@@ -60,12 +64,12 @@ type DegreeBound = Nat
 
 
 type GateConstraint :: NumCols -> DegreeBound -> Type -> Type
-newtype GateConstraint n d a = GateConstraint
-  { unGateConstraint :: Multi.Poly a (RelativeCellRef n) }
-
+newtype GateConstraint n d a where
+  MkGateConstraint :: { unGateConstraint :: Multi.Poly a (RelativeCellRef n) } -> GateConstraint n d a
 
 type RelativeCellRef :: NumCols -> Type
-data RelativeCellRef n = RelativeCellRef RelativeRowIndex (ColIndex n)
+data RelativeCellRef n where
+  MkRelativeCellRef :: RelativeRowIndex -> ColIndex n -> RelativeCellRef n
   deriving stock (Eq, Ord, Show)
 
 instance Pretty (RelativeCellRef n) where
@@ -125,23 +129,59 @@ data CircuitM f ps h d a =
   }
   deriving stock Generic
 
-
 type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type
 type Circuit ps h m = CircuitM (Vect m) ps h
 
 infixr 7 :&
 
 type MyC :: [ColType]
-type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon ]
+type MyC = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon ]
 
 type Z2 :: Type
 data Z2 = Zero | One
+ deriving stock (Eq, Show)
+
+instance Num Z2 where
+ (+) :: Z2 -> Z2 -> Z2
+ Zero + Zero = Zero
+ Zero + One = One
+ One + Zero = One
+ One + One = Zero
+
+ (*) :: Z2 -> Z2 -> Z2
+ Zero * Zero = Zero
+ Zero * One = Zero
+ One * Zero = Zero
+ One * One = One
+
+ (-) :: Z2 -> Z2 -> Z2
+ Zero - Zero = Zero
+ One - Zero = One
+ Zero - One = One
+ One - One = Zero
+
+ negate :: Z2 -> Z2
+ negate = id
+
+ abs :: Z2 -> Z2
+ abs = id
+
+ signum :: Z2 -> Z2
+ signum = id
+
+ fromInteger :: Integer -> Z2
+ fromInteger x = if (x % 2) == 0 then Zero else One
 
 example :: CircuitShape (Vect ('S ('S ('S 'Z)))) MyC 'WithData d Z2
 example = Compose (Identity One  :- Identity Zero :- Identity One :- Nil)
        :& Compose (Identity Zero :- Identity One  :- Identity Zero :- Nil)
        :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
+       :& Compose (Identity One  :- Identity Zero :- Identity Zero :- Nil)
        :& CNil
+
+
+exampleGC :: [GateConstraint ('S ('S ('S 'Z))) ('S ('S 'Z)) Z2]
+exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) One)]
 
 
 type Domain :: NumRows -> Type -> Type

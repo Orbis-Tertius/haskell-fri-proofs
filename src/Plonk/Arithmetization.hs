@@ -27,9 +27,9 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      ColIndex (ColIndex),
                                                      ColType (MkCol), Domain,
                                                      DomainGenerator (DomainGenerator),
-                                                     GateConstraint (GateConstraint),
+                                                     GateConstraint (MkGateConstraint),
                                                      HasData (WithData), Length,
-                                                     RelativeCellRef (RelativeCellRef),
+                                                     RelativeCellRef (MkRelativeCellRef),
                                                      RelativeRowIndex (RelativeRowIndex))
 import           Plonk.Types.Fin                    (Fin (FS, FZ))
 import           Plonk.Types.Vect                   (Vect)
@@ -90,7 +90,7 @@ plugInDataToGateConstraint
   -> CircuitShape UnivariatePolynomial ps 'WithData d a
   -> GateConstraint n d a
   -> UnivariatePolynomial a
-plugInDataToGateConstraint omega shape (GateConstraint poly) =
+plugInDataToGateConstraint omega shape (MkGateConstraint poly) =
   evalP scalarP (relativeCellRefToPoly omega shape) poly
 
 
@@ -107,14 +107,14 @@ instance RelativeCellRefToPoly xs z => RelativeCellRefToPoly ('MkCol j k ': xs) 
   relativeCellRefToPoly
     omega
     (col0 :& _)
-    (RelativeCellRef i (ColIndex FZ)) =
+    (MkRelativeCellRef i (ColIndex FZ)) =
     rotateColPoly omega i (runIdentity <$> getCompose col0)
   relativeCellRefToPoly
     omega
     (_ :& cols)
-    (RelativeCellRef i (ColIndex (FS n))) =
+    (MkRelativeCellRef i (ColIndex (FS n))) =
       relativeCellRefToPoly omega cols
-        (RelativeCellRef i (ColIndex n))
+        (MkRelativeCellRef i (ColIndex n))
 
 
 rotateColPoly
