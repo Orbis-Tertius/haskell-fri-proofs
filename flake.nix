@@ -7,23 +7,7 @@
     nixpkgs.follows = "haskellNix/nixpkgs-unstable";
     nixpkgs-2205.url = "github:NixOS/nixpkgs/22.05";
 
-    #CI integration
-    flake-compat-ci.url = "github:hercules-ci/flake-compat-ci";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-
     flake-utils.url = "github:numtide/flake-utils";
-    sydtest-src = {
-      url = "github:NorfairKing/sydtest/314d53ae175b540817a24d4211dab24fe6cb9232";
-      flake = false;
-    };
-    validity-src = {
-      url = "github:NorfairKing/validity/f5e5d69b3502cdd9243b412c31ba9619b9e89462";
-      flake = false;
-    };
-
     #HaskellNix is implemented using a set nixpkgs.follows; allowing for flake-build
     haskellNix = {
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,14 +21,12 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-2205, flake-utils, lint-utils, sydtest-src, validity-src, haskellNix, flake-compat, flake-compat-ci }:
+  outputs = { self, nixpkgs, nixpkgs-2205, flake-utils, lint-utils, haskellNix }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         deferPluginErrors = true;
         overlays = [
           haskellNix.overlay
-          (import "${sydtest-src}/nix/overlay.nix")
-          (import "${validity-src}/nix/overlay.nix")
           (final: prev: {
             fri-proofs =
               final.haskell-nix.project' {
