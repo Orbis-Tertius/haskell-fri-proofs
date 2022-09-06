@@ -83,37 +83,6 @@
         "type": "github"
       }
     },
-    "flake-compat": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1650374568,
-        "narHash": "sha256-Z+s0J8/r907g149rllvwhb4pKi8Wam5ij0st8PwAh+E=",
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "rev": "b4a34015c698c7793d592d66adbab377907a2be8",
-        "type": "github"
-      },
-      "original": {
-        "owner": "edolstra",
-        "repo": "flake-compat",
-        "type": "github"
-      }
-    },
-    "flake-compat-ci": {
-      "locked": {
-        "lastModified": 1646664117,
-        "narHash": "sha256-AX2VewPcS9eRsoirVHfnk07MHAOH6CTDiD10XtRaZbk=",
-        "owner": "hercules-ci",
-        "repo": "flake-compat-ci",
-        "rev": "e588637b2eec4261ed0d36335c83a117f2744dea",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-compat-ci",
-        "type": "github"
-      }
-    },
     "flake-utils": {
       "locked": {
         "lastModified": 1656065134,
@@ -458,8 +427,6 @@
     },
     "root": {
       "inputs": {
-        "flake-compat": "flake-compat",
-        "flake-compat-ci": "flake-compat-ci",
         "flake-utils": "flake-utils",
         "haskellNix": "haskellNix",
         "lint-utils": "lint-utils",
@@ -467,9 +434,7 @@
           "haskellNix",
           "nixpkgs-unstable"
         ],
-        "nixpkgs-2205": "nixpkgs-2205",
-        "sydtest-src": "sydtest-src",
-        "validity-src": "validity-src"
+        "nixpkgs-2205": "nixpkgs-2205"
       }
     },
     "stackage": {
@@ -485,40 +450,6 @@
       "original": {
         "owner": "input-output-hk",
         "repo": "stackage.nix",
-        "type": "github"
-      }
-    },
-    "sydtest-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1641334290,
-        "narHash": "sha256-WrtOkLnT9CtnzJV7+d5q+2o6cXTKCP4ka6SNjKdvgGg=",
-        "owner": "NorfairKing",
-        "repo": "sydtest",
-        "rev": "314d53ae175b540817a24d4211dab24fe6cb9232",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NorfairKing",
-        "repo": "sydtest",
-        "rev": "314d53ae175b540817a24d4211dab24fe6cb9232",
-        "type": "github"
-      }
-    },
-    "validity-src": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1624197181,
-        "narHash": "sha256-4ssmCY0OxCaHlJDaqum4H0NJIFqHaISSKmyQ7Xs9YKo=",
-        "owner": "NorfairKing",
-        "repo": "validity",
-        "rev": "f5e5d69b3502cdd9243b412c31ba9619b9e89462",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NorfairKing",
-        "repo": "validity",
-        "rev": "f5e5d69b3502cdd9243b412c31ba9619b9e89462",
         "type": "github"
       }
     }
