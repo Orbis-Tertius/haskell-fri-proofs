@@ -15,11 +15,12 @@ import           Data.Functor.Compose               (Compose (Compose),
 import           Data.Functor.Identity              (Identity (Identity),
                                                      runIdentity)
 import           Data.Kind                          (Constraint)
-import           Data.Vinyl.TypeLevel               (Nat (S))
+import           Data.Vinyl.TypeLevel               (Nat (S, Z))
 import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, scaleP, sumP),
                                                      Polynomial (evalP), Ring,
                                                      monomP, subsP)
 import           Math.Algebra.Polynomial.Univariate (U (U))
+import Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      Circuit,
                                                      CircuitM (CircuitM),
@@ -31,7 +32,7 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
                                                      HasData (WithData), Length,
                                                      RelativeCellRef (MkRelativeCellRef),
                                                      RelativeRowIndex (RelativeRowIndex))
-import           Plonk.Types.Fin                    (Fin (FS, FZ), finInj)
+import           Plonk.Types.Fin                    (Fin (FS, FZ))
 import           Plonk.Types.Vect                   (Vect)
 import           Stark.Types.Scalar                 (Scalar)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
@@ -107,6 +108,9 @@ class RelativeCellRefToPoly ps n where
     -> CircuitShape UnivariatePolynomial ps 'WithData d a
     -> RelativeCellRef n
     -> UnivariatePolynomial a
+
+instance RelativeCellRefToPoly '[] 'Z where
+  relativeCellRefToPoly _ CNil _ = error "impossible"
 
 instance RelativeCellRefToPoly xs z => RelativeCellRefToPoly ('MkCol j k ': xs) ('S z) where
   relativeCellRefToPoly

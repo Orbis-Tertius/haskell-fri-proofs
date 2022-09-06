@@ -6,6 +6,7 @@ module Plonk.Example
   , exampleCS
   , exampleGC
   , exampleChallenge
+  , exampleSomething
   ) where
 
 

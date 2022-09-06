@@ -15,7 +15,7 @@ common globals
     TypeFamilies
 
   ghc-options:
-    -Weverything -Werror -Wno-all-missed-specialisations
+    -Weverything -Wno-all-missed-specialisations
     -Wno-implicit-prelude -Wno-missing-safe-haskell-mode
     -Wno-prepositive-qualified-module -Wno-safe -Wno-unsafe
 

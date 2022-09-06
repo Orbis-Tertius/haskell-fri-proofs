@@ -5,10 +5,22 @@ module Plonk.Types.Z2
 
 import           Data.Kind  (Type)
 import           Data.Ratio ((%))
+import Math.Algebra.Polynomial.Class (Ring)
+import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
+import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
 type Z2 :: Type
 data Z2 = Zero | One
- deriving stock (Eq, Show)
+ deriving stock (Eq, Ord, Show)
+
+instance IsSigned Z2 where
+  signOf _ = pure Plus
+
+instance Pretty Z2 where
+  pretty Zero = "0"
+  pretty One = "1"
+
+instance Ring Z2 where
 
 instance Num Z2 where
  (+) :: Z2 -> Z2 -> Z2
