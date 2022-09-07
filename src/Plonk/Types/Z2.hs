@@ -3,11 +3,11 @@ module Plonk.Types.Z2
   ) where
 
 
-import           Data.Kind  (Type)
-import           Data.Ratio ((%))
-import Math.Algebra.Polynomial.Class (Ring)
-import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
-import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+import           Data.Kind                      (Type)
+import           Data.Ratio                     ((%))
+import           Math.Algebra.Polynomial.Class  (Ring)
+import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
+import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
 type Z2 :: Type
 data Z2 = Zero | One
@@ -18,7 +18,7 @@ instance IsSigned Z2 where
 
 instance Pretty Z2 where
   pretty Zero = "0"
-  pretty One = "1"
+  pretty One  = "1"
 
 instance Ring Z2 where
 

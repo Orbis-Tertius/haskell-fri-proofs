@@ -10,32 +10,35 @@ module Plonk.Arithmetization
   ) where
 
 
-import           Data.Functor.Compose               (Compose (Compose),
-                                                     getCompose)
-import           Data.Functor.Identity              (Identity (Identity),
-                                                     runIdentity)
-import           Data.Kind                          (Constraint)
-import           Data.Vinyl.TypeLevel               (Nat (S, Z))
-import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, scaleP, sumP),
-                                                     Polynomial (evalP), Ring,
-                                                     monomP, subsP)
-import           Math.Algebra.Polynomial.Univariate (U (U))
-import Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
-import           Plonk.Types.Circuit                (Challenge (Challenge),
-                                                     Circuit,
-                                                     CircuitM (CircuitM),
-                                                     CircuitShape (CNil, (:&)),
-                                                     ColIndex (ColIndex),
-                                                     ColType (MkCol), Domain,
-                                                     DomainGenerator (DomainGenerator),
-                                                     GateConstraint (MkGateConstraint),
-                                                     HasData (WithData), Length,
-                                                     RelativeCellRef (MkRelativeCellRef),
-                                                     RelativeRowIndex (RelativeRowIndex))
-import           Plonk.Types.Fin                    (Fin (FS, FZ))
-import           Plonk.Types.Vect                   (Vect)
-import           Stark.Types.Scalar                 (Scalar)
-import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
+import           Data.Functor.Compose                        (Compose (Compose),
+                                                              getCompose)
+import           Data.Functor.Identity                       (Identity (Identity),
+                                                              runIdentity)
+import           Data.Kind                                   (Constraint)
+import           Data.Vinyl.TypeLevel                        (Nat (S, Z))
+import           Math.Algebra.Polynomial.Class               (AlmostPolynomial (scalarP, scaleP, sumP),
+                                                              Polynomial (evalP),
+                                                              Ring, monomP,
+                                                              subsP)
+import           Math.Algebra.Polynomial.Univariate          (U (U))
+import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
+import           Plonk.Types.Circuit                         (Challenge (Challenge),
+                                                              Circuit,
+                                                              CircuitM (CircuitM),
+                                                              CircuitShape (CNil, (:&)),
+                                                              ColIndex (ColIndex),
+                                                              ColType (MkCol),
+                                                              Domain,
+                                                              DomainGenerator (DomainGenerator),
+                                                              GateConstraint (MkGateConstraint),
+                                                              HasData (WithData),
+                                                              Length,
+                                                              RelativeCellRef (MkRelativeCellRef),
+                                                              RelativeRowIndex (RelativeRowIndex))
+import           Plonk.Types.Fin                             (Fin (FS, FZ))
+import           Plonk.Types.Vect                            (Vect)
+import           Stark.Types.Scalar                          (Scalar)
+import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 columnVectorToPoly
