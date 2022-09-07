@@ -52,3 +52,8 @@ instance Num Z2 where
 
  fromInteger :: Integer -> Z2
  fromInteger x = if (x % 2) == 0 then Zero else One
+
+instance Fractional Z2 where
+  recip :: Z2 -> Z2
+  recip Zero = Zero
+  recip One  = One

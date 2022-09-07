@@ -24,6 +24,7 @@ library
   exposed-modules:
     Plonk.Arithmetization
     Plonk.Example
+    Plonk.FFT
     Plonk.Types.Circuit
     Plonk.Types.Fin
     Plonk.Types.Vect
@@ -57,6 +58,7 @@ library
     , extra
     , finite-field
     , generic-lens
+    , groups
     , lens
     , listsafe
     , polynomial-algebra

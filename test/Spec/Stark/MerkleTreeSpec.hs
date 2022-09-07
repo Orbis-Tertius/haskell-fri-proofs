@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Spec.Stark.MerkleTreeSpec ( testMerkleTree ) where
 
