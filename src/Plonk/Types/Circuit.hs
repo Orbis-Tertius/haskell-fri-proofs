@@ -13,7 +13,6 @@ module Plonk.Types.Circuit
   , ColIndex (..)
   , Z2 (..)
   , Domain (..)
-  , DomainGenerator (..)
   , Exponent (..)
   , Challenge (..)
   , HasData(..)
@@ -132,11 +131,8 @@ type Circuit ps h m = CircuitM (Vect m) ps h
 infixr 7 :&
 
 type Domain :: NumRows -> Type -> Type
-newtype Domain d a = Domain (DomainGenerator a)
+newtype Domain d a = Domain { fromDomain :: Int -> a }
 
-
-type DomainGenerator :: Type -> Type
-newtype DomainGenerator a = DomainGenerator { unDomainGenerator :: a }
 
 
 type Challenge :: Type -> Type

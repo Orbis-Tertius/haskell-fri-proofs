@@ -26,7 +26,6 @@ import           Plonk.Types.Circuit                          (Challenge (Challe
                                                                ColType (MkCol),
                                                                DegreeBound,
                                                                Domain (Domain),
-                                                               DomainGenerator (DomainGenerator),
                                                                EN (EqCon, NEqCon),
                                                                FAI (Advice, Fixed, Instance),
                                                                GateConstraint (MkGateConstraint),
@@ -67,11 +66,13 @@ exampleCircuit = CircuitM exampleCS exampleGC
 exampleChallenge :: Challenge Z2
 exampleChallenge = Challenge Zero
 
-exampleSomething :: Maybe (UnivariatePolynomial Z2)
+exampleSomething :: UnivariatePolynomial Z2
 exampleSomething =
-  let x = DomainGenerator Zero
-      y :: Maybe MyCircuitU
-      y = circuitWithDataToPolys (Domain x) exampleCircuit
-  in case y of
-       Nothing -> Nothing
-       Just y' -> Just $ combineCircuitPolys x y' exampleChallenge
+  let 
+    x :: Domain d Z2
+    x = Domain (fromInteger @Z2 . toInteger)
+
+    y :: MyCircuitU
+    y = circuitWithDataToPolys x exampleCircuit
+
+  in combineCircuitPolys x y exampleChallenge

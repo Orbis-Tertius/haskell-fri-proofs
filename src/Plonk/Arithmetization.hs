@@ -10,17 +10,21 @@ module Plonk.Arithmetization
   ) where
 
 
+import Data.Group (Group)
 import           Data.Functor.Compose                        (Compose (Compose),
                                                               getCompose)
 import           Data.Functor.Identity                       (Identity (Identity),
                                                               runIdentity)
+import Data.Vinyl.TypeLevel (NatToInt(natToInt))
 import           Data.Kind                                   (Constraint)
+import qualified Data.Map as Map
+import Math.Algebra.Polynomial.FreeModule (FreeMod(FreeMod))
 import           Data.Vinyl.TypeLevel                        (Nat (S, Z))
 import           Math.Algebra.Polynomial.Class               (AlmostPolynomial (scalarP, scaleP, sumP),
                                                               Polynomial (evalP),
                                                               Ring, monomP,
                                                               subsP)
-import           Math.Algebra.Polynomial.Univariate          (U (U))
+import           Math.Algebra.Polynomial.Univariate          (U (U), Univariate(Uni))
 import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 import           Plonk.FFT                                   (fft)
 import           Plonk.Types.Circuit                         (Challenge (Challenge),
@@ -29,31 +33,35 @@ import           Plonk.Types.Circuit                         (Challenge (Challen
                                                               CircuitShape (CNil, (:&)),
                                                               ColIndex (ColIndex),
                                                               ColType (MkCol),
-                                                              Domain,
-                                                              DomainGenerator (DomainGenerator),
+                                                              Domain(Domain),
                                                               GateConstraint (MkGateConstraint),
                                                               HasData (WithData),
                                                               Length,
                                                               RelativeCellRef (MkRelativeCellRef),
                                                               RelativeRowIndex (RelativeRowIndex))
 import           Plonk.Types.Fin                             (Fin (FS, FZ))
-import           Plonk.Types.Vect                            (Vect)
+import           Plonk.Types.Vect                            (Vect, toList)
 import           Stark.Types.Scalar                          (Scalar)
 import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 columnVectorToPoly
-  :: Domain n a
+  :: Group a
+  => Num a
+  => Domain n a
   -> Vect n a
-  -> Maybe (UnivariatePolynomial a)
-columnVectorToPoly = todo
+  -> UnivariatePolynomial a
+columnVectorToPoly d xs = UnivariatePolynomial . Uni . FreeMod $ 
+  Map.fromList (zip (U <$> [0..]) (fft d (toList xs)))
 
 
 circuitWithDataToPolys
-  :: Domain m a
+  :: Group a
+  => Num a
+  => Domain m a
   -> Circuit ps 'WithData m d a
-  -> Maybe (CircuitM UnivariatePolynomial ps 'WithData d a)
-circuitWithDataToPolys dom = circTraverse (columnVectorToPoly dom)
+  -> CircuitM UnivariatePolynomial ps 'WithData d a
+circuitWithDataToPolys dom = circMap (columnVectorToPoly dom)
 
 
 circTraverse :: Applicative g
@@ -64,6 +72,31 @@ circTraverse :: Applicative g
              -> g (CircuitM f ps 'WithData d a)
 circTraverse k (CircuitM shape constraints) =
    flip CircuitM constraints <$> circShapeTraverse k shape
+
+circMap
+  :: Functor f
+  => Functor g
+  => (f a -> g a)
+  -> CircuitM f ps 'WithData d a
+  -> CircuitM g ps 'WithData d a
+circMap k (CircuitM shape constraints) = CircuitM (circShapeMap k shape) constraints
+
+circShapeMap
+  :: Functor f
+  => Functor g
+  => (f a -> g a)
+  -> CircuitShape f ps 'WithData d a
+  -> CircuitShape g ps 'WithData d a
+circShapeMap q CNil = CNil
+circShapeMap q (x :& xs) = mapI q x :& circShapeMap q xs
+
+mapI
+ :: Functor f
+ => Functor g
+ => (f a -> g a)
+ -> Compose f Identity a
+ -> Compose g Identity a
+mapI f (Compose q) = Compose $ fmap Identity . f . fmap runIdentity $ q
 
 
 circShapeTraverse :: Applicative g
@@ -91,7 +124,7 @@ wrapInIdentity f (Compose xs) =
 plugInDataToGateConstraint
   :: Ring a
   => RelativeCellRefToPoly ps n
-  => DomainGenerator a
+  => Domain d a
   -> CircuitShape UnivariatePolynomial ps 'WithData d a
   -> GateConstraint n d a
   -> UnivariatePolynomial a
@@ -103,7 +136,7 @@ type RelativeCellRefToPoly :: [ColType] -> Nat -> Constraint
 class RelativeCellRefToPoly ps n where
   relativeCellRefToPoly
     :: Ring a
-    => DomainGenerator a
+    => Domain d a
     -> CircuitShape UnivariatePolynomial ps 'WithData d a
     -> RelativeCellRef n
     -> UnivariatePolynomial a
@@ -127,12 +160,12 @@ instance RelativeCellRefToPoly xs z => RelativeCellRefToPoly ('MkCol j k ': xs) 
 
 rotateColPoly
   :: Ring a
-  => DomainGenerator a
+  => Domain d a
   -> RelativeRowIndex
   -> UnivariatePolynomial a
   -> UnivariatePolynomial a
-rotateColPoly (DomainGenerator omega) (RelativeRowIndex i) =
-  subsP (const (scaleP (omega ^ i) (monomP (U 1))))
+rotateColPoly (Domain omega) (RelativeRowIndex i) =
+  subsP (const (scaleP (omega i) (monomP (U 1))))
 
 
 linearlyCombineGatePolys
@@ -149,7 +182,7 @@ combineCircuitPolys
   :: n ~ Length ps
   => RelativeCellRefToPoly ps n
   => Ring a
-  => DomainGenerator a
+  => Domain d a
   -> CircuitM UnivariatePolynomial ps 'WithData d a
   -> Challenge a
   -> UnivariatePolynomial a
@@ -158,8 +191,15 @@ combineCircuitPolys omega (CircuitM shape gates) challenge =
     plugInDataToGateConstraint omega shape <$> gates
 
 
-getZerofier :: Domain n a -> UnivariatePolynomial a
-getZerofier = todo -- this can be done with an FFT (Faez)
+getZerofier
+  :: forall n a.
+     NatToInt n
+  => Num a
+  => Group a
+  => Domain n a
+  -> UnivariatePolynomial a
+getZerofier d@(Domain q) = UnivariatePolynomial . Uni . FreeMod $
+  Map.fromList (zip (U <$> [0..]) (fft d (q <$> [0 .. natToInt @n - 1])))
 
 
 -- returns the quotient if the denominator

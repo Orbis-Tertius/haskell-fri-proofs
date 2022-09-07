@@ -4,6 +4,7 @@ module Plonk.FFT
 
 import           Data.Bits  (bit, countLeadingZeros, countTrailingZeros,
                              finiteBitSize)
+import Plonk.Types.Circuit (Domain(Domain))
 import           Data.Group (Group, pow)
 import qualified Data.List  as List
 
@@ -40,16 +41,16 @@ padToNearestPowerOfTwoOf i xs = xs ++ replicate padLength 0
 fft
   :: Group k
   => Num k
-  => (Int -> k)
+  => Domain d k
   -> [k]
   -> [k]
-fft omega_n as =
+fft (Domain omega_n) as =
   case length as of
     1 -> as
     n ->
       let (as0, as1) = split as
-          y0 = fft omega_n as0
-          y1 = fft omega_n as1
+          y0 = fft (Domain omega_n) as0
+          y1 = fft (Domain omega_n) as1
           omegas = map (pow (omega_n (log2 n))) [0 .. n]
        in combine y0 y1 omegas
   where
