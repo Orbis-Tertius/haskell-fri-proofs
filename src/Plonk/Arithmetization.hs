@@ -22,6 +22,7 @@ import           Math.Algebra.Polynomial.Class               (AlmostPolynomial (
                                                               subsP)
 import           Math.Algebra.Polynomial.Univariate          (U (U))
 import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
+import           Plonk.FFT                                   (fft)
 import           Plonk.Types.Circuit                         (Challenge (Challenge),
                                                               Circuit,
                                                               CircuitM (CircuitM),
@@ -45,12 +46,7 @@ columnVectorToPoly
   :: Domain n a
   -> Vect n a
   -> Maybe (UnivariatePolynomial a)
-columnVectorToPoly = todo -- this can be done with an FFT (Faez)
-
-
-
-
-
+columnVectorToPoly = todo
 
 
 circuitWithDataToPolys
