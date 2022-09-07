@@ -63,6 +63,7 @@ instance Semigroup Z2 where
   Zero <> Zero = Zero
   Zero <> One  = One
   One <> Zero  = One
+  One <> One   = Zero
 
 instance Monoid Z2 where
   mempty :: Z2
