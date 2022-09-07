@@ -1,6 +1,4 @@
 {-# LANGUAGE OverloadedLabels    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-
 
 module Spec.Gen
   ( genFriConfiguration
