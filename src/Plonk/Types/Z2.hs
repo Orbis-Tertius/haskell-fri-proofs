@@ -3,12 +3,12 @@ module Plonk.Types.Z2
   ) where
 
 
+import           Data.Group                     (Group (invert))
 import           Data.Kind                      (Type)
 import           Data.Ratio                     ((%))
 import           Math.Algebra.Polynomial.Class  (Ring)
 import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
 import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
-
 type Z2 :: Type
 data Z2 = Zero | One
  deriving stock (Eq, Ord, Show)
@@ -57,3 +57,18 @@ instance Fractional Z2 where
   recip :: Z2 -> Z2
   recip Zero = Zero
   recip One  = One
+
+instance Semigroup Z2 where
+  (<>) :: Z2 -> Z2 -> Z2
+  Zero <> Zero = Zero
+  Zero <> One  = One
+  One <> Zero  = One
+
+instance Monoid Z2 where
+  mempty :: Z2
+  mempty = Zero  
+
+instance Group Z2 where
+  invert :: Z2 -> Z2
+  invert Zero = Zero
+  invert One = One

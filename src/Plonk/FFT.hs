@@ -58,5 +58,3 @@ fft omega_n as =
       (\xs -> map fst xs ++ map snd xs)
         $ map (\(yk0, yk1, currentOmega) -> (yk0 + currentOmega * yk1, yk0 - currentOmega * yk1))
         $ List.zip3 y0 y1 omegas
-
-
