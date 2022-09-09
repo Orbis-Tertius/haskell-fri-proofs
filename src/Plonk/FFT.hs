@@ -2,11 +2,11 @@ module Plonk.FFT
   ( fft
   ) where
 
-import           Data.Bits  (bit, countLeadingZeros, countTrailingZeros,
-                             finiteBitSize)
-import Plonk.Types.Circuit (Domain(Domain))
-import           Data.Group (Group, pow)
-import qualified Data.List  as List
+import           Data.Bits           (bit, countLeadingZeros,
+                                      countTrailingZeros, finiteBitSize)
+import           Data.Group          (Group, pow)
+import qualified Data.List           as List
+import           Plonk.Types.Circuit (Domain (Domain))
 
 log2 :: Int -> Int
 log2 x = floorLog + correction
@@ -36,7 +36,6 @@ padToNearestPowerOfTwoOf i xs = xs ++ replicate padLength 0
   where
     padLength = nearestPowerOfTwo - length xs
     nearestPowerOfTwo = bit $ log2 i
-
 
 fft
   :: Group k

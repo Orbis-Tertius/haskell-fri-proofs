@@ -19,5 +19,5 @@ instance Functor (Vect m) where
   fmap f (x :- xs) = f x :- fmap f xs
 
 toList :: Vect n a -> [a]
-toList Nil = []
+toList Nil       = []
 toList (x :- xs) = x : toList xs

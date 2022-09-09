@@ -68,7 +68,7 @@ exampleChallenge = Challenge Zero
 
 exampleSomething :: UnivariatePolynomial Z2
 exampleSomething =
-  let 
+  let
     x :: Domain d Z2
     x = Domain (fromInteger @Z2 . toInteger)
 

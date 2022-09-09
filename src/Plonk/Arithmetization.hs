@@ -10,21 +10,22 @@ module Plonk.Arithmetization
   ) where
 
 
-import Data.Group (Group)
 import           Data.Functor.Compose                        (Compose (Compose),
                                                               getCompose)
 import           Data.Functor.Identity                       (Identity (Identity),
                                                               runIdentity)
-import Data.Vinyl.TypeLevel (NatToInt(natToInt))
+import           Data.Group                                  (Group)
 import           Data.Kind                                   (Constraint)
-import qualified Data.Map as Map
-import Math.Algebra.Polynomial.FreeModule (FreeMod(FreeMod))
-import           Data.Vinyl.TypeLevel                        (Nat (S, Z))
+import qualified Data.Map                                    as Map
+import           Data.Vinyl.TypeLevel                        (Nat (S, Z),
+                                                              NatToInt (natToInt))
 import           Math.Algebra.Polynomial.Class               (AlmostPolynomial (scalarP, scaleP, sumP),
                                                               Polynomial (evalP),
                                                               Ring, monomP,
                                                               subsP)
-import           Math.Algebra.Polynomial.Univariate          (U (U), Univariate(Uni))
+import           Math.Algebra.Polynomial.FreeModule          (FreeMod (FreeMod))
+import           Math.Algebra.Polynomial.Univariate          (U (U),
+                                                              Univariate (Uni))
 import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 import           Plonk.FFT                                   (fft)
 import           Plonk.Types.Circuit                         (Challenge (Challenge),
@@ -33,7 +34,7 @@ import           Plonk.Types.Circuit                         (Challenge (Challen
                                                               CircuitShape (CNil, (:&)),
                                                               ColIndex (ColIndex),
                                                               ColType (MkCol),
-                                                              Domain(Domain),
+                                                              Domain (Domain),
                                                               GateConstraint (MkGateConstraint),
                                                               HasData (WithData),
                                                               Length,
@@ -51,7 +52,7 @@ columnVectorToPoly
   => Domain n a
   -> Vect n a
   -> UnivariatePolynomial a
-columnVectorToPoly d xs = UnivariatePolynomial . Uni . FreeMod $ 
+columnVectorToPoly d xs = UnivariatePolynomial . Uni . FreeMod $
   Map.fromList (zip (U <$> [0..]) (fft d (toList xs)))
 
 
@@ -87,7 +88,7 @@ circShapeMap
   => (f a -> g a)
   -> CircuitShape f ps 'WithData d a
   -> CircuitShape g ps 'WithData d a
-circShapeMap q CNil = CNil
+circShapeMap q CNil      = CNil
 circShapeMap q (x :& xs) = mapI q x :& circShapeMap q xs
 
 mapI

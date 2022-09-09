@@ -67,9 +67,9 @@ instance Semigroup Z2 where
 
 instance Monoid Z2 where
   mempty :: Z2
-  mempty = Zero  
+  mempty = Zero
 
 instance Group Z2 where
   invert :: Z2 -> Z2
   invert Zero = Zero
-  invert One = One
+  invert One  = One
