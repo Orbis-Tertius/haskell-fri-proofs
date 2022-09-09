@@ -10,46 +10,40 @@ module Plonk.Arithmetization
   ) where
 
 
-import           Data.Functor.Compose                        (Compose (Compose),
-                                                              getCompose)
-import           Data.Functor.Identity                       (Identity (Identity),
-                                                              runIdentity)
-import           Data.Group                                  (Group)
-import           Data.Kind                                   (Constraint)
-import qualified Data.Map                                    as Map
-import           Data.Vinyl.TypeLevel                        (Nat (S, Z),
-                                                              NatToInt (natToInt))
-import           Math.Algebra.Polynomial.Class               (AlmostPolynomial (scalarP, scaleP, sumP),
-                                                              CoeffP,
-                                                              Polynomial (evalP),
-                                                              Ring, divM,
-                                                              isZeroP, monomP,
-                                                              monomP',
-                                                              mulByMonomP,
-                                                              subsP, zeroP)
-import           Math.Algebra.Polynomial.FreeModule          (BaseF, CoeffF,
-                                                              FreeMod (FreeMod),
-                                                              FreeModule,
-                                                              findMaxTerm,
-                                                              toFreeModule)
-import           Math.Algebra.Polynomial.Univariate          (U (U),
-                                                              Univariate (Uni))
-import           Plonk.FFT                                   (fft)
-import           Plonk.Types.Circuit                         (Challenge (Challenge),
-                                                              Circuit,
-                                                              CircuitM (CircuitM),
-                                                              CircuitShape (CNil, (:&)),
-                                                              ColIndex (ColIndex),
-                                                              ColType (MkCol),
-                                                              Domain (Domain),
-                                                              GateConstraint (MkGateConstraint),
-                                                              HasData (WithData),
-                                                              Length,
-                                                              RelativeCellRef (MkRelativeCellRef),
-                                                              RelativeRowIndex (RelativeRowIndex))
-import           Plonk.Types.Fin                             (Fin (FS, FZ))
-import           Plonk.Types.Vect                            (Vect, toList)
-import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
+import           Data.Functor.Compose               (Compose (Compose),
+                                                     getCompose)
+import           Data.Functor.Identity              (Identity (Identity),
+                                                     runIdentity)
+import           Data.Group                         (Group)
+import           Data.Kind                          (Constraint)
+import qualified Data.Map                           as Map
+import           Data.Vinyl.TypeLevel               (Nat (S, Z),
+                                                     NatToInt (natToInt))
+import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, scaleP, sumP),
+                                                     CoeffP, Polynomial (evalP),
+                                                     Ring, divM, isZeroP,
+                                                     monomP, monomP',
+                                                     mulByMonomP, subsP, zeroP)
+import           Math.Algebra.Polynomial.FreeModule (BaseF, CoeffF,
+                                                     FreeMod (FreeMod),
+                                                     FreeModule, findMaxTerm,
+                                                     toFreeModule)
+import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
+import           Plonk.FFT                          (fft)
+import           Plonk.Types.Circuit                (Challenge (Challenge),
+                                                     Circuit,
+                                                     CircuitM (CircuitM),
+                                                     CircuitShape (CNil, (:&)),
+                                                     ColIndex (ColIndex),
+                                                     ColType (MkCol),
+                                                     Domain (Domain),
+                                                     GateConstraint (MkGateConstraint),
+                                                     HasData (WithData), Length,
+                                                     RelativeCellRef (MkRelativeCellRef),
+                                                     RelativeRowIndex (RelativeRowIndex))
+import           Plonk.Types.Fin                    (Fin (FS, FZ))
+import           Plonk.Types.Vect                   (Vect, toList)
+import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 columnVectorToPoly
