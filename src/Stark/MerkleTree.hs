@@ -1,6 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
-
 module Stark.MerkleTree
   ( commit
   , commit_
@@ -11,20 +8,20 @@ module Stark.MerkleTree
   ) where
 
 
-import Codec.Serialise (Serialise, serialise)
-import qualified Data.ByteString.Lazy as BSL
-import Data.Maybe (fromMaybe)
-import Debug.Trace (trace)
+import           Codec.Serialise           (Serialise, serialise)
+import qualified Data.ByteString.Lazy      as BSL
+import           Data.Maybe                (fromMaybe)
+import           Debug.Trace               (trace)
 
-import qualified Stark.BinaryTree as Tree
-import Stark.Hash (hash)
-import Stark.Types.AuthPath (AuthPath (AuthPath, unAuthPath))
-import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
-import Stark.Types.CapCommitment (CapCommitment (..))
-import Stark.Types.CapLength (CapLength (..))
-import Stark.Types.Commitment (Commitment (Commitment))
-import Stark.Types.Index (Index (Index, unIndex))
-import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
+import qualified Stark.BinaryTree          as Tree
+import           Stark.Hash                (hash)
+import           Stark.Types.AuthPath      (AuthPath (AuthPath, unAuthPath))
+import           Stark.Types.BinaryTree    (BinaryTree (IsLeaf, IsNode))
+import           Stark.Types.CapCommitment (CapCommitment (CapCommitment, unCapCommitment))
+import           Stark.Types.CapLength     (CapLength (CapLength, unCapLength))
+import           Stark.Types.Commitment    (Commitment (Commitment))
+import           Stark.Types.Index         (Index (Index, unIndex))
+import           Stark.Types.MerkleHash    (MerkleHash (MerkleHash))
 
 
 hashData :: Serialise a => a -> MerkleHash
@@ -49,7 +46,7 @@ commit_ capLength t@(IsNode x y) =
 
 
 commitCapLeaf :: BinaryTree MerkleHash -> Commitment
-commitCapLeaf (IsLeaf x) = Commitment x
+commitCapLeaf (IsLeaf x)   = Commitment x
 commitCapLeaf (IsNode x y) = mergeCommitments (commitCapLeaf x, commitCapLeaf y)
 
 
@@ -59,8 +56,8 @@ open__ i t@(IsNode x y) =
   let n = Index $ Tree.size t
       m = n `quot` 2
   in if i < m
-     then (open__ i x) <> AuthPath [commitCapLeaf y]
-     else (open__ (i-m) y) <> AuthPath [commitCapLeaf x]
+     then open__ i x <> AuthPath [commitCapLeaf y]
+     else open__ (i-m) y <> AuthPath [commitCapLeaf x]
 open__ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 
@@ -87,7 +84,7 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
              || trace "wrong CapLength" False)
          && (z == y || trace "commitment check failed" False)
     AuthPath (x:xs) ->
-      if i `mod` 2 == 0
+      if even i
       then verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (y, x))
       else verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (x, y))
 

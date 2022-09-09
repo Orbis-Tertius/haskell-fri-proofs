@@ -1,5 +1,7 @@
-resolver: lts-18.16
+resolver: nightly-2022-06-06
 packages:
-- ./.
-
-allow-newer: true
+- .
+extra-deps:
+- compact-word-vectors-0.2.0.2
+- finite-field-0.10.0
+- polynomial-algebra-0.1.0.1
