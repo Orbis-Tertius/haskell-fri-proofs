@@ -94,7 +94,7 @@ circShapeMap
   => (f a -> g a)
   -> CircuitShape f ps 'WithData d a
   -> CircuitShape g ps 'WithData d a
-circShapeMap q CNil      = CNil
+circShapeMap _ CNil      = CNil
 circShapeMap q (x :& xs) = mapI q x :& circShapeMap q xs
 
 mapI
