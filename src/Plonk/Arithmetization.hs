@@ -20,13 +20,20 @@ import qualified Data.Map                                    as Map
 import           Data.Vinyl.TypeLevel                        (Nat (S, Z),
                                                               NatToInt (natToInt))
 import           Math.Algebra.Polynomial.Class               (AlmostPolynomial (scalarP, scaleP, sumP),
+                                                              CoeffP,
                                                               Polynomial (evalP),
-                                                              Ring, monomP,
-                                                              subsP)
-import           Math.Algebra.Polynomial.FreeModule          (FreeMod (FreeMod))
+                                                              Ring, divM,
+                                                              isZeroP, monomP,
+                                                              monomP',
+                                                              mulByMonomP,
+                                                              subsP, zeroP)
+import           Math.Algebra.Polynomial.FreeModule          (BaseF, CoeffF,
+                                                              FreeMod (FreeMod),
+                                                              FreeModule,
+                                                              findMaxTerm,
+                                                              toFreeModule)
 import           Math.Algebra.Polynomial.Univariate          (U (U),
                                                               Univariate (Uni))
-import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 import           Plonk.FFT                                   (fft)
 import           Plonk.Types.Circuit                         (Challenge (Challenge),
                                                               Circuit,
@@ -42,7 +49,6 @@ import           Plonk.Types.Circuit                         (Challenge (Challen
                                                               RelativeRowIndex (RelativeRowIndex))
 import           Plonk.Types.Fin                             (Fin (FS, FZ))
 import           Plonk.Types.Vect                            (Vect, toList)
-import           Stark.Types.Scalar                          (Scalar)
 import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
@@ -205,11 +211,38 @@ getZerofier d@(Domain q) = UnivariatePolynomial . Uni . FreeMod $
 
 -- returns the quotient if the denominator
 -- perfectly divides the numerator.
-divUniPoly :: UnivariatePolynomial Scalar
-           -> UnivariatePolynomial Scalar
+divUniPoly :: Ring a
+           => Fractional a
+           => UnivariatePolynomial a
+           -> UnivariatePolynomial a
            -> Maybe (UnivariatePolynomial a)
-divUniPoly = todo -- can be done with Euclidean algorithm
+divUniPoly = divideMaybe
 
+
+polynomialLongDivision :: forall p. (Polynomial p, Fractional (CoeffP p)) => p -> p -> (p,p)
+polynomialLongDivision p0 q = go zeroP p0 where
+
+  (bq,cq) = case findMaxTerm' q of
+    Just bc -> bc
+    Nothing -> error "polynomialLongDivision: division by zero"
+
+  go !acc !p = case findMaxTerm' p of
+    Nothing      -> (acc,zeroP)
+    Just (bp,cp) -> case divM bp bq of
+      Nothing      -> (acc,p)
+      Just br      -> let cr = (cp / cq)
+                          u  = scaleP cr (mulByMonomP br q)
+                          p' = p - u
+                          acc' = (acc + monomP' br cr)
+                      in  go acc' p'
+
+divideMaybe :: (Polynomial p, Fractional (CoeffP p)) => p -> p -> Maybe p
+divideMaybe p q = case polynomialLongDivision p q of
+  (s,r) -> if isZeroP r then Just s else Nothing
+
+
+findMaxTerm' :: FreeModule f => f -> Maybe (BaseF f, CoeffF f)
+findMaxTerm' = findMaxTerm . toFreeModule
 
 -- IOP idea:
 --  * Given a root of unity which generates a domain, d
@@ -229,6 +262,3 @@ divUniPoly = todo -- can be done with Euclidean algorithm
 -- zk-SNARK protocol: apply the Fiat-Shamir transform to the IOP
 --  * Faez has been working on abstraction for doing this
 --    (applying Fiat-Shamir to an IOP)
-
-todo :: a
-todo = todo
