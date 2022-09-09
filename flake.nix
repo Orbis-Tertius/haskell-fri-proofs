@@ -3,7 +3,6 @@
   description = "FRI-based ZKPs in Haskell";
   inputs = {
     # Nixpkgs set to specific URL for haskellNix
-    nixpkgs.url = "github:NixOS/nixpkgs/baaf9459d6105c243239289e1e82e3cdd5ac4809";
     nixpkgs.follows = "haskellNix/nixpkgs-unstable";
 
     #CI integration
@@ -14,40 +13,24 @@
     };
 
     flake-utils.url = "github:numtide/flake-utils";
-    sydtest-src = {
-        url = "github:NorfairKing/sydtest/314d53ae175b540817a24d4211dab24fe6cb9232";
-        flake = false;
-      };
-    validity-src = {
-        url = "github:NorfairKing/validity/f5e5d69b3502cdd9243b412c31ba9619b9e89462";
-        flake = false;
-      };
 
     #HaskellNix is implemented using a set nixpkgs.follows; allowing for flake-build
     haskellNix = {
-      inputs.nixpkgs.follows = "nixpkgs";
       url = "github:input-output-hk/haskell.nix";
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, sydtest-src, validity-src, haskellNix,  flake-compat, flake-compat-ci }:
+  outputs = { self, nixpkgs, flake-utils, haskellNix,  flake-compat, flake-compat-ci }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
       let
         deferPluginErrors = true;
         overlays = [
           haskellNix.overlay
-          (import "${sydtest-src}/nix/overlay.nix")
-          (import "${validity-src}/nix/overlay.nix")
           (final: prev: {
             fri-proofs =
-              final.haskell-nix.project' {
+              final.haskell-nix.cabalProject' {
                 src = ./.;
-                compiler-nix-name = "ghc8107";
-                projectFileName = "cabal.project";
-                modules = [{
-                  packages = {
-                  };
-                }];
+                compiler-nix-name = "ghc924";
                 shell.tools = {
                   cabal = { };
                   ghcid = { };
@@ -56,8 +39,10 @@
                   stylish-haskell = { };
                   sydtest-discover = { };
                 };
+                shell.exactDeps = true;
                 shell.buildInputs = with pkgs; [
                   nixpkgs-fmt
+                  cabal-install
                 ];
                 shell.shellHook =
                   ''
@@ -72,7 +57,7 @@
               };
           })
         ];
-        pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
+        pkgs = import nixpkgs { inherit system overlays; };
         flake = pkgs.fri-proofs.flake { };
       in flake // {
         

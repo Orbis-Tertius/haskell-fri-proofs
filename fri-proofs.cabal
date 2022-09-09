@@ -40,14 +40,14 @@ library
     lens,
     listsafe,
     polynomial-algebra,
-    serialise
+    serialise,
+    basement >= 0.0.15,
 
   hs-source-dirs: src
-  default-language: Haskell2010
+  default-language: GHC2021
   ghc-options:
-          -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
-          -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
-          -threaded -rtsopts -with-rtsopts=-N
+    -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
+    -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
 
 
 test-suite spec
