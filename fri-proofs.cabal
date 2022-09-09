@@ -1,6 +1,6 @@
 cabal-version: 2.4
 name:          fri-proofs
-version:       0.1.0.0
+version:       0.0.0.1
 license:
 license-files: LICENSE
 author:        Orbis Labs
