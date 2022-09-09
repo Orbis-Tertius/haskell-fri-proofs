@@ -51,10 +51,12 @@ library
     Stark.UnivariatePolynomial
 
   build-depends:
+    , adjunctions
     , base                >=4.9 && <5
     , blake2
     , bytestring
     , containers
+    , distributive
     , extra
     , finite-field
     , generic-lens
