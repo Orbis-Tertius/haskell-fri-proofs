@@ -22,6 +22,7 @@ library
     Stark.Types.CapCommitment
     Stark.Types.CapLength
     Stark.Types.Commitment
+    Stark.Types.FiatShamir
     Stark.Types.Index
     Stark.Types.MerkleHash
     Stark.Types.MultivariatePolynomial
