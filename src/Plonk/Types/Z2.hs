@@ -5,10 +5,11 @@ module Plonk.Types.Z2
 
 import           Data.Group                     (Group (invert))
 import           Data.Kind                      (Type)
-import           Data.Ratio                     ((%))
+import           Data.Ratio                     (denominator, numerator, (%))
 import           Math.Algebra.Polynomial.Class  (Ring)
 import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
 import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+
 type Z2 :: Type
 data Z2 = Zero | One
  deriving stock (Eq, Ord, Show)
@@ -51,12 +52,15 @@ instance Num Z2 where
  signum = id
 
  fromInteger :: Integer -> Z2
- fromInteger x = if (x % 2) == 0 then Zero else One
+ fromInteger x = if even x then Zero else One
 
 instance Fractional Z2 where
   recip :: Z2 -> Z2
   recip Zero = Zero
   recip One  = One
+
+  fromRational :: Rational -> Z2
+  fromRational x = fromInteger (numerator x) * recip (fromInteger $ denominator x)
 
 instance Semigroup Z2 where
   (<>) :: Z2 -> Z2 -> Z2
