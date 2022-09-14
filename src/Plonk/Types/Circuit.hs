@@ -25,6 +25,7 @@ module Plonk.Types.Circuit
   ) where
 
 
+import Data.Vinyl.Core (Rec)
 import           Data.Functor.Compose                         (Compose)
 import           Data.Functor.Const                           (Const)
 import           Data.Functor.Identity                        (Identity)
@@ -48,8 +49,8 @@ data FAI = Instance | Advice | Fixed
 type EN :: Type
 data EN = EqCon | NEqCon
 
-type ColType :: Type
-data ColType = MkCol FAI EN
+type ColType :: Type -> Type
+data ColType a = MkCol FAI EN a
 
 
 type NumCols :: Type
@@ -90,28 +91,63 @@ type NumRows :: Type
 type NumRows = Nat
 
 
+
+{--
 type CircuitShape
   :: (Type -> Type)
-  -> [ColType]
+  -> [ColType a]
   -> HasData
   -> DegreeBound
   -> Type
   -> Type
 data CircuitShape f ps h d a where
   CNil :: CircuitShape f '[] h d a
-  (:&) :: (Compose f (Entry h j)) a -> CircuitShape f ps h d a -> CircuitShape f ('MkCol j e ': ps) h d a
+  (:&) :: (Compose f (EntryNT h p)) a
+       -> CircuitShape f ps h d a
+       -> CircuitShape f (p ': ps) h d a
+--}
+
+
+
 
 type HasData :: Type
 data HasData where
   WithData :: HasData
   WithNoData :: HasData
 
-type Entry :: HasData -> FAI -> (Type -> Type)
+type GetFAI :: ColType a -> FAI
+type family GetFAI c :: FAI
+type instance GetFAI (MkCol x _ _) = x
+
+type GetA :: ColType Type -> Type
+type family GetA c :: Type
+type instance GetA (MkCol x y a) = a
+
+type EntryNT :: HasData -> ColType Type -> Type
+newtype EntryNT h q = EntryNT (Entry h (GetFAI q) (GetA q))
+
+type AppBind :: [a -> b] -> a -> [b]
+type family AppBind a b where
+            AppBind '[]       _ = '[]
+            AppBind (a ': as) b = a b ': AppBind as b
+
+type CircuitShape
+  :: (Type -> Type)
+  -> HasData
+  -> [ColType]
+  -> DegreeBound
+  -> Type
+  -> Type
+type CircuitShape f h ps d a = Rec (Compose f (EntryNT h)) (AppBind ps a)
+
+type Entry :: HasData -> FAI -> Type -> Type
 type family Entry (y :: HasData) (x :: FAI) :: Type -> Type where
   Entry _ 'Fixed    = Identity
   Entry 'WithData _ = Identity
   Entry _ _         = Const ()
 
+
+{--
 type CircuitM
   :: (Type -> Type)
   -> [ColType]
@@ -128,8 +164,8 @@ data CircuitM f ps h d a =
 
 type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type
 type Circuit ps h m = CircuitM (Vect m) ps h
-
-infixr 7 :&
+--}
+--infixr 7 :&
 
 type Domain :: NumRows -> Type -> Type
 newtype Domain d a = Domain (DomainGenerator a)
