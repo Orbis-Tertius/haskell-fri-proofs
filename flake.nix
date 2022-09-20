@@ -40,6 +40,7 @@
       devShells.default = hsPkgs.fri-proofs.env.overrideAttrs (attrs: {
         buildInputs = attrs.buildInputs ++ [
           hsPkgs.cabal-install
+          hsPkgs.ghcid
           pkgs.nixpkgs-fmt
         ];
       });

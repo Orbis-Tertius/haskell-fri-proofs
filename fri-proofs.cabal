@@ -63,6 +63,8 @@ library
     , lens
     , listsafe
     , polynomial-algebra
+    , polysemy
+    , polysemy-plugin
     , serialise
     , vinyl
 
