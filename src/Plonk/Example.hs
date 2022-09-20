@@ -95,34 +95,34 @@ instance Semigroup Commitments where
 instance Monoid Commitments where
   mempty = Commitments Nothing Nothing
 
-type Openings :: Type
-newtype Openings = Openings (Map Index (Z2, AuthPath))
+type Openings :: Type -> Type
+newtype Openings x = Openings (Map Index (x, AuthPath))
   deriving newtype (Semigroup, Monoid)
 
-type Transcript :: Type
-data Transcript =
+type Transcript :: Type -> Type
+data Transcript x =
   Transcript
-  { challenges  :: [Challenge Z2]
+  { challenges  :: [Challenge x]
   , commitments :: Commitments
-  , openings    :: Openings
+  , openings    :: Openings x
   }
   deriving stock Generic
-  deriving Semigroup via GenericSemigroup Transcript
-  deriving Monoid via GenericMonoid Transcript
+  deriving Semigroup via GenericSemigroup (Transcript x)
+  deriving Monoid via GenericMonoid (Transcript x)
 
-challengeMessage :: Challenge Z2 -> Transcript
+challengeMessage :: Challenge x -> Transcript x
 challengeMessage c = Transcript [c] mempty mempty
 
-qCommitmentMessage :: CommitmentToQ -> Transcript
+qCommitmentMessage :: CommitmentToQ -> Transcript x
 qCommitmentMessage qc = Transcript [] (Commitments Nothing (Just qc)) mempty
 
-pCommitmentMessage :: CommitmentToP -> Transcript
+pCommitmentMessage :: CommitmentToP -> Transcript x
 pCommitmentMessage pc = Transcript [] (Commitments (Just pc) Nothing) mempty
 
-openingMessage :: Index -> AuthPath -> Z2 -> Transcript
+openingMessage :: Index -> AuthPath -> x -> Transcript x
 openingMessage i a x = Transcript [] mempty (Openings (Map.singleton i (x, a)))
 
-exampleSomething :: Member (IOP (Challenge Z2) Transcript) r
+exampleSomething :: Member (IOP (Challenge Z2) (Transcript Z2)) r
   => Sem r (UnivariatePolynomial Z2)
 exampleSomething =
   let
