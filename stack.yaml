@@ -1,5 +1,0 @@
-resolver: lts-18.16
-packages:
-- ./.
-
-allow-newer: true

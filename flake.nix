@@ -1,85 +1,55 @@
 {
-  nixConfig.bash-prompt = "[nix-develop-fri-proofs:] ";
-  description = "FRI-based ZKPs in Haskell";
+  description = "haskell-fri-proofs";
   inputs = {
-    # Nixpkgs set to specific URL for haskellNix
-    nixpkgs.url = "github:NixOS/nixpkgs/baaf9459d6105c243239289e1e82e3cdd5ac4809";
-    nixpkgs.follows = "haskellNix/nixpkgs-unstable";
-
-    #CI integration
-    flake-compat-ci.url = "github:hercules-ci/flake-compat-ci";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
+    flake-utils = {
+      url = "github:numtide/flake-utils";
     };
-
-    flake-utils.url = "github:numtide/flake-utils";
-    sydtest-src = {
-        url = "github:NorfairKing/sydtest/314d53ae175b540817a24d4211dab24fe6cb9232";
-        flake = false;
-      };
-    validity-src = {
-        url = "github:NorfairKing/validity/f5e5d69b3502cdd9243b412c31ba9619b9e89462";
-        flake = false;
-      };
-
-    #HaskellNix is implemented using a set nixpkgs.follows; allowing for flake-build
-    haskellNix = {
+    lint-utils = {
+      url = "git+https://gitlab.homotopic.tech/nix/lint-utils";
       inputs.nixpkgs.follows = "nixpkgs";
-      url = "github:input-output-hk/haskell.nix";
     };
+    horizon-orbis = {
+      url = "git+ssh://git@github.com/Orbis-Tertius/horizon-orbis";
+    };
+    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   };
-
-  outputs = { self, nixpkgs, flake-utils, sydtest-src, validity-src, haskellNix,  flake-compat, flake-compat-ci }:
+  outputs =
+    inputs@
+    { self
+    , flake-utils
+    , horizon-orbis
+    , lint-utils
+    , nixpkgs
+    , ...
+    }:
     flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
-      let
-        deferPluginErrors = true;
-        overlays = [
-          haskellNix.overlay
-          (import "${sydtest-src}/nix/overlay.nix")
-          (import "${validity-src}/nix/overlay.nix")
-          (final: prev: {
-            fri-proofs =
-              final.haskell-nix.project' {
-                src = ./.;
-                compiler-nix-name = "ghc8107";
-                projectFileName = "cabal.project";
-                modules = [{
-                  packages = {
-                  };
-                }];
-                shell.tools = {
-                  cabal = { };
-                  ghcid = { };
-                  hlint = { };
-                  haskell-language-server = { };
-                  stylish-haskell = { };
-                  sydtest-discover = { };
-                };
-                shell.buildInputs = with pkgs; [
-                  nixpkgs-fmt
-                ];
-                shell.shellHook =
-                  ''
-                  manual-ci() (
-                    set -e
-
-                    ./ci/lint.sh
-                    cabal test
-                    nix-build
-                  )
-                  '';
+    let
+      pkgs = import nixpkgs { inherit system; };
+      hsPkgs =
+        with pkgs.haskell.lib;
+        pkgs.haskell.packages.ghc942.override
+          {
+            overrides = hfinal: hprev:
+              horizon-orbis.packages.x86_64-linux //
+              {
+                fri-proofs = disableLibraryProfiling (hprev.callCabal2nix "fri-proofs" ./. { });
               };
-          })
+          };
+    in
+    {
+      devShells.default = hsPkgs.fri-proofs.env.overrideAttrs (attrs: {
+        buildInputs = attrs.buildInputs ++ [
+          hsPkgs.cabal-install
+          pkgs.nixpkgs-fmt
         ];
-        pkgs = import nixpkgs { inherit system overlays; inherit (haskellNix) config; };
-        flake = pkgs.fri-proofs.flake { };
-      in flake // {
-        
-        ciNix = flake-compat-ci.lib.recurseIntoFlakeWith {
-          flake = self;
-          systems = [ "x86_64-linux" ];
-        };
-        defaultPackage = flake.packages."fri-proofs:lib:fri-proofs";
       });
+      packages.default = hsPkgs.fri-proofs;
+      checks =
+        {
+          hlint = lint-utils.outputs.linters.${system}.hlint self;
+          hpack = lint-utils.outputs.linters.${system}.hpack self;
+          nixpkgs-fmt = lint-utils.outputs.linters.${system}.nixpkgs-fmt self;
+          stylish-haskell = lint-utils.outputs.linters.${system}.stylish-haskell self;
+        };
+    });
 }
