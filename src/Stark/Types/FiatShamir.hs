@@ -28,17 +28,6 @@ data IOP c t m a where
 
 makeSem ''IOP
 
--- appendToTranscript :: Member '[IOP c t] r => t -> Sem r () 
-
-program :: Member (IOP c ()) r => Sem r ()
-program = do
-  appendToTranscript ()
-  x <- sampleChallenge
-  appendToTranscript ()
-  x <- sampleChallenge
-  appendToTranscript ()
-
-
 fiatShamir
   :: Sampleable c
   => Serialise t
