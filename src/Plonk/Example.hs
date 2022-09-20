@@ -10,21 +10,16 @@ module Plonk.Example
   ) where
 
 
-import Control.Applicative ((<|>))
-import Data.Map (Map)
-import qualified Data.Map as Map
+import           Control.Applicative                          ((<|>))
 import           Data.Functor.Compose                         (Compose (Compose))
 import           Data.Functor.Identity                        (Identity (Identity))
 import           Data.Kind                                    (Type)
+import           Data.Map                                     (Map)
+import qualified Data.Map                                     as Map
 import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
 import           Math.Algebra.Polynomial.FreeModule           (singleton)
 import           Math.Algebra.Polynomial.Monomial.Generic     (singletonMonom)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
-import Polysemy (Member, Sem)
-import Stark.Types.FiatShamir (IOP)
-import Stark.Types.Index (Index)
-import Stark.Types.AuthPath (AuthPath)
-import Stark.Types.Commitment (Commitment)
 import           Plonk.Arithmetization                        (circuitWithDataToPolys,
                                                                combineCircuitPolys)
 import           Plonk.Types.Circuit                          (Challenge (Challenge),
@@ -43,6 +38,11 @@ import           Plonk.Types.Circuit                          (Challenge (Challe
 import           Plonk.Types.Fin                              (Fin (FZ))
 import           Plonk.Types.Vect                             (Vect (Nil, (:-)))
 import           Plonk.Types.Z2                               (Z2 (One, Zero))
+import           Polysemy                                     (Member, Sem)
+import           Stark.Types.AuthPath                         (AuthPath)
+import           Stark.Types.Commitment                       (Commitment)
+import           Stark.Types.FiatShamir                       (IOP)
+import           Stark.Types.Index                            (Index)
 import           Stark.Types.UnivariatePolynomial             (UnivariatePolynomial)
 
 type MyCols :: [ColType]
@@ -94,9 +94,9 @@ newtype Openings = Openings (Map Index (Z2, AuthPath))
 
 data Transcript =
   Transcript
-  { challenges :: [Challenge Z2]
+  { challenges  :: [Challenge Z2]
   , commitments :: Commitments
-  , openings :: Openings
+  , openings    :: Openings
   }
 
 instance Semigroup Transcript where

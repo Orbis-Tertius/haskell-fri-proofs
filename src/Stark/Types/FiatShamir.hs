@@ -1,20 +1,20 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies    #-}
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
 module Stark.Types.FiatShamir (IOP) where
 
 
-import Codec.Serialise (Serialise, serialise)
-import qualified Data.ByteString as BS
+import           Codec.Serialise      (Serialise, serialise)
+import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
-import Data.Kind (Type)
-import Polysemy (makeSem, interpret, Sem, Member, Members)
-import Polysemy.State (State, get, put)
+import           Data.Kind            (Type)
+import           Polysemy             (Member, Members, Sem, interpret, makeSem)
+import           Polysemy.State       (State, get, put)
 
-import Stark.Hash (hash)
+import           Stark.Hash           (hash)
 
 
 class Sampleable a where
