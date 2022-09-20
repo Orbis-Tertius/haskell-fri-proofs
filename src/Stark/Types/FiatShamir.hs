@@ -4,7 +4,13 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
-module Stark.Types.FiatShamir (IOP) where
+module Stark.Types.FiatShamir 
+  ( IOP
+  , appendToTranscript
+  , fiatShamir
+  , sampleChallenge
+  , Sampleable(sample)
+  ) where
 
 
 import           Codec.Serialise      (Serialise, serialise)
