@@ -74,10 +74,13 @@ exampleCircuit = CircuitM exampleCS exampleGC
 exampleChallenge :: Challenge Z2
 exampleChallenge = Challenge Zero
 
+type CommitmentToP :: Type
 newtype CommitmentToP = CommitmentToP Commitment
 
+type CommitmentToQ :: Type
 newtype CommitmentToQ = CommitmentToQ Commitment
 
+type Commitments :: Type
 data Commitments =
   Commitments
   (Maybe CommitmentToP)
@@ -89,9 +92,11 @@ instance Semigroup Commitments where
 instance Monoid Commitments where
   mempty = Commitments Nothing Nothing
 
+type Openings :: Type
 newtype Openings = Openings (Map Index (Z2, AuthPath))
   deriving newtype (Semigroup, Monoid)
 
+type Transcript :: Type
 data Transcript =
   Transcript
   { challenges  :: [Challenge Z2]
