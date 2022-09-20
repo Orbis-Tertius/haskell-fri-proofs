@@ -26,6 +26,7 @@ library
     Plonk.Arithmetization
     Plonk.Example
     Plonk.FFT
+    Plonk.Transcript
     Plonk.Types.Circuit
     Plonk.Types.Fin
     Plonk.Types.Vect
