@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
 module Plonk.Example
@@ -43,8 +44,8 @@ import           Plonk.Types.Vect                             (Vect (Nil, (:-)))
 import           Plonk.Types.Z2                               (Z2 (One, Zero))
 import           Polysemy                                     (Member, Sem)
 import           Stark.Types.AuthPath                         (AuthPath)
-import           Stark.Types.Commitment                       (Commitment)
-import           Stark.Types.FiatShamir                       (IOP)
+import           Stark.Types.Commitment                       (Commitment(Commitment))
+import           Stark.Types.FiatShamir                       (IOP, appendToTranscript)
 import           Stark.Types.Index                            (Index)
 import           Stark.Types.UnivariatePolynomial             (UnivariatePolynomial)
 
@@ -77,23 +78,25 @@ exampleCircuit = CircuitM exampleCS exampleGC
 exampleChallenge :: Challenge Z2
 exampleChallenge = Challenge Zero
 
-type CommitmentToP :: Type
-newtype CommitmentToP = CommitmentToP Commitment
+type PQ :: Type
+data PQ where
+  P :: PQ
+  Q :: PQ
 
-type CommitmentToQ :: Type
-newtype CommitmentToQ = CommitmentToQ Commitment
+type CommitmentTo :: PQ -> Type
+newtype CommitmentTo pq = MkCommitmentTo Commitment
 
 type Commitments :: Type
-data Commitments =
-  Commitments
-  (Maybe CommitmentToP)
-  (Maybe CommitmentToQ)
+data Commitments where
+  MkCommitments :: Maybe (CommitmentTo P)
+                -> Maybe (CommitmentTo Q)
+                -> Commitments
 
 instance Semigroup Commitments where
-  (Commitments a b) <> (Commitments c d) = Commitments (a <|> c) (b <|> d)
+  (MkCommitments a b) <> (MkCommitments c d) = MkCommitments (a <|> c) (b <|> d)
 
 instance Monoid Commitments where
-  mempty = Commitments Nothing Nothing
+  mempty = MkCommitments Nothing Nothing
 
 type Openings :: Type -> Type
 newtype Openings x = Openings (Map Index (x, AuthPath))
@@ -113,23 +116,24 @@ data Transcript x =
 challengeMessage :: Challenge x -> Transcript x
 challengeMessage c = Transcript [c] mempty mempty
 
-qCommitmentMessage :: CommitmentToQ -> Transcript x
-qCommitmentMessage qc = Transcript [] (Commitments Nothing (Just qc)) mempty
+qCommitmentMessage :: CommitmentTo Q -> Transcript x
+qCommitmentMessage qc = Transcript [] (MkCommitments Nothing (Just qc)) mempty
 
-pCommitmentMessage :: CommitmentToP -> Transcript x
-pCommitmentMessage pc = Transcript [] (Commitments (Just pc) Nothing) mempty
+pCommitmentMessage :: CommitmentTo P -> Transcript x
+pCommitmentMessage pc = Transcript [] (MkCommitments (Just pc) Nothing) mempty
 
 openingMessage :: Index -> AuthPath -> x -> Transcript x
 openingMessage i a x = Transcript [] mempty (Openings (Map.singleton i (x, a)))
 
 exampleSomething :: Member (IOP (Challenge Z2) (Transcript Z2)) r
   => Sem r (UnivariatePolynomial Z2)
-exampleSomething =
-  let
-    x :: Domain d Z2
-    x = Domain (fromInteger @Z2 . toInteger)
+exampleSomething = do
+  let x :: Domain d Z2
+      x = Domain (fromInteger @Z2 . toInteger)
 
-    y :: MyCircuitU
-    y = circuitWithDataToPolys x exampleCircuit
+      y :: MyCircuitU
+      y = circuitWithDataToPolys x exampleCircuit
 
-  in pure (combineCircuitPolys x y exampleChallenge)
+  appendToTranscript $ challengeMessage exampleChallenge
+
+  pure (combineCircuitPolys x y exampleChallenge)

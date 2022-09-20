@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
-module Stark.Types.FiatShamir 
+module Stark.Types.FiatShamir
   ( IOP
   , appendToTranscript
   , fiatShamir
