@@ -16,7 +16,10 @@ import           Data.Functor.Identity                        (Identity (Identit
 import           Data.Kind                                    (Type)
 import           Data.Map                                     (Map)
 import qualified Data.Map                                     as Map
+import           Data.Monoid.Generic                          (GenericMonoid (GenericMonoid),
+                                                               GenericSemigroup (GenericSemigroup))
 import           Data.Vinyl.TypeLevel                         (Nat (S, Z))
+import           GHC.Generics                                 (Generic)
 import           Math.Algebra.Polynomial.FreeModule           (singleton)
 import           Math.Algebra.Polynomial.Monomial.Generic     (singletonMonom)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
@@ -103,13 +106,9 @@ data Transcript =
   , commitments :: Commitments
   , openings    :: Openings
   }
-
-instance Semigroup Transcript where
-  (Transcript a b c) <> (Transcript d e f) =
-    Transcript (a <> d) (b <> e) (c <> f)
-
-instance Monoid Transcript where
-  mempty = Transcript [] mempty mempty
+  deriving stock Generic
+  deriving Semigroup via GenericSemigroup Transcript
+  deriving Monoid via GenericMonoid Transcript
 
 challengeMessage :: Challenge Z2 -> Transcript
 challengeMessage c = Transcript [c] mempty mempty

@@ -11,6 +11,7 @@ common globals
   default-extensions:
     DataKinds
     DerivingStrategies
+    DerivingVia
     GADTs
     TypeFamilies
 
@@ -59,6 +60,7 @@ library
     , extra
     , finite-field
     , generic-lens
+    , generic-monoid
     , groups
     , lens
     , listsafe
