@@ -18,7 +18,7 @@ import           Data.Monoid.Generic    (GenericMonoid (GenericMonoid),
 import           GHC.Generics           (Generic)
 import           Plonk.Types.Circuit    (Challenge)
 import           Stark.Types.AuthPath   (AuthPath)
-import           Stark.Types.Commitment (Commitment)
+import           Stark.Types.CapCommitment (CapCommitment)
 import           Stark.Types.Index      (Index)
 
 type PQ :: Type
@@ -27,7 +27,7 @@ data PQ where
   Q :: PQ
 
 type CommitmentTo :: PQ -> Type
-newtype CommitmentTo pq = MkCommitmentTo Commitment
+newtype CommitmentTo pq = MkCommitmentTo CapCommitment
 
 type Commitments :: Type
 data Commitments where

@@ -17,10 +17,9 @@ import           Codec.Serialise      (Serialise, serialise)
 import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Kind            (Constraint, Type)
-import           Polysemy             (Member, Members, Sem, interpret, makeSem)
+import           Polysemy             (Members, Sem, interpret, makeSem)
 import           Polysemy.State       (State, get, put)
 
-import           Stark.Hash           (hash)
 
 type Sampleable :: Type -> Constraint
 class Sampleable a where
