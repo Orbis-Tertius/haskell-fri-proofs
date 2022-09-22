@@ -47,7 +47,6 @@ import Debug.Trace (trace)
 import Prelude hiding ((!!))
 
 import Stark.BinaryTree (fromList)
-import Stark.FiniteField (sample)
 import Stark.Fri.Types (DomainLength (..), ExpansionFactor (..), NumColinearityTests (..), Offset (..), Omega (..), RandomSeed (..), ListSize (..), ReducedListSize (..), SampleSize (..), ReducedIndex (..), Codeword (..), ProofStream (..), Challenge (..), FriConfiguration (..), A (..), B (..), C (..), Query (..), AuthPaths (..))
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
@@ -56,7 +55,7 @@ import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment (..))
 import Stark.Types.CapLength (CapLength (..))
 import Stark.Types.Index (Index (..))
-import Stark.Types.Scalar (Scalar)
+import Stark.Types.Scalar (Scalar, sample)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 import Stark.UnivariatePolynomial (degree, interpolate, areColinear, evaluate)
 

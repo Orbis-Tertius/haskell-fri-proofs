@@ -32,11 +32,9 @@
                 src = ./.;
                 compiler-nix-name = "ghc924";
                 shell.tools = {
-                  cabal = { };
                   ghcid = { };
                   hlint = { };
                   haskell-language-server = { };
-                  stylish-haskell = { };
                   sydtest-discover = { };
                 };
                 shell.exactDeps = true;

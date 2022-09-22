@@ -9,7 +9,6 @@ maintainer:    morgan.thomas@platonic.systems
 library
   exposed-modules:
     Stark.BinaryTree
-    Stark.FiniteField
     Stark.Fri
     Stark.Fri.Types
     Stark.Hash
@@ -45,6 +44,9 @@ library
 
   hs-source-dirs: src
   default-language: GHC2021
+  default-extensions:
+    DeriveGeneric
+    GeneralizedNewtypeDeriving
   ghc-options:
     -Wall -Werror -Wcompat -fwarn-redundant-constraints -fwarn-incomplete-uni-patterns
     -fwarn-tabs -fwarn-incomplete-record-updates -fwarn-identities -Wmissing-export-lists
