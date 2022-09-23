@@ -4,6 +4,7 @@
 -- Choose an appropriate finite field class from some library
 module Stark.Types.Scalar
   ( Scalar
+  , order
   , epsilon
   , fromWord64
   , toWord64
@@ -165,7 +166,7 @@ instance Enum Scalar where
   toEnum n = case fromWord64 . toEnum $ n of
     Just n' -> n'
     Nothing -> error "out of bounds"
-  fromEnum = fromEnum . toWord64
+  fromEnum = error "Enum Scalar: fromEnum is unsafe"
 instance Ord Scalar where
   compare x y = compare (toWord64 x) (toWord64 y)
 instance Real Scalar where

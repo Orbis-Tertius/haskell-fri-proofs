@@ -26,7 +26,7 @@ import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 
 import           Hedgehog                           (Gen)
-import           Hedgehog.Gen                       (bytes, choice, enum, list)
+import           Hedgehog.Gen                       (bytes, choice, enum, list, word64)
 import qualified Hedgehog.Range                     as Range
 import qualified Stark.BinaryTree                   as BinaryTree
 import           Stark.Fri                          (getMaxDegree)
@@ -48,7 +48,7 @@ import           Stark.Types.CapCommitment          (CapCommitment (CapCommitmen
 import           Stark.Types.CapLength              (CapLength (CapLength))
 import           Stark.Types.Commitment             (Commitment (Commitment))
 import           Stark.Types.MerkleHash             (MerkleHash (MerkleHash))
-import           Stark.Types.Scalar                 (Scalar, generator, primitiveNthRoot)
+import           Stark.Types.Scalar                 (Scalar, generator, primitiveNthRoot, fromWord64, order)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
 import Stark.Cast (intToInteger)
 
@@ -129,7 +129,11 @@ genLowDegreePoly config = do
 
 
 genScalar :: Gen Scalar
-genScalar = enum minBound maxBound
+genScalar = do
+  w <- word64 (Range.linear 0 order)
+  case fromWord64 w of
+    Just s -> pure s
+    Nothing -> genScalar
 
 
 genBinaryTreeSize :: Gen Int
