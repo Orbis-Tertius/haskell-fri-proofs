@@ -5,14 +5,14 @@
 module Stark.Types.Scalar
   ( Scalar
   , epsilon
-  , order
   , fromWord64
   , toWord64
   , fromWord64Wrapping
   , inverseScalar
   , generator
-  , powerOfTwoSubgroupRootOfUnity
-  , rootOfUnity
+  , primitiveBigPowerOfTwoRoot
+  , nthRoot
+  , primitiveNthRoot
   , sample
   ) where
 
@@ -21,7 +21,9 @@ import Codec.Serialise (Serialise)
 import Math.Algebra.Polynomial.Class (Ring)
 import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
 import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+import qualified Data.FiniteField.Base as F
 import qualified Data.ByteString as BS
+import Data.Kind (Type)
 
 import Data.Bits ((.&.), shiftR)
 import Data.Word (Word64)
@@ -42,8 +44,10 @@ import Basement.Types.Word128 (Word128 (Word128))
   We have some other nice properties as noted in the blog post, and similar tricks
   can be used for the various arithmetic operators.
 -}
+type Scalar :: Type
 newtype Scalar = Scalar Word64
-  deriving (Show, Serialise)
+  deriving stock (Show)
+  deriving newtype (Serialise)
 
 epsilon :: Word64
 epsilon = 0xFFFFFFFF
@@ -95,22 +99,28 @@ mulScalar (Scalar x) (Scalar y) =
 inverseScalar :: Scalar -> Maybe Scalar
 inverseScalar (Scalar 0) = Nothing
 inverseScalar (Scalar ((+ epsilon) -> 0)) = Nothing
-inverseScalar x = Just $ x^(order - 2)
+inverseScalar x = Just $ x ^ (order - 2)
 
 generator :: Scalar
 generator = Scalar 7
 
--- p = 2^64 - 0xFFFFFFFF
--- p = 2^64 - 2^32 + 1
--- p = 2^32 * (2^32 - 1) + 1
--- p - 1 = 2^S * T
--- S = 32
--- T = 2^32 - 1
-powerOfTwoSubgroupRootOfUnity :: Scalar
-powerOfTwoSubgroupRootOfUnity = generator ^ (2^(32 :: Integer) - 1 :: Integer)
+primitiveBigPowerOfTwoRoot :: Scalar
+primitiveBigPowerOfTwoRoot = case primitiveNthRoot (2 ^ (32 :: Integer)) of
+  Just x -> x
+  Nothing -> error "impossible"
 
-rootOfUnity :: Integer -> Scalar
-rootOfUnity n = generator ^ (5 * (fromIntegral order - 1) `div` n)
+nthRoot :: Integer -> Scalar
+nthRoot n = generator ^ (5 * (fromIntegral order - 1) `div` n)
+
+-- (generator^m)^n = 1 = generator^(p-1)   (mod p)
+-- generator^(m*n) = generator^(p-1)       (mod p)
+-- generator^m = generator^((p-1) / n)     (mod p)
+primitiveNthRoot :: Integer -> Maybe Scalar
+primitiveNthRoot 0 = Nothing
+primitiveNthRoot n =
+  case quotRem (fromIntegral order - 1) n of
+    (power, 0) -> Just $ generator ^ power
+    _ -> Nothing
 
 instance IsSigned Scalar where
   signOf = const $ Just Plus
@@ -119,6 +129,16 @@ instance Pretty Scalar where
   pretty = show . toWord64
 
 instance Ring Scalar where
+
+instance Bounded Scalar where
+  minBound = Scalar 0
+  maxBound = Scalar (order - 1)
+
+instance F.FiniteField Scalar where
+  order _ = toInteger order
+  char _ = toInteger order
+  allValues = [minBound .. maxBound]
+  pthRoot = id
 
 instance Num Scalar where
   fromInteger n = case fromWord64 . fromInteger $ n of

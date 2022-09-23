@@ -29,8 +29,6 @@ import           Hedgehog                           (Gen)
 import           Hedgehog.Gen                       (bytes, choice, enum, list)
 import qualified Hedgehog.Range                     as Range
 import qualified Stark.BinaryTree                   as BinaryTree
-import           Stark.FiniteField                  (cardinality, generator,
-                                                     primitiveNthRoot)
 import           Stark.Fri                          (getMaxDegree)
 import           Stark.Fri.Types                    (A (A),
                                                      AuthPaths (AuthPaths),
@@ -50,7 +48,7 @@ import           Stark.Types.CapCommitment          (CapCommitment (CapCommitmen
 import           Stark.Types.CapLength              (CapLength (CapLength))
 import           Stark.Types.Commitment             (Commitment (Commitment))
 import           Stark.Types.MerkleHash             (MerkleHash (MerkleHash))
-import           Stark.Types.Scalar                 (Scalar (Scalar))
+import           Stark.Types.Scalar                 (Scalar, generator, primitiveNthRoot)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
 
 
@@ -130,7 +128,7 @@ genLowDegreePoly config = do
 
 
 genScalar :: Gen Scalar
-genScalar = Scalar . fromIntegral <$> enum 0 (cardinality - 1)
+genScalar = enum minBound maxBound
 
 
 genBinaryTreeSize :: Gen Int

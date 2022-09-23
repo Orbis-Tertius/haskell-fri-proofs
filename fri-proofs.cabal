@@ -30,7 +30,6 @@ library
     Plonk.Types.Vect
     Plonk.Types.Z2
     Stark.BinaryTree
-    Stark.FiniteField
     Stark.Fri
     Stark.Fri.Types
     Stark.Hash
@@ -64,6 +63,7 @@ library
     , polynomial-algebra
     , serialise
     , vinyl
+    , basement
 
   hs-source-dirs:     src
   default-extensions:
