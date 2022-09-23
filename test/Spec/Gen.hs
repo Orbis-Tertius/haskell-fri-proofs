@@ -50,6 +50,7 @@ import           Stark.Types.Commitment             (Commitment (Commitment))
 import           Stark.Types.MerkleHash             (MerkleHash (MerkleHash))
 import           Stark.Types.Scalar                 (Scalar, generator, primitiveNthRoot)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
+import Stark.Cast (intToInteger)
 
 
 genFriConfiguration :: Gen FriConfiguration
@@ -60,7 +61,7 @@ defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
    FriConfiguration
   (Offset generator)
-  (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (fromIntegral dl))
+  (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (intToInteger dl))
   (DomainLength dl)
   (ExpansionFactor 2)
   (NumColinearityTests 4)

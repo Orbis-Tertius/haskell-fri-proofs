@@ -9,11 +9,13 @@ module Stark.MerkleTree
 
 
 import           Codec.Serialise           (Serialise, serialise)
+import Crypto.Number.Basic (log2)
 import qualified Data.ByteString.Lazy      as BSL
 import           Data.Maybe                (fromMaybe)
 import           Debug.Trace               (trace)
 
 import qualified Stark.BinaryTree          as Tree
+import Stark.Cast (intToInteger)
 import           Stark.Hash                (hash)
 import           Stark.Types.AuthPath      (AuthPath (AuthPath, unAuthPath))
 import           Stark.Types.BinaryTree    (BinaryTree (IsLeaf, IsNode))
@@ -63,8 +65,7 @@ open__ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
 open_ (CapLength capLength) i t =
-    AuthPath . take ( Tree.depth t
-                    - round (logBase (2 :: Double) (fromIntegral capLength)) )
+    AuthPath . take ( Tree.depth t - log2 (intToInteger capLength) )
   . unAuthPath $ open__ i t
 
 

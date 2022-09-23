@@ -30,6 +30,7 @@ library
     Plonk.Types.Vect
     Plonk.Types.Z2
     Stark.BinaryTree
+    Stark.Cast
     Stark.Fri
     Stark.Fri.Types
     Stark.Hash
@@ -54,6 +55,7 @@ library
     , blake2
     , bytestring
     , containers
+    , cryptonite
     , extra
     , finite-field
     , generic-lens
@@ -88,6 +90,7 @@ test-suite spec
     , base                >=4.9 && <5
     , bytestring
     , containers
+    , cryptonite
     , fri-proofs
     , generic-lens
     , hedgehog

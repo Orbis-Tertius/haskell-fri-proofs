@@ -14,6 +14,7 @@ module Stark.Types.Scalar
   , nthRoot
   , primitiveNthRoot
   , sample
+  , scalarToRational
   ) where
 
 import Data.Ratio (numerator, denominator)
@@ -29,8 +30,10 @@ import Data.Bits ((.&.), shiftR)
 import Data.Word (Word64)
 import Basement.Types.Word128 (Word128 (Word128))
 
+import Stark.Cast (word64ToInteger, word8ToInteger, word64ToRatio)
+
 {- |
-  Finite field of order 2^64 - 2^32 + 1, or equivalently, 2^64 - 0xFFFFFFFF.
+  Finite field of order (2^64 - 2^32) + 1, or equivalently, 2^64 - 0xFFFFFFFF.
   The idea of this representation is taken from these sources:
   - Plonky2: https://github.com/mir-protocol/plonky2/blob/e127d5a4b11a9d5074b25d1d2dd2b765f404fbe3/field/src/goldilocks_field.rs
   - Some blog post: https://www.craig-wood.com/nick/armprime/math/
@@ -45,7 +48,7 @@ import Basement.Types.Word128 (Word128 (Word128))
   can be used for the various arithmetic operators.
 -}
 type Scalar :: Type
-newtype Scalar = Scalar Word64
+newtype Scalar = Scalar { unScalar :: Word64 }
   deriving stock (Show)
   deriving newtype (Serialise)
 
@@ -110,7 +113,7 @@ primitiveBigPowerOfTwoRoot = case primitiveNthRoot (2 ^ (32 :: Integer)) of
   Nothing -> error "impossible"
 
 nthRoot :: Integer -> Scalar
-nthRoot n = generator ^ (5 * (fromIntegral order - 1) `div` n)
+nthRoot n = generator ^ (5 * (word64ToInteger order - 1) `div` n)
 
 -- (generator^m)^n = 1 = generator^(p-1)   (mod p)
 -- generator^(m*n) = generator^(p-1)       (mod p)
@@ -118,7 +121,7 @@ nthRoot n = generator ^ (5 * (fromIntegral order - 1) `div` n)
 primitiveNthRoot :: Integer -> Maybe Scalar
 primitiveNthRoot 0 = Nothing
 primitiveNthRoot n =
-  case quotRem (fromIntegral order - 1) n of
+  case quotRem (word64ToInteger order - 1) n of
     (power, 0) -> Just $ generator ^ power
     _ -> Nothing
 
@@ -175,5 +178,7 @@ sample :: BS.ByteString -> Scalar
 sample = fromInteger . sampleInteger
 
 sampleInteger :: BS.ByteString -> Integer
-sampleInteger = BS.foldl (\x b -> x + fromIntegral b) 0
+sampleInteger = BS.foldl (\x b -> x + word8ToInteger b) 0
 
+scalarToRational :: Scalar -> Rational
+scalarToRational = word64ToRatio . unScalar

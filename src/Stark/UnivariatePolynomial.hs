@@ -11,7 +11,6 @@ module Stark.UnivariatePolynomial
 
 
 import           Control.Arrow                               ((***))
-import qualified Data.FiniteField.PrimeField                 as PrimeField
 import           Data.Map                                    (elems, lookupMax,
                                                               singleton)
 import           Math.Algebra.Polynomial.Class               (Polynomial (evalP),
@@ -22,7 +21,7 @@ import           Math.Algebra.Polynomial.Univariate          (U (U),
                                                               fromQUni, unUni)
 import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 
-import           Stark.Types.Scalar                          (Scalar)
+import           Stark.Types.Scalar                          (Scalar, scalarToRational)
 import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
@@ -57,7 +56,7 @@ interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
 interpolate f = UnivariatePolynomial . fromQUni $ lagrangeInterp ((g *** g) <$> f)
   where
     g :: Scalar -> Rational
-    g = fromIntegral
+    g = scalarToRational
 
 
 areColinear :: [(Scalar, Scalar)] -> Bool

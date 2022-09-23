@@ -3,10 +3,12 @@
 module Spec.Stark.MerkleTreeSpec ( testMerkleTree ) where
 
 
+import Crypto.Number.Basic (log2)
 import           Hedgehog              (Property, assert, forAll, property)
 import           Hedgehog.Gen          (enum)
 import           Spec.Gen              (genAuthPath, genBinaryTree,
                                         genCapCommitment, genScalar)
+import Stark.Cast (intToInteger)
 import           Stark.MerkleTree      (commit, open, verify)
 import           Stark.Prelude         (uncurry4)
 import           Stark.Types.CapLength (CapLength (CapLength))
@@ -25,7 +27,7 @@ testMerkleTree = testGroup "Merkle Tree" [
 propVerifiesOpenings :: Property
 propVerifiesOpenings = property $ do
   (s, xs, t) <- forAll (genBinaryTree genScalar)
-  n <- forAll $ enum (0 :: Int) (round (logBase (2 :: Double) (fromIntegral s)))
+  n <- forAll $ enum (0 :: Int) (log2 (intToInteger s))
   let capLength :: CapLength
       capLength = 2 ^ n
   i <- forAll (Index <$> enum 0 (s - 1))

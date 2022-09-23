@@ -31,6 +31,7 @@ module Stark.Fri
 
 import           Codec.Serialise                  (serialise)
 import           Control.Lens                     ((^.))
+import Crypto.Number.Basic (log2)
 import           Data.Bits                        (shift, xor)
 import           Data.ByteString                  (ByteString, unpack)
 import           Data.ByteString.Lazy             (toStrict)
@@ -44,6 +45,7 @@ import           Data.Tuple.Extra                 (fst3, snd3, thd3)
 import           Debug.Trace                      (trace)
 
 import           Stark.BinaryTree                 (fromList)
+import Stark.Cast(intToInteger, intToRatio, word8ToInt)
 import           Stark.Fri.Types                  (A (A, unA),
                                                    AuthPaths (AuthPaths, unAuthPaths),
                                                    B (B, unB), C (C, unC),
@@ -76,12 +78,12 @@ import           Stark.UnivariatePolynomial       (areColinear, degree,
 
 
 getMaxDegree :: DomainLength -> Int
-getMaxDegree (DomainLength d) = floor (logBase 2 (fromIntegral d) :: Double)
+getMaxDegree (DomainLength d) = log2 (intToInteger d)
 
 
 numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> CapLength -> Int
 numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLength n') =
-  if fromIntegral d > e && d > n' && 4 * n < d
+  if intToRatio d > e && d > n' && 4 * n < d
   then 1 + numRounds
            (DomainLength (d `div` 2))
            (ExpansionFactor e)
@@ -102,7 +104,7 @@ getCodeword config poly =
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
-  foldl (\acc b -> (acc `shift` 8) `xor` fromIntegral b) 0 (unpack bs)
+  foldl (\acc b -> (acc `shift` 8) `xor` Index (word8ToInt b)) 0 (unpack bs)
   `mod` Index len
 
 
@@ -183,7 +185,7 @@ commitCodeword capLength
 
 openCodeword :: CapLength -> Codeword -> Index -> AuthPath
 openCodeword capLength (Codeword xs) (Index i) =
-  Merkle.open capLength (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
+  Merkle.open capLength (Index i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
 
 
 commitPhase :: DomainLength
@@ -356,9 +358,9 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
   let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
       offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
-      cIndices = (`mod` fromIntegral (dl `shift` negate (r + 1))) <$> topLevelIndices
+      cIndices = (`mod` Index (dl `shift` negate (r + 1))) <$> topLevelIndices
       aIndices = cIndices
-      bIndices = (+ fromIntegral (dl `shift` negate (r + 1))) <$> aIndices
+      bIndices = (+ Index (dl `shift` negate (r + 1))) <$> aIndices
       ays = fst3 . unQuery <$> qs
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs

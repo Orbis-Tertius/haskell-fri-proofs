@@ -1,5 +1,6 @@
 module Plonk.FFT
   ( fft
+  , padToNearestPowerOfTwo
   ) where
 
 import           Data.Bits           (bit, countLeadingZeros,
