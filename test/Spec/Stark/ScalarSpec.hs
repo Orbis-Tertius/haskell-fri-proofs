@@ -12,7 +12,7 @@ import Test.Tasty.Hedgehog (testPropertyNamed)
 
 import Spec.Gen (genScalar)
 import Stark.Cast (word64ToInteger)
-import Stark.Types.Scalar (order, scalarToInteger, inverseScalar, primitiveNthRoot)
+import Stark.Types.Scalar (order, scalarToInteger, inverseScalar, primitiveNthRoot, toWord64)
 
 
 testScalar :: TestTree
@@ -22,6 +22,7 @@ testScalar = testGroup "Scalar" [
   , testPropertyNamed "multiplication is correct" "propMulScalar" propMulScalar
   , testPropertyNamed "inverse is correct" "propInverseScalar" propInverseScalar
   , testPropertyNamed "primitive nth root is correct" "propPrimitiveNthRoot" propPrimitiveNthRoot
+  , testPropertyNamed "toWord64 preserve equality" "propToWord64PreservesEq" propToWord64PreservesEq
   ]
 
 
@@ -64,3 +65,10 @@ propPrimitiveNthRoot = property $ do
   n :: Int <- forAll (integral (Range.linear 0 32))
   let m = 2 ^ n
   ((^ m) <$> primitiveNthRoot m) === Just 1
+
+
+propToWord64PreservesEq :: Property
+propToWord64PreservesEq = property $ do
+  a <- forAll genScalar
+  b <- forAll genScalar
+  (a == b) === (toWord64 a == toWord64 b)
