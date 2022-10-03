@@ -12,10 +12,10 @@ module Stark.Types.Scalar
   , inverseScalar
   , generator
   , primitiveBigPowerOfTwoRoot
-  , nthRoot
   , primitiveNthRoot
   , sample
   , scalarToRational
+  , scalarToInteger
   ) where
 
 import Data.Ratio (numerator, denominator)
@@ -113,9 +113,6 @@ primitiveBigPowerOfTwoRoot = case primitiveNthRoot (2 ^ (32 :: Integer)) of
   Just x -> x
   Nothing -> error "impossible"
 
-nthRoot :: Integer -> Scalar
-nthRoot n = generator ^ (5 * (word64ToInteger order - 1) `div` n)
-
 -- (generator^m)^n = 1 = generator^(p-1)   (mod p)
 -- generator^(m*n) = generator^(p-1)       (mod p)
 -- generator^m = generator^((p-1) / n)     (mod p)
@@ -151,8 +148,8 @@ instance Num Scalar where
   (+) = addScalar
   (*) = mulScalar
   negate = negateScalar
-  abs = error "unimplemented"
-  signum = error "unimplemented"
+  abs = error "abs Scalar unimplemented"
+  signum = error "signum Scalar unimplemented"
 
 instance Fractional Scalar where
   recip x = case inverseScalar x of
@@ -173,13 +170,16 @@ instance Real Scalar where
   toRational = toRational . toWord64
 instance Integral Scalar where
   toInteger = toInteger . toWord64
-  quotRem = error "unimplemented"
+  quotRem = error "quotRem Scalar unimplemented"
 
 sample :: BS.ByteString -> Scalar
 sample = fromInteger . sampleInteger
 
 sampleInteger :: BS.ByteString -> Integer
 sampleInteger = BS.foldl (\x b -> x + word8ToInteger b) 0
+
+scalarToInteger :: Scalar -> Integer
+scalarToInteger = word64ToInteger . unScalar
 
 scalarToRational :: Scalar -> Rational
 scalarToRational = word64ToRatio . unScalar
