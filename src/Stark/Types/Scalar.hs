@@ -142,9 +142,11 @@ instance F.FiniteField Scalar where
   pthRoot = id
 
 instance Num Scalar where
-  fromInteger n = case fromWord64 . fromInteger $ n of
-    Just n' -> n'
-    Nothing -> error (show n <> " is not less than " <> show order)
+  fromInteger n =
+    case fromWord64 . fromInteger
+         $ n `mod` word64ToInteger order of
+      Just n' -> n'
+      Nothing -> error (show n <> " is not less than " <> show order)
   (+) = addScalar
   (*) = mulScalar
   negate = negateScalar
@@ -155,7 +157,10 @@ instance Fractional Scalar where
   recip x = case inverseScalar x of
     Just y -> y
     Nothing -> error "0 has no reciprocal"
-  fromRational x = fromInteger (numerator x) / fromInteger (denominator x)
+  fromRational x =
+      (if x < 0 then negate else id)
+    $ fromInteger (numerator (abs x))
+    / fromInteger (denominator (abs x))
 
 instance Eq Scalar where
   x == y = toWord64 x == toWord64 y
