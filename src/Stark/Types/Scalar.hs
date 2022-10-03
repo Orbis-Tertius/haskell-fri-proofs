@@ -8,7 +8,6 @@ module Stark.Types.Scalar
   , epsilon
   , fromWord64
   , toWord64
-  , fromWord64Wrapping
   , inverseScalar
   , generator
   , primitiveBigPowerOfTwoRoot
@@ -62,9 +61,6 @@ order = negate epsilon -- equivalent to 2^64 - epsilon
 fromWord64 :: Word64 -> Maybe Scalar
 fromWord64 x | x < order = Just $ Scalar x
 fromWord64 _ = Nothing
-
-fromWord64Wrapping :: Word64 -> Scalar
-fromWord64Wrapping = Scalar
 
 toWord64 :: Scalar -> Word64
 toWord64 (Scalar x) =
