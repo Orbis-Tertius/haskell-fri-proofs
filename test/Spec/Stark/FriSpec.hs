@@ -24,20 +24,20 @@ testFri = localOption (HedgehogShrinkLimit (Just 0))
   testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" propCompleteness
   ]
 
--- propSplitAndFold :: Property
--- propSplitAndFold = property $ do
---   config <- forAll genFriConfiguration
---   poly <- forAll (genLowDegreePoly config)
---   alpha <- Challenge <$> forAll genScalar
---   let d = evalDomain (config ^. #offset)
---             (config ^. #omega) (config ^. #domainLength)
---       c = getCodeword config poly
---       c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
---       d' = evalDomain ((config ^. #offset) ^ 2)
---              ((config ^. #omega) ^ 2) (DomainLength 128)
---       poly' = interpolate (zip d' (unCodeword c'))
---       m = getMaxDegree (config ^. #domainLength)
---   max (degree poly') m === m
+propSplitAndFold :: Property
+propSplitAndFold = property $ do
+  config <- forAll genFriConfiguration
+  poly <- forAll (genLowDegreePoly config)
+  alpha <- Challenge <$> forAll genScalar
+  let d = evalDomain (config ^. #offset)
+            (config ^. #omega) (config ^. #domainLength)
+      c = getCodeword config poly
+      c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
+      d' = evalDomain ((config ^. #offset) ^ 2)
+             ((config ^. #omega) ^ 2) (DomainLength 32)
+      poly' = interpolate (zip d' (unCodeword c'))
+      m = getMaxDegree (config ^. #domainLength)
+  max (degree poly') m === m
 
 propSoundness :: Property
 propSoundness = property $ do

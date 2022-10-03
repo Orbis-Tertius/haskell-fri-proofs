@@ -68,7 +68,7 @@ defaultFriConfiguration =
   (NumColinearityTests 4)
   where
     dl :: Word64
-    dl = 256
+    dl = 64
 
 
 genProofStream :: FriConfiguration -> Gen ProofStream
