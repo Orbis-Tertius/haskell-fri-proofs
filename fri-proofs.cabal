@@ -84,6 +84,7 @@ test-suite spec
     Spec.Prelude
     Spec.Stark.FriSpec
     Spec.Stark.MerkleTreeSpec
+    Spec.Stark.ScalarSpec
     Spec.Stark.UnivariatePolynomialSpec
 
   build-depends:
