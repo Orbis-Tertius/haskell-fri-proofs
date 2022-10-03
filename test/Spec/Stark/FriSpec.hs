@@ -12,8 +12,8 @@ import           Spec.Gen            (genFriConfiguration, genLowDegreePoly,
 import Stark.UnivariatePolynomial (interpolate, degree)
 import           Stark.Fri           (getCodeword, prove, verify, evalDomain, splitAndFold, getMaxDegree)
 import           Test.Tasty          (TestTree, testGroup, localOption)
-import           Test.Tasty.Hedgehog (testPropertyNamed, HedgehogShrinkLimit (..))
-import Stark.Fri.Types (Challenge (..), Codeword (..), Offset (..), DomainLength (..))
+import           Test.Tasty.Hedgehog (testPropertyNamed, HedgehogShrinkLimit (HedgehogShrinkLimit))
+import Stark.Fri.Types (Challenge (Challenge), Codeword (unCodeword), DomainLength (DomainLength))
 
 
 testFri :: TestTree
@@ -29,12 +29,12 @@ propSplitAndFold = property $ do
   config <- forAll genFriConfiguration
   poly <- forAll (genLowDegreePoly config)
   alpha <- Challenge <$> forAll genScalar
-  let d = evalDomain (config ^. #offset)
-            (config ^. #omega) (config ^. #domainLength)
-      c = getCodeword config poly
+  let c = getCodeword config poly
       c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
-      d' = evalDomain ((config ^. #offset) ^ 2)
-             ((config ^. #omega) ^ 2) (DomainLength 32)
+      two :: Int = 2
+      d' = evalDomain ((config ^. #offset) ^ two)
+             ((config ^. #omega) ^ two)
+             (DomainLength 32)
       poly' = interpolate (zip d' (unCodeword c'))
       m = getMaxDegree (config ^. #domainLength)
   max (degree poly') m === m
