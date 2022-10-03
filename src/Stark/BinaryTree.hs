@@ -10,7 +10,7 @@ import           Prelude                (Int, Maybe (Just, Nothing), length,
                                          quot, splitAt, (+), (-), (.), (<$>),
                                          (<), (<*>), (^))
 
-import Stark.Cast (intToWord64)
+import           Stark.Cast             (intToWord64)
 import           Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import           Stark.Types.Index      (Index (Index, unIndex))
 

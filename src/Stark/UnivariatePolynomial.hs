@@ -11,18 +11,16 @@ module Stark.UnivariatePolynomial
   ) where
 
 
-import           Data.Map                                    (elems, lookupMax,
-                                                              singleton)
-import           Math.Algebra.Polynomial.Class               (Polynomial (evalP),
-                                                              Ring)
-import           Math.Algebra.Polynomial.FreeModule          (FreeMod (FreeMod, unFreeMod))
-import           Math.Algebra.Polynomial.Univariate          (U (U),
-                                                              Univariate (Uni),
-                                                              unUni)
+import           Data.Map                           (elems, lookupMax,
+                                                     singleton)
+import           Math.Algebra.Polynomial.Class      (Polynomial (evalP), Ring)
+import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
+import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni),
+                                                     unUni)
 
-import           Stark.Types.Scalar                          (Scalar)
-import qualified Stark.Types.Scalar as Scalar
-import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
+import qualified Stark.Types.Scalar                 as Scalar
+import           Stark.Types.Scalar                 (Scalar)
+import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
 degree :: UnivariatePolynomial a -> Int

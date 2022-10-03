@@ -31,7 +31,7 @@ module Stark.Fri
 
 import           Codec.Serialise                  (serialise)
 import           Control.Lens                     ((^.))
-import Crypto.Number.Basic (log2)
+import           Crypto.Number.Basic              (log2)
 import           Data.Bits                        (shift, xor)
 import           Data.ByteString                  (ByteString, unpack)
 import           Data.ByteString.Lazy             (toStrict)
@@ -45,7 +45,8 @@ import           Data.Tuple.Extra                 (fst3, snd3, thd3)
 import           Debug.Trace                      (trace)
 
 import           Stark.BinaryTree                 (fromList)
-import Stark.Cast(word64ToInteger, word64ToRatio, word8ToWord64, intToWord64)
+import           Stark.Cast                       (intToWord64, word64ToInteger,
+                                                   word64ToRatio, word8ToWord64)
 import           Stark.Fri.Types                  (A (A, unA),
                                                    AuthPaths (AuthPaths, unAuthPaths),
                                                    B (B, unB), C (C, unC),
@@ -71,7 +72,7 @@ import           Stark.Types.AuthPath             (AuthPath)
 import           Stark.Types.CapCommitment        (CapCommitment)
 import           Stark.Types.CapLength            (CapLength (CapLength))
 import           Stark.Types.Index                (Index (Index, unIndex))
-import           Stark.Types.Scalar               (Scalar, sample, normalize)
+import           Stark.Types.Scalar               (Scalar, normalize, sample)
 import           Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 import           Stark.UnivariatePolynomial       (areColinear, degree,
                                                    evaluate, interpolate)

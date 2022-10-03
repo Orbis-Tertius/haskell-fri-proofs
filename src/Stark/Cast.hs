@@ -11,7 +11,7 @@ module Stark.Cast
   ) where
 
 
-import Data.Word (Word8, Word64)
+import           Data.Word (Word64, Word8)
 
 
 intToInteger :: Int -> Integer

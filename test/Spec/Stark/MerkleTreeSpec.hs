@@ -3,12 +3,13 @@
 module Spec.Stark.MerkleTreeSpec ( testMerkleTree ) where
 
 
-import Crypto.Number.Basic (log2)
+import           Crypto.Number.Basic   (log2)
 import           Hedgehog              (Property, assert, forAll, property)
 import           Hedgehog.Gen          (enum)
 import           Spec.Gen              (genAuthPath, genBinaryTree,
                                         genCapCommitment, genScalar)
-import Stark.Cast (intToWord64, word64ToInteger, word64ToInt)
+import           Stark.Cast            (intToWord64, word64ToInt,
+                                        word64ToInteger)
 import           Stark.MerkleTree      (commit, open, verify)
 import           Stark.Prelude         (uncurry4)
 import           Stark.Types.CapLength (CapLength (CapLength))

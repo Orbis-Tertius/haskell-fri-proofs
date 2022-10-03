@@ -22,15 +22,16 @@ import           Data.ByteString                    (ByteString)
 import           Data.Generics.Labels               ()
 import qualified Data.Map                           as Map
 import           Data.Maybe                         (fromMaybe)
-import Data.Word (Word64)
+import           Data.Word                          (Word64)
 import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 
 import           Hedgehog                           (Gen)
-import           Hedgehog.Gen                       (bytes, choice, enum, list, word64)
+import           Hedgehog.Gen                       (bytes, choice, enum, list,
+                                                     word64)
 import qualified Hedgehog.Range                     as Range
-import Stark.Cast (word64ToInt)
 import qualified Stark.BinaryTree                   as BinaryTree
+import           Stark.Cast                         (word64ToInt)
 import           Stark.Fri                          (getMaxDegree)
 import           Stark.Fri.Types                    (A (A),
                                                      AuthPaths (AuthPaths),
@@ -50,7 +51,9 @@ import           Stark.Types.CapCommitment          (CapCommitment (CapCommitmen
 import           Stark.Types.CapLength              (CapLength (CapLength))
 import           Stark.Types.Commitment             (Commitment (Commitment))
 import           Stark.Types.MerkleHash             (MerkleHash (MerkleHash))
-import           Stark.Types.Scalar                 (Scalar, generator, primitiveNthRoot, fromWord64, order)
+import           Stark.Types.Scalar                 (Scalar, fromWord64,
+                                                     generator, order,
+                                                     primitiveNthRoot)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
 
 
@@ -132,7 +135,7 @@ genScalar :: Gen Scalar
 genScalar = do
   w <- word64 (Range.linear 0 (order - 1))
   case fromWord64 w of
-    Just s -> pure s
+    Just s  -> pure s
     Nothing -> genScalar
 
 

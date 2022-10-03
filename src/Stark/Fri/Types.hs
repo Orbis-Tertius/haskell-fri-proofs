@@ -26,7 +26,7 @@ module Stark.Fri.Types
 import           Codec.Serialise           (Serialise)
 import           Data.ByteString           (ByteString)
 import           Data.Kind                 (Type)
-import Data.Word (Word64)
+import           Data.Word                 (Word64)
 import           GHC.Generics              (Generic)
 
 import           Stark.Types.AuthPath      (AuthPath)

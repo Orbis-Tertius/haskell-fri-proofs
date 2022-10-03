@@ -1,19 +1,25 @@
-{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedLabels  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 
 module Spec.Stark.FriSpec ( testFri ) where
 
 
-import Control.Lens ((^.))
-import           Hedgehog            (Property, forAll, property, (===))
-import           Spec.Gen            (genFriConfiguration, genLowDegreePoly,
-                                      genProofStream, genScalar)
-import Stark.UnivariatePolynomial (interpolate, degree)
-import           Stark.Fri           (getCodeword, prove, verify, evalDomain, splitAndFold, getMaxDegree)
-import           Test.Tasty          (TestTree, testGroup, localOption)
-import           Test.Tasty.Hedgehog (testPropertyNamed, HedgehogShrinkLimit (HedgehogShrinkLimit))
-import Stark.Fri.Types (Challenge (Challenge), Codeword (unCodeword), DomainLength (DomainLength))
+import           Control.Lens               ((^.))
+import           Hedgehog                   (Property, forAll, property, (===))
+import           Spec.Gen                   (genFriConfiguration,
+                                             genLowDegreePoly, genProofStream,
+                                             genScalar)
+import           Stark.Fri                  (evalDomain, getCodeword,
+                                             getMaxDegree, prove, splitAndFold,
+                                             verify)
+import           Stark.Fri.Types            (Challenge (Challenge),
+                                             Codeword (unCodeword),
+                                             DomainLength (DomainLength))
+import           Stark.UnivariatePolynomial (degree, interpolate)
+import           Test.Tasty                 (TestTree, localOption, testGroup)
+import           Test.Tasty.Hedgehog        (HedgehogShrinkLimit (HedgehogShrinkLimit),
+                                             testPropertyNamed)
 
 
 testFri :: TestTree

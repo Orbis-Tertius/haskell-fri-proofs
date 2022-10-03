@@ -1,4 +1,4 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds    #-}
 {-# LANGUAGE ViewPatterns #-}
 
 -- Choose an appropriate finite field class from some library
@@ -18,21 +18,22 @@ module Stark.Types.Scalar
   , normalize
   ) where
 
-import Control.Monad (guard)
-import Data.Ratio (numerator, denominator)
-import Codec.Serialise (Serialise)
-import Math.Algebra.Polynomial.Class (Ring)
-import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
-import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
-import qualified Data.FiniteField.Base as F
-import qualified Data.ByteString as BS
-import Data.Kind (Type)
+import           Codec.Serialise                (Serialise)
+import           Control.Monad                  (guard)
+import qualified Data.ByteString                as BS
+import qualified Data.FiniteField.Base          as F
+import           Data.Kind                      (Type)
+import           Data.Ratio                     (denominator, numerator)
+import           Math.Algebra.Polynomial.Class  (Ring)
+import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
+import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
-import Data.Bits ((.&.), shiftR)
-import Data.Word (Word64)
-import Basement.Types.Word128 (Word128 (Word128))
+import           Basement.Types.Word128         (Word128 (Word128))
+import           Data.Bits                      (shiftR, (.&.))
+import           Data.Word                      (Word64)
 
-import Stark.Cast (word64ToInteger, word8ToInteger, word64ToRatio)
+import           Stark.Cast                     (word64ToInteger, word64ToRatio,
+                                                 word8ToInteger)
 
 {- |
   Finite field of order (2^64 - 2^32) + 1, or equivalently, 2^64 - 0xFFFFFFFF.
@@ -99,16 +100,16 @@ mulScalar (Scalar x) (Scalar y) =
         Scalar t1 + Scalar (hilo * epsilon)
 
 inverseScalar :: Scalar -> Maybe Scalar
-inverseScalar (Scalar 0) = Nothing
+inverseScalar (Scalar 0)                  = Nothing
 inverseScalar (Scalar ((+ epsilon) -> 0)) = Nothing
-inverseScalar x = Just $ x ^ (order - 2)
+inverseScalar x                           = Just $ x ^ (order - 2)
 
 generator :: Scalar
 generator = Scalar 7
 
 primitiveBigPowerOfTwoRoot :: Scalar
 primitiveBigPowerOfTwoRoot = case primitiveNthRoot (2 ^ (32 :: Integer)) of
-  Just x -> x
+  Just x  -> x
   Nothing -> error "impossible"
 
 normalize :: Scalar -> Scalar
@@ -164,7 +165,7 @@ instance Num Scalar where
 
 instance Fractional Scalar where
   recip x = case inverseScalar x of
-    Just y -> y
+    Just y  -> y
     Nothing -> error "0 has no reciprocal"
   fromRational x =
       (if x < 0 then negate else id)
@@ -186,7 +187,7 @@ instance Integral Scalar where
   toInteger = toInteger . toWord64
   a `quot` b =
     case inverseScalar b of
-      Just c -> a * c
+      Just c  -> a * c
       Nothing -> error "Scalar division by zero"
   quotRem = error "quotRem Scalar unimplemented"
 

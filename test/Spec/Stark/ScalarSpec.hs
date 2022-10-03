@@ -4,16 +4,18 @@
 module Spec.Stark.ScalarSpec ( testScalar ) where
 
 
-import Data.Word (Word64)
-import Hedgehog (Property, forAll, property, (===), (/==))
-import Hedgehog.Gen (integral)
-import qualified Hedgehog.Range as Range
-import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.Hedgehog (testPropertyNamed)
+import           Data.Word           (Word64)
+import           Hedgehog            (Property, forAll, property, (/==), (===))
+import           Hedgehog.Gen        (integral)
+import qualified Hedgehog.Range      as Range
+import           Test.Tasty          (TestTree, testGroup)
+import           Test.Tasty.Hedgehog (testPropertyNamed)
 
-import Spec.Gen (genScalar)
-import Stark.Cast (word64ToInteger)
-import Stark.Types.Scalar (order, scalarToInteger, inverseScalar, primitiveNthRoot, toWord64, generator)
+import           Spec.Gen            (genScalar)
+import           Stark.Cast          (word64ToInteger)
+import           Stark.Types.Scalar  (generator, inverseScalar, order,
+                                      primitiveNthRoot, scalarToInteger,
+                                      toWord64)
 
 
 testScalar :: TestTree

@@ -9,13 +9,13 @@ module Stark.MerkleTree
 
 
 import           Codec.Serialise           (Serialise, serialise)
-import Crypto.Number.Basic (log2)
+import           Crypto.Number.Basic       (log2)
 import qualified Data.ByteString.Lazy      as BSL
 import           Data.Maybe                (fromMaybe)
 import           Debug.Trace               (trace)
 
 import qualified Stark.BinaryTree          as Tree
-import Stark.Cast (word64ToInteger, intToWord64)
+import           Stark.Cast                (intToWord64, word64ToInteger)
 import           Stark.Hash                (hash)
 import           Stark.Types.AuthPath      (AuthPath (AuthPath, unAuthPath))
 import           Stark.Types.BinaryTree    (BinaryTree (IsLeaf, IsNode))

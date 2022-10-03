@@ -2,7 +2,7 @@ module Stark.Types.CapLength (CapLength (CapLength, unCapLength)) where
 
 
 import           Data.Kind    (Type)
-import Data.Word (Word64)
+import           Data.Word    (Word64)
 import           GHC.Generics (Generic)
 
 
