@@ -221,7 +221,8 @@ commitRound capLength (proofStream, codewords, codeword, omega, offset) =
   in ( proofStream'
      , codewords ++ [codeword]
      , codeword'
-     , omega ^ two, offset ^ two
+     , Omega . normalize . unOmega $ omega ^ two
+     , Offset . normalize . unOffset $ offset ^ two
      )
   where two :: Integer
         two = 2
@@ -292,13 +293,13 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in (config ^. #omega) ^ (2 * (nr - 1))
+  in Omega . normalize . unOmega $ (config ^. #omega) ^ (2 * (nr - 1))
 
 
 getLastOffset :: FriConfiguration -> Offset
 getLastOffset config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in (config ^. #offset) ^ (2 * (nr - 1))
+  in Offset . normalize . unOffset $ (config ^. #offset) ^ (2 * (nr - 1))
 
 
 -- Takes the list of commitments from the proof stream and provides
@@ -320,7 +321,7 @@ verify config proofStream =
   in case (proofStream ^. #lastCodeword, roots) of
     (Just lastCodeword, _:_) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
-          lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
+          lastDomain = [ normalize $ unOffset lastOffset * (unOmega lastOmega ^ i)
                        | i <- [0 .. lastCodewordLength - 1] ]
           poly = interpolate (zip lastDomain (unCodeword lastCodeword))
           maxDegree = getMaxDegree (config ^. #domainLength)
@@ -333,9 +334,10 @@ verify config proofStream =
               (ListSize $ dl `shift` negate 1)
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
-      in if lastRoot /= commitCodeword capLength lastCodeword || degree poly > maxDegree
+      in if lastRoot /= commitCodeword capLength lastCodeword
+            || degree poly > maxDegree
          then trace (if lastRoot == commitCodeword capLength lastCodeword
-                     then "degree poly > maxDegree"
+                     then "degree poly > maxDegree: " <> show (degree poly) <> " > " <> show maxDegree
                      else "lastRoot /= commitCodeword lastCodeword")
               False
          else and $
@@ -361,8 +363,8 @@ verifyRound :: FriConfiguration
             -> [AuthPaths]
             -> Bool
 verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
-  let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
-      offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
+  let omega = Omega . normalize . unOmega $ (config ^. #omega) ^ ((2 :: Integer) ^ r)
+      offset = Offset . normalize . unOffset $ (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
       cIndices = (`mod` Index (dl `shift` negate (r + 1))) <$> topLevelIndices
       aIndices = cIndices
@@ -371,7 +373,7 @@ verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs
       f :: Integral x => x -> Scalar
-      f = (* unOffset offset) . (unOmega omega ^)
+      f = normalize . (* unOffset offset) . (unOmega omega ^)
       colinearityChecks = all areColinear
         $ (\(a,b,c) -> [a,b,c])
         <$> zip3 (zip (f <$> aIndices) (unA <$> ays))

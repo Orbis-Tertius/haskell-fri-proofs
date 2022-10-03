@@ -80,7 +80,7 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
       let z = fromMaybe (error "capLeaves index out of range 0")
             $ capLeaves Tree.!! i
       in (unIndex i < unCapLength capLength
-            || trace ("index out of range: " <> show i) False)
+            || trace ("index out of range: " <> show i <> " should be <" <> show capLength) False)
          && (capLength == CapLength (intToWord64 (Tree.size capLeaves))
              || trace ("wrong CapLength: " <> " expected " <> show capLength <> " but got "
                         <> show (Tree.size capLeaves))
