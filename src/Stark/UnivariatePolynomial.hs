@@ -52,11 +52,19 @@ constant :: Scalar -> UnivariatePolynomial Scalar
 constant coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 0) coef)))
 
 
+lagrangeBases :: [Scalar] -> [UnivariatePolynomial Scalar]
+lagrangeBases xs =
+  [ product [ (linear 1 - constant xi) * (constant (recip (xj - xi)))
+            | xi <- xs, xj /= xi ]
+  | xj <- xs
+  ]
+
+
 interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
-interpolate f = UnivariatePolynomial . fromQUni $ lagrangeInterp ((g *** g) <$> f)
-  where
-    g :: Scalar -> Rational
-    g = scalarToRational
+interpolate ps =
+  sum [ constant yj * lj
+      | (yj, lj) <- zip (snd <$> ps) (lagrangeBases (fst <$> ps))
+      ]
 
 
 areColinear :: [(Scalar, Scalar)] -> Bool

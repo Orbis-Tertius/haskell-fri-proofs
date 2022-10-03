@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Stark.Fri.Types
   ( Offset (Offset, unOffset)
   , Omega (Omega, unOmega)
@@ -47,6 +49,7 @@ newtype Omega = Omega { unOmega :: Scalar }
 type DomainLength :: Type
 newtype DomainLength = DomainLength { unDomainLength :: Word64 }
   deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (Num)
 
 
 type ExpansionFactor :: Type

@@ -14,7 +14,7 @@ main = defaultMain tests
 tests :: TestTree
 tests = testGroup "Tests"
   [ testFri
---   , testMerkleTree
---   , testScalar
---   , testUnivariatePolynomial
+  -- , testMerkleTree
+  -- , testScalar
+  -- , testUnivariatePolynomial
   ]
