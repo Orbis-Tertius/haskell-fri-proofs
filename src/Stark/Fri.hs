@@ -293,13 +293,13 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in Omega . normalize . unOmega $ (config ^. #omega) ^ (2 * (nr - 1))
+  in Omega . normalize . unOmega $ (config ^. #omega) ^ (2 ^ (nr - 1))
 
 
 getLastOffset :: FriConfiguration -> Offset
 getLastOffset config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in Offset . normalize . unOffset $ (config ^. #offset) ^ (2 * (nr - 1))
+  in Offset . normalize . unOffset $ (config ^. #offset) ^ (2 ^ (nr - 1))
 
 
 -- Takes the list of commitments from the proof stream and provides
@@ -337,6 +337,7 @@ verify config proofStream =
             || degree poly > maxDegree
          then trace (if lastRoot == commitCodeword capLength lastCodeword
                      then "degree poly > maxDegree: " <> show (degree poly) <> " > " <> show maxDegree
+                            <> "\n" <> show poly
                      else "lastRoot /= commitCodeword lastCodeword")
               False
          else and $

@@ -7,6 +7,7 @@ module Stark.UnivariatePolynomial
   , constant
   , linear
   , areColinear
+  , normalize
   ) where
 
 
@@ -22,6 +23,7 @@ import           Math.Algebra.Polynomial.Univariate          (U (U),
 import           Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
 
 import           Stark.Types.Scalar                          (Scalar, scalarToRational)
+import qualified Stark.Types.Scalar as Scalar
 import           Stark.Types.UnivariatePolynomial            (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 
@@ -61,7 +63,7 @@ lagrangeBases xs =
 
 
 interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
-interpolate ps =
+interpolate ps = normalize $
   sum [ constant yj * lj
       | (yj, lj) <- zip (snd <$> ps) (lagrangeBases (fst <$> ps))
       ]
@@ -69,3 +71,8 @@ interpolate ps =
 
 areColinear :: [(Scalar, Scalar)] -> Bool
 areColinear = (< 2) . degree . interpolate
+
+
+normalize :: UnivariatePolynomial Scalar -> UnivariatePolynomial Scalar
+normalize (UnivariatePolynomial (Uni (FreeMod p))) =
+  UnivariatePolynomial . Uni . FreeMod $ Scalar.normalize <$> p
