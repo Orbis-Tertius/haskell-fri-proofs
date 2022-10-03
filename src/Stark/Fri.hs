@@ -293,13 +293,13 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in Omega . normalize . unOmega $ (config ^. #omega) ^ (2 ^ (nr - 1))
+  in Omega . normalize . unOmega $ (config ^. #omega) ^ (2 * (nr - 2))
 
 
 getLastOffset :: FriConfiguration -> Offset
 getLastOffset config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in Offset . normalize . unOffset $ (config ^. #offset) ^ (2 ^ (nr - 1))
+  in Offset . normalize . unOffset $ (config ^. #offset) ^ (2 * (nr - 2))
 
 
 -- Takes the list of commitments from the proof stream and provides
