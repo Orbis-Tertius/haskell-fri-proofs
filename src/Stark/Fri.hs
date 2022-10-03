@@ -321,8 +321,7 @@ verify config proofStream =
   in case (proofStream ^. #lastCodeword, roots) of
     (Just lastCodeword, _:_) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
-          lastDomain = [ normalize $ unOffset lastOffset * (unOmega lastOmega ^ i)
-                       | i <- [0 .. lastCodewordLength - 1] ]
+          lastDomain = evalDomain lastOffset lastOmega (DomainLength (intToWord64 lastCodewordLength))
           poly = interpolate (zip lastDomain (unCodeword lastCodeword))
           maxDegree = getMaxDegree (config ^. #domainLength)
           dl = unDomainLength (config ^. #domainLength)
