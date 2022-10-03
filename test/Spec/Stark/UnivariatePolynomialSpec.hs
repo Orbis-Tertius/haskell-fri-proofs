@@ -50,5 +50,5 @@ propRejectsNonColinear = property $ do
   let y x = m * x + b
       xs' = filter (/= x') xs
       ys = y <$> xs'
-  when (length xs' > 0) .
+  when (not (null xs')) .
     assert . not . areColinear $ (x', y x' + 1) : zip xs' ys

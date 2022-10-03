@@ -44,7 +44,7 @@ propAddScalar = property $ do
 propNegateScalar :: Property
 propNegateScalar = property $ do
   a <- forAll genScalar
-  (a + negate a) === 0
+  (a - a) === 0
 
 
 propMulScalar :: Property
