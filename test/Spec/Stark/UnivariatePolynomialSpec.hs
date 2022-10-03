@@ -2,7 +2,7 @@
 module Spec.Stark.UnivariatePolynomialSpec ( testUnivariatePolynomial ) where
 
 
-import           Control.Monad              (forM_, when)
+import           Control.Monad              (forM_, unless)
 import           Data.List                  (nub)
 import           Hedgehog                   (Property, assert, forAll, property,
                                              (===))
@@ -50,5 +50,5 @@ propRejectsNonColinear = property $ do
   let y x = m * x + b
       xs' = filter (/= x') xs
       ys = y <$> xs'
-  when (not (null xs')) .
+  unless (null xs') .
     assert . not . areColinear $ (x', y x' + 1) : zip xs' ys

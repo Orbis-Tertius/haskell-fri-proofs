@@ -52,7 +52,7 @@ constant coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 0) coef)))
 
 lagrangeBases :: [Scalar] -> [UnivariatePolynomial Scalar]
 lagrangeBases xs =
-  [ product [ (linear 1 - constant xi) * (constant (recip (xj - xi)))
+  [ product [ (linear 1 - constant xi) * constant (recip (xj - xi))
             | xi <- xs, xj /= xi ]
   | xj <- xs
   ]
