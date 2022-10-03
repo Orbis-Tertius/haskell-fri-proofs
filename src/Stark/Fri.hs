@@ -71,7 +71,7 @@ import           Stark.Types.AuthPath             (AuthPath)
 import           Stark.Types.CapCommitment        (CapCommitment)
 import           Stark.Types.CapLength            (CapLength (CapLength))
 import           Stark.Types.Index                (Index (Index, unIndex))
-import           Stark.Types.Scalar               (Scalar, sample)
+import           Stark.Types.Scalar               (Scalar, sample, normalize)
 import           Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 import           Stark.UnivariatePolynomial       (areColinear, degree,
                                                    evaluate, interpolate)
@@ -94,12 +94,13 @@ numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLengt
 
 evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
 evalDomain (Offset o) (Omega m) (DomainLength d)
-  = [o * (m ^ i) | i <- [0..d-1]]
+  = [normalize (o * (m ^ i)) | i <- [0..d-1]]
 
 
 getCodeword :: FriConfiguration -> UnivariatePolynomial Scalar -> Codeword
 getCodeword config poly =
-  Codeword $ evaluate poly <$> evalDomain (config ^. #offset) (config ^. #omega) (config ^. #domainLength)
+  Codeword $ normalize . evaluate poly
+    <$> evalDomain (config ^. #offset) (config ^. #omega) (config ^. #domainLength)
 
 
 sampleIndex :: ByteString -> ListSize -> Index
@@ -130,7 +131,8 @@ sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
     in if reducedIndex `Set.member` reducedIndices
        then (indices, reducedIndices, counter + 1)
        else ( Set.insert index indices
-            , Set.insert reducedIndex reducedIndices, counter + 1 )
+            , Set.insert reducedIndex reducedIndices
+            , counter + 1 )
 
 
 fiatShamirSeed :: ProofStream -> RandomSeed
@@ -144,7 +146,7 @@ fiatShamirChallenge = Challenge . sample . unRandomSeed . fiatShamirSeed
 splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
 splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
   let (l, r) = splitAt (length codeword `quot` 2) codeword
-  in Codeword $
+  in Codeword . fmap normalize $
   [ recip 2 * ( ( 1 + alpha / (offset * (omega ^ i)) ) * xi
               + ( 1 - alpha / (offset * (omega ^ i)) ) * xj )
   | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]

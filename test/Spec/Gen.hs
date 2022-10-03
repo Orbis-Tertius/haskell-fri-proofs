@@ -130,7 +130,7 @@ genLowDegreePoly config = do
 
 genScalar :: Gen Scalar
 genScalar = do
-  w <- word64 (Range.linear 0 order)
+  w <- word64 (Range.linear 0 (order - 1))
   case fromWord64 w of
     Just s -> pure s
     Nothing -> genScalar

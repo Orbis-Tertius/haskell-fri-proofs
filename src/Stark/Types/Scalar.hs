@@ -15,6 +15,7 @@ module Stark.Types.Scalar
   , sample
   , scalarToRational
   , scalarToInteger
+  , normalize
   ) where
 
 import Control.Monad (guard)
@@ -120,7 +121,7 @@ primitiveNthRoot n = do
   return . normalize $ f initRoot initOrder
 
   where
-    initRoot = generator ^ 4294967295
+    initRoot = generator ^ (4294967295 :: Int)
 
     initOrder :: Word64
     initOrder = 2 ^ (32 :: Integer)
