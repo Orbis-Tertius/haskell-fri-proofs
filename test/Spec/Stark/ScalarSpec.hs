@@ -4,7 +4,8 @@
 module Spec.Stark.ScalarSpec ( testScalar ) where
 
 
-import Hedgehog (Property, forAll, property, (===))
+import Data.Word (Word64)
+import Hedgehog (Property, forAll, property, (===), (/==))
 import Hedgehog.Gen (integral)
 import qualified Hedgehog.Range as Range
 import Test.Tasty (TestTree, testGroup)
@@ -21,6 +22,7 @@ testScalar = testGroup "Scalar" [
   , testPropertyNamed "negation is correct" "propNegateScalar" propNegateScalar
   , testPropertyNamed "multiplication is correct" "propMulScalar" propMulScalar
   , testPropertyNamed "inverse is correct" "propInverseScalar" propInverseScalar
+  , testPropertyNamed "division is correct" "propDivScalar" propDivScalar
   , testPropertyNamed "primitive nth root is correct" "propPrimitiveNthRoot" propPrimitiveNthRoot
   , testPropertyNamed "toWord64 preserve equality" "propToWord64PreservesEq" propToWord64PreservesEq
   , testPropertyNamed "generator ^ (order - 1) = 1" "propGenerator" propGenerator
@@ -61,11 +63,27 @@ propInverseScalar = property $ do
     else ((a *) <$> inverseScalar a) === Just 1
 
 
+propDivScalar :: Property
+propDivScalar = property $ do
+  a <- forAll genScalar
+  b <- forAll genScalar
+  let a' = scalarToInteger a
+  case inverseScalar b of
+    Just bi -> do
+      let bi' = scalarToInteger bi
+          c' = (a' * bi') `mod` word64ToInteger order
+      scalarToInteger (a `quot` b) === c'
+    Nothing -> pure ()
+
+
 propPrimitiveNthRoot :: Property
 propPrimitiveNthRoot = property $ do
-  n :: Int <- forAll (integral (Range.linear 0 32))
+  n :: Int <- forAll (integral (Range.linear 1 32))
   let m = 2 ^ n
-  ((^ m) <$> primitiveNthRoot m) === Just 1
+      r = primitiveNthRoot m
+  ((^ m) <$> r) === Just 1
+  k :: Word64 <- forAll (integral (Range.linear 1 (m-1)))
+  ((^ k) <$> r) /== Just 1
 
 
 propToWord64PreservesEq :: Property

@@ -45,7 +45,7 @@ import           Data.Tuple.Extra                 (fst3, snd3, thd3)
 import           Debug.Trace                      (trace)
 
 import           Stark.BinaryTree                 (fromList)
-import Stark.Cast(intToInteger, intToRatio, word8ToInt)
+import Stark.Cast(word64ToInteger, word64ToRatio, word8ToWord64, intToWord64)
 import           Stark.Fri.Types                  (A (A, unA),
                                                    AuthPaths (AuthPaths, unAuthPaths),
                                                    B (B, unB), C (C, unC),
@@ -78,12 +78,12 @@ import           Stark.UnivariatePolynomial       (areColinear, degree,
 
 
 getMaxDegree :: DomainLength -> Int
-getMaxDegree (DomainLength d) = log2 (intToInteger d)
+getMaxDegree (DomainLength d) = log2 (word64ToInteger d)
 
 
 numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> CapLength -> Int
 numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLength n') =
-  if intToRatio d > e && d > n' && 4 * n < d
+  if word64ToRatio d > e && d > n' && 4 * n < d
   then 1 + numRounds
            (DomainLength (d `div` 2))
            (ExpansionFactor e)
@@ -104,7 +104,7 @@ getCodeword config poly =
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
-  foldl (\acc b -> (acc `shift` 8) `xor` Index (word8ToInt b)) 0 (unpack bs)
+  foldl (\acc b -> (acc `shift` 8) `xor` Index (word8ToWord64 b)) 0 (unpack bs)
   `mod` Index len
 
 
@@ -114,7 +114,7 @@ sampleIndices seed ls rls@(ReducedListSize rls') (SampleSize n)
   | n >  2 * rls' = error "not enough entropy in indices wrt last codeword"
   | otherwise =
     fromMaybe (error "the impossible has happened: sampleIndices reached the end of the list")
-  . find ((>= n) . Set.size)
+  . find ((>= n) . intToWord64 . Set.size)
   $ fst3 <$> iterate (sampleIndicesStep seed ls rls) (mempty, mempty, 0)
 
 
@@ -233,7 +233,7 @@ queryRound :: CapLength
 queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
   let aIndices = cIndices
-      bIndices = (+ Index (length currentCodeword `quot` 2)) <$> cIndices
+      bIndices = (+ Index (intToWord64 (length currentCodeword `quot` 2))) <$> cIndices
       leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
          zipWith3 (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
          ((currentCodeword L.!!) <$> aIndices)
@@ -257,7 +257,7 @@ queryPhase capLength codewords indices proofStream =
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` Index (length (unCodeword (e 1 (codewords L.!! (i + 1)))) `quot` 2))
+      ( (`mod` Index (intToWord64 (length (unCodeword (e 1 (codewords L.!! (i + 1)))) `quot` 2)))
         <$> indices'
       , queryRound capLength (e 2 (codewords L.!! i), e 3 (codewords L.!! (i + 1))) indices' proofStream'
       , i + 1
@@ -269,14 +269,18 @@ queryPhase capLength codewords indices proofStream =
 
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
 prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests capLength) codeword
-  | unDomainLength domainLength == length (unCodeword codeword) =
+  | unDomainLength domainLength == intToWord64 (length (unCodeword codeword)) =
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests capLength
                       omega offset codeword
         indices = Set.elems $ sampleIndices
           (fiatShamirSeed proofStream0)
-          (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords L.!! (1 :: Int))))))
-          (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords L.!! (length codewords - 1))))))
+          (ListSize (intToWord64
+            (length (unCodeword (fromMaybe (error "missing second codeword")
+              (codewords L.!! (1 :: Int)))))))
+          (ReducedListSize (intToWord64
+            (length (unCodeword (fromMaybe (error "missing last codeword")
+              (codewords L.!! (length codewords - 1)))))))
           (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase capLength codewords indices proofStream0
     in (proofStream1, indices)

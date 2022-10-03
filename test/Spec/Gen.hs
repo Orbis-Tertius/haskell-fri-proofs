@@ -22,12 +22,14 @@ import           Data.ByteString                    (ByteString)
 import           Data.Generics.Labels               ()
 import qualified Data.Map                           as Map
 import           Data.Maybe                         (fromMaybe)
+import Data.Word (Word64)
 import           Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import           Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 
 import           Hedgehog                           (Gen)
 import           Hedgehog.Gen                       (bytes, choice, enum, list, word64)
 import qualified Hedgehog.Range                     as Range
+import Stark.Cast (word64ToInt)
 import qualified Stark.BinaryTree                   as BinaryTree
 import           Stark.Fri                          (getMaxDegree)
 import           Stark.Fri.Types                    (A (A),
@@ -50,7 +52,6 @@ import           Stark.Types.Commitment             (Commitment (Commitment))
 import           Stark.Types.MerkleHash             (MerkleHash (MerkleHash))
 import           Stark.Types.Scalar                 (Scalar, generator, primitiveNthRoot, fromWord64, order)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial))
-import Stark.Cast (intToInteger)
 
 
 genFriConfiguration :: Gen FriConfiguration
@@ -61,14 +62,13 @@ defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
    FriConfiguration
   (Offset generator)
-  (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot (intToInteger dl))
+  (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot dl)
   (DomainLength dl)
   (ExpansionFactor 2)
   (NumColinearityTests 4)
   where
-    dl :: Int
+    dl :: Word64
     dl = 256
-
 
 
 genProofStream :: FriConfiguration -> Gen ProofStream
@@ -114,7 +114,7 @@ genByteString = bytes (Range.linear 1 10)
 genCodeword :: FriConfiguration -> Gen Codeword
 genCodeword config =
   Codeword <$> replicateM
-  (config ^. #domainLength . #unDomainLength)
+  (word64ToInt (config ^. #domainLength . #unDomainLength))
   genScalar
 
 
@@ -136,14 +136,14 @@ genScalar = do
     Nothing -> genScalar
 
 
-genBinaryTreeSize :: Gen Int
-genBinaryTreeSize = (2 ^) <$> enum (1 :: Int) 8
+genBinaryTreeSize :: Gen Word64
+genBinaryTreeSize = (2 ^) <$> enum (1 :: Word64) 8
 
 
-genBinaryTree :: Gen a -> Gen (Int, [a], BinaryTree a)
+genBinaryTree :: Gen a -> Gen (Word64, [a], BinaryTree a)
 genBinaryTree g = do
   n <- genBinaryTreeSize
-  xs <- list (Range.singleton n) g
+  xs <- list (Range.singleton (word64ToInt n)) g
   return (n, xs,
     fromMaybe (error "failed to generate binary tree")
       . BinaryTree.fromList $ xs)

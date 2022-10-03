@@ -15,7 +15,7 @@ import           Data.Maybe                (fromMaybe)
 import           Debug.Trace               (trace)
 
 import qualified Stark.BinaryTree          as Tree
-import Stark.Cast (intToInteger)
+import Stark.Cast (word64ToInteger, intToWord64)
 import           Stark.Hash                (hash)
 import           Stark.Types.AuthPath      (AuthPath (AuthPath, unAuthPath))
 import           Stark.Types.BinaryTree    (BinaryTree (IsLeaf, IsNode))
@@ -55,7 +55,7 @@ commitCapLeaf (IsNode x y) = mergeCommitments (commitCapLeaf x, commitCapLeaf y)
 open__ :: Index -> BinaryTree MerkleHash -> AuthPath
 open__ 0 (IsLeaf _) = AuthPath []
 open__ i t@(IsNode x y) =
-  let n = Index $ Tree.size t
+  let n = Index $ intToWord64 (Tree.size t)
       m = n `quot` 2
   in if i < m
      then open__ i x <> AuthPath [commitCapLeaf y]
@@ -65,7 +65,7 @@ open__ i t = error ("open_ pattern match failure: " <> show (i, t))
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
 open_ (CapLength capLength) i t =
-    AuthPath . take ( Tree.depth t - log2 (intToInteger capLength) )
+    AuthPath . take ( Tree.depth t - log2 (word64ToInteger capLength) )
   . unAuthPath $ open__ i t
 
 
@@ -81,7 +81,7 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
             $ capLeaves Tree.!! i
       in (unIndex i < unCapLength capLength
             || trace "index out of range" False)
-         && (capLength == CapLength (Tree.size capLeaves)
+         && (capLength == CapLength (intToWord64 (Tree.size capLeaves))
              || trace "wrong CapLength" False)
          && (z == y || trace "commitment check failed" False)
     AuthPath (x:xs) ->

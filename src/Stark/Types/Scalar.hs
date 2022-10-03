@@ -17,6 +17,7 @@ module Stark.Types.Scalar
   , scalarToInteger
   ) where
 
+import Control.Monad (guard)
 import Data.Ratio (numerator, denominator)
 import Codec.Serialise (Serialise)
 import Math.Algebra.Polynomial.Class (Ring)
@@ -56,7 +57,7 @@ epsilon :: Word64
 epsilon = 0xFFFFFFFF
 
 order :: Word64
-order = negate epsilon -- equivalent to 2^64 - epsilon
+order = 0xFFFFFFFF00000001
 
 fromWord64 :: Word64 -> Maybe Scalar
 fromWord64 x | x < order = Just $ Scalar x
@@ -109,15 +110,26 @@ primitiveBigPowerOfTwoRoot = case primitiveNthRoot (2 ^ (32 :: Integer)) of
   Just x -> x
   Nothing -> error "impossible"
 
--- (generator^m)^n = 1 = generator^(p-1)   (mod p)
--- generator^(m*n) = generator^(p-1)       (mod p)
--- generator^m = generator^((p-1) / n)     (mod p)
-primitiveNthRoot :: Integer -> Maybe Scalar
-primitiveNthRoot 0 = Nothing
-primitiveNthRoot n =
-  case quotRem (word64ToInteger order - 1) n of
-    (power, 0) -> Just $ generator ^ power
-    _ -> Nothing
+normalize :: Scalar -> Scalar
+normalize = Scalar . toWord64
+
+primitiveNthRoot :: Word64 -> Maybe Scalar
+primitiveNthRoot n = do
+  guard (n <= initOrder)
+  guard (n .&. (n-1) == 0)
+  return . normalize $ f initRoot initOrder
+
+  where
+    initRoot = generator ^ 4294967295
+
+    initOrder :: Word64
+    initOrder = 2 ^ (32 :: Integer)
+
+    f :: Num p => p -> Word64 -> p
+    f root order' =
+      if order' /= n
+        then f (root * root) (order' `quot` 2)
+        else root
 
 instance IsSigned Scalar where
   signOf = const $ Just Plus
@@ -171,6 +183,10 @@ instance Real Scalar where
   toRational = toRational . toWord64
 instance Integral Scalar where
   toInteger = toInteger . toWord64
+  a `quot` b =
+    case inverseScalar b of
+      Just c -> a * c
+      Nothing -> error "Scalar division by zero"
   quotRem = error "quotRem Scalar unimplemented"
 
 sample :: BS.ByteString -> Scalar
