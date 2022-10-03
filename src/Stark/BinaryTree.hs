@@ -10,6 +10,7 @@ import           Prelude                (Int, Maybe (Just, Nothing), length,
                                          quot, splitAt, (+), (-), (.), (<$>),
                                          (<), (<*>), (^))
 
+import           Stark.Cast             (intToWord64)
 import           Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import           Stark.Types.Index      (Index (Index, unIndex))
 
@@ -35,5 +36,5 @@ fromList xs =
 (IsLeaf x) !! 0 = Just x
 (IsLeaf _) !! _ = Nothing
 (IsNode x y) !! i =
-  let n = size x in
+  let n = intToWord64 (size x) in
   if unIndex i < n then x !! i else y !! (i - Index n)

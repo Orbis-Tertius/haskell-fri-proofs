@@ -15,7 +15,7 @@ common globals
     TypeFamilies
 
   ghc-options:
-    -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
+    -Werror -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
     -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
     -Wno-safe -Wno-unsafe
 
@@ -30,7 +30,7 @@ library
     Plonk.Types.Vect
     Plonk.Types.Z2
     Stark.BinaryTree
-    Stark.FiniteField
+    Stark.Cast
     Stark.Fri
     Stark.Fri.Types
     Stark.Hash
@@ -55,6 +55,7 @@ library
     , blake2
     , bytestring
     , containers
+    , cryptonite
     , extra
     , finite-field
     , generic-lens
@@ -64,6 +65,7 @@ library
     , polynomial-algebra
     , serialise
     , vinyl
+    , basement
 
   hs-source-dirs:     src
   default-extensions:
@@ -82,12 +84,14 @@ test-suite spec
     Spec.Prelude
     Spec.Stark.FriSpec
     Spec.Stark.MerkleTreeSpec
+    Spec.Stark.ScalarSpec
     Spec.Stark.UnivariatePolynomialSpec
 
   build-depends:
     , base                >=4.9 && <5
     , bytestring
     , containers
+    , cryptonite
     , fri-proofs
     , generic-lens
     , hedgehog

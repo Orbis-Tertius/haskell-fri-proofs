@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Stark.Fri.Types
   ( Offset (Offset, unOffset)
   , Omega (Omega, unOmega)
@@ -24,6 +26,7 @@ module Stark.Fri.Types
 import           Codec.Serialise           (Serialise)
 import           Data.ByteString           (ByteString)
 import           Data.Kind                 (Type)
+import           Data.Word                 (Word64)
 import           GHC.Generics              (Generic)
 
 import           Stark.Types.AuthPath      (AuthPath)
@@ -44,8 +47,9 @@ newtype Omega = Omega { unOmega :: Scalar }
   deriving newtype Num
 
 type DomainLength :: Type
-newtype DomainLength = DomainLength { unDomainLength :: Int }
+newtype DomainLength = DomainLength { unDomainLength :: Word64 }
   deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (Num)
 
 
 type ExpansionFactor :: Type
@@ -53,23 +57,23 @@ newtype ExpansionFactor = ExpansionFactor { unExpansionFactor :: Rational }
   deriving stock (Show)
 
 type NumColinearityTests :: Type
-newtype NumColinearityTests = NumColinearityTests { unNumColinearityTests :: Int }
+newtype NumColinearityTests = NumColinearityTests { unNumColinearityTests :: Word64 }
   deriving stock (Show)
 
 type ListSize :: Type
-newtype ListSize = ListSize { unListSize :: Int }
+newtype ListSize = ListSize { unListSize :: Word64 }
 
 type RandomSeed :: Type
 newtype RandomSeed = RandomSeed { unRandomSeed :: ByteString }
 
 type ReducedListSize :: Type
-newtype ReducedListSize = ReducedListSize { unReducedListSize :: Int }
+newtype ReducedListSize = ReducedListSize { unReducedListSize :: Word64 }
 
 type SampleSize :: Type
-newtype SampleSize = SampleSize { unSampleSize :: Int }
+newtype SampleSize = SampleSize { unSampleSize :: Word64 }
 
 type ReducedIndex :: Type
-newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
+newtype ReducedIndex = ReducedIndex { unReducedIndex :: Word64 }
   deriving stock (Eq, Ord)
 
 type Codeword :: Type

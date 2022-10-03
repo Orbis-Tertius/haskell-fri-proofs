@@ -5,7 +5,7 @@ module Plonk.Types.Z2
 
 import           Data.Group                     (Group (invert))
 import           Data.Kind                      (Type)
-import           Data.Ratio                     (denominator, numerator, (%))
+import           Data.Ratio                     (denominator, numerator)
 import           Math.Algebra.Polynomial.Class  (Ring)
 import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
 import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))

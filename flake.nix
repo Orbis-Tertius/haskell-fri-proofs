@@ -41,6 +41,7 @@
         buildInputs = attrs.buildInputs ++ [
           hsPkgs.cabal-install
           pkgs.nixpkgs-fmt
+          pkgs.ghcid
         ];
       });
       packages.default = hsPkgs.fri-proofs;

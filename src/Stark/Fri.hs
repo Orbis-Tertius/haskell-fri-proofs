@@ -31,6 +31,7 @@ module Stark.Fri
 
 import           Codec.Serialise                  (serialise)
 import           Control.Lens                     ((^.))
+import           Crypto.Number.Basic              (log2)
 import           Data.Bits                        (shift, xor)
 import           Data.ByteString                  (ByteString, unpack)
 import           Data.ByteString.Lazy             (toStrict)
@@ -44,7 +45,8 @@ import           Data.Tuple.Extra                 (fst3, snd3, thd3)
 import           Debug.Trace                      (trace)
 
 import           Stark.BinaryTree                 (fromList)
-import           Stark.FiniteField                (sample)
+import           Stark.Cast                       (intToWord64, word64ToInteger,
+                                                   word64ToRatio, word8ToWord64)
 import           Stark.Fri.Types                  (A (A, unA),
                                                    AuthPaths (AuthPaths, unAuthPaths),
                                                    B (B, unB), C (C, unC),
@@ -70,19 +72,19 @@ import           Stark.Types.AuthPath             (AuthPath)
 import           Stark.Types.CapCommitment        (CapCommitment)
 import           Stark.Types.CapLength            (CapLength (CapLength))
 import           Stark.Types.Index                (Index (Index, unIndex))
-import           Stark.Types.Scalar               (Scalar)
+import           Stark.Types.Scalar               (Scalar, normalize, sample)
 import           Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 import           Stark.UnivariatePolynomial       (areColinear, degree,
                                                    evaluate, interpolate)
 
 
 getMaxDegree :: DomainLength -> Int
-getMaxDegree (DomainLength d) = floor (logBase 2 (fromIntegral d) :: Double)
+getMaxDegree (DomainLength d) = log2 (word64ToInteger d)
 
 
 numRounds :: DomainLength -> ExpansionFactor -> NumColinearityTests -> CapLength -> Int
 numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLength n') =
-  if fromIntegral d > e && d > n' && 4 * n < d
+  if word64ToRatio d > e && d > n' && 4 * n < d
   then 1 + numRounds
            (DomainLength (d `div` 2))
            (ExpansionFactor e)
@@ -93,17 +95,18 @@ numRounds (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLengt
 
 evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
 evalDomain (Offset o) (Omega m) (DomainLength d)
-  = [o * (m ^ i) | i <- [0..d-1]]
+  = [normalize (o * (m ^ i)) | i <- [0..d-1]]
 
 
 getCodeword :: FriConfiguration -> UnivariatePolynomial Scalar -> Codeword
 getCodeword config poly =
-  Codeword $ evaluate poly <$> evalDomain (config ^. #offset) (config ^. #omega) (config ^. #domainLength)
+  Codeword $ normalize . evaluate poly
+    <$> evalDomain (config ^. #offset) (config ^. #omega) (config ^. #domainLength)
 
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
-  foldl (\acc b -> (acc `shift` 8) `xor` fromIntegral b) 0 (unpack bs)
+  foldl (\acc b -> (acc `shift` 8) `xor` Index (word8ToWord64 b)) 0 (unpack bs)
   `mod` Index len
 
 
@@ -113,7 +116,7 @@ sampleIndices seed ls rls@(ReducedListSize rls') (SampleSize n)
   | n >  2 * rls' = error "not enough entropy in indices wrt last codeword"
   | otherwise =
     fromMaybe (error "the impossible has happened: sampleIndices reached the end of the list")
-  . find ((>= n) . Set.size)
+  . find ((>= n) . intToWord64 . Set.size)
   $ fst3 <$> iterate (sampleIndicesStep seed ls rls) (mempty, mempty, 0)
 
 
@@ -129,7 +132,8 @@ sampleIndicesStep (RandomSeed seed) ls (ReducedListSize rls)
     in if reducedIndex `Set.member` reducedIndices
        then (indices, reducedIndices, counter + 1)
        else ( Set.insert index indices
-            , Set.insert reducedIndex reducedIndices, counter + 1 )
+            , Set.insert reducedIndex reducedIndices
+            , counter + 1 )
 
 
 fiatShamirSeed :: ProofStream -> RandomSeed
@@ -143,7 +147,7 @@ fiatShamirChallenge = Challenge . sample . unRandomSeed . fiatShamirSeed
 splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
 splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
   let (l, r) = splitAt (length codeword `quot` 2) codeword
-  in Codeword $
+  in Codeword . fmap normalize $
   [ recip 2 * ( ( 1 + alpha / (offset * (omega ^ i)) ) * xi
               + ( 1 - alpha / (offset * (omega ^ i)) ) * xj )
   | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]
@@ -184,7 +188,7 @@ commitCodeword capLength
 
 openCodeword :: CapLength -> Codeword -> Index -> AuthPath
 openCodeword capLength (Codeword xs) (Index i) =
-  Merkle.open capLength (fromIntegral i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
+  Merkle.open capLength (Index i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
 
 
 commitPhase :: DomainLength
@@ -218,7 +222,8 @@ commitRound capLength (proofStream, codewords, codeword, omega, offset) =
   in ( proofStream'
      , codewords ++ [codeword]
      , codeword'
-     , omega ^ two, offset ^ two
+     , Omega . normalize . unOmega $ omega ^ two
+     , Offset . normalize . unOffset $ offset ^ two
      )
   where two :: Integer
         two = 2
@@ -232,7 +237,7 @@ queryRound :: CapLength
 queryRound capLength (Codeword currentCodeword, Codeword nextCodeword)
            cIndices proofStream =
   let aIndices = cIndices
-      bIndices = (+ Index (length currentCodeword `quot` 2)) <$> cIndices
+      bIndices = (+ Index (intToWord64 (length currentCodeword `quot` 2))) <$> cIndices
       leafProofElems = fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices)) <$>
          zipWith3 (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
          ((currentCodeword L.!!) <$> aIndices)
@@ -256,7 +261,7 @@ queryPhase capLength codewords indices proofStream =
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
     f (indices', proofStream', i) =
-      ( (`mod` Index (length (unCodeword (e 1 (codewords L.!! (i + 1)))) `quot` 2))
+      ( (`mod` Index (intToWord64 (length (unCodeword (e 1 (codewords L.!! (i + 1)))) `quot` 2)))
         <$> indices'
       , queryRound capLength (e 2 (codewords L.!! i), e 3 (codewords L.!! (i + 1))) indices' proofStream'
       , i + 1
@@ -268,14 +273,18 @@ queryPhase capLength codewords indices proofStream =
 
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
 prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests capLength) codeword
-  | unDomainLength domainLength == length (unCodeword codeword) =
+  | unDomainLength domainLength == intToWord64 (length (unCodeword codeword)) =
     let (proofStream0, codewords) =
           commitPhase domainLength expansionFactor numColinearityTests capLength
                       omega offset codeword
         indices = Set.elems $ sampleIndices
           (fiatShamirSeed proofStream0)
-          (ListSize (length (unCodeword (fromMaybe (error "missing second codeword") (codewords L.!! (1 :: Int))))))
-          (ReducedListSize (length (unCodeword (fromMaybe (error "missing last codeword") (codewords L.!! (length codewords - 1))))))
+          (ListSize (intToWord64
+            (length (unCodeword (fromMaybe (error "missing second codeword")
+              (codewords L.!! (1 :: Int)))))))
+          (ReducedListSize (intToWord64
+            (length (unCodeword (fromMaybe (error "missing last codeword")
+              (codewords L.!! (length codewords - 1)))))))
           (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase capLength codewords indices proofStream0
     in (proofStream1, indices)
@@ -285,13 +294,13 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in (config ^. #omega) ^ (2 * (nr - 1))
+  in Omega . normalize . unOmega $ (config ^. #omega) ^ (2 * (nr - 2))
 
 
 getLastOffset :: FriConfiguration -> Offset
 getLastOffset config =
   let nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-  in (config ^. #offset) ^ (2 * (nr - 1))
+  in Offset . normalize . unOffset $ (config ^. #offset) ^ (2 * (nr - 2))
 
 
 -- Takes the list of commitments from the proof stream and provides
@@ -313,8 +322,7 @@ verify config proofStream =
   in case (proofStream ^. #lastCodeword, roots) of
     (Just lastCodeword, _:_) ->
       let lastCodewordLength = length (unCodeword lastCodeword)
-          lastDomain = [ unOffset lastOffset * (unOmega lastOmega ^ i)
-                       | i <- [0 .. lastCodewordLength - 1] ]
+          lastDomain = evalDomain lastOffset lastOmega (DomainLength (intToWord64 lastCodewordLength))
           poly = interpolate (zip lastDomain (unCodeword lastCodeword))
           maxDegree = getMaxDegree (config ^. #domainLength)
           dl = unDomainLength (config ^. #domainLength)
@@ -326,9 +334,11 @@ verify config proofStream =
               (ListSize $ dl `shift` negate 1)
               (ReducedListSize $ dl `shift` negate (nr - 1))
               (SampleSize nt)
-      in if lastRoot /= commitCodeword capLength lastCodeword || degree poly > maxDegree
+      in if lastRoot /= commitCodeword capLength lastCodeword
+            || degree poly > maxDegree
          then trace (if lastRoot == commitCodeword capLength lastCodeword
-                     then "degree poly > maxDegree"
+                     then "degree poly > maxDegree: " <> show (degree poly) <> " > " <> show maxDegree
+                            <> "\n" <> show poly
                      else "lastRoot /= commitCodeword lastCodeword")
               False
          else and $
@@ -354,17 +364,17 @@ verifyRound :: FriConfiguration
             -> [AuthPaths]
             -> Bool
 verifyRound config topLevelIndices r alpha (root, nextRoot) qs ps =
-  let omega = (config ^. #omega) ^ ((2 :: Integer) ^ r)
-      offset = (config ^. #offset) ^ ((2 :: Integer) ^ r)
+  let omega = Omega . normalize . unOmega $ (config ^. #omega) ^ ((2 :: Integer) ^ r)
+      offset = Offset . normalize . unOffset $ (config ^. #offset) ^ ((2 :: Integer) ^ r)
       dl = config ^. #domainLength . #unDomainLength
-      cIndices = (`mod` fromIntegral (dl `shift` negate (r + 1))) <$> topLevelIndices
+      cIndices = (`mod` Index (dl `shift` negate (r + 1))) <$> topLevelIndices
       aIndices = cIndices
-      bIndices = (+ fromIntegral (dl `shift` negate (r + 1))) <$> aIndices
+      bIndices = (+ Index (dl `shift` negate (r + 1))) <$> aIndices
       ays = fst3 . unQuery <$> qs
       bys = snd3 . unQuery <$> qs
       cys = thd3 . unQuery <$> qs
       f :: Integral x => x -> Scalar
-      f = (* unOffset offset) . (unOmega omega ^)
+      f = normalize . (* unOffset offset) . (unOmega omega ^)
       colinearityChecks = all areColinear
         $ (\(a,b,c) -> [a,b,c])
         <$> zip3 (zip (f <$> aIndices) (unA <$> ays))
