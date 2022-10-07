@@ -1,13 +1,18 @@
 module Plonk.FFT
-  ( fft
-  , padToNearestPowerOfTwo
-  ) where
+  ( fft,
+    padToNearestPowerOfTwo,
+  )
+where
 
-import           Data.Bits           (bit, countLeadingZeros,
-                                      countTrailingZeros, finiteBitSize)
-import           Data.Group          (Group, pow)
-import qualified Data.List           as List
-import           Plonk.Types.Circuit (Domain (Domain))
+import Data.Bits
+  ( bit,
+    countLeadingZeros,
+    countTrailingZeros,
+    finiteBitSize,
+  )
+import Data.Group (Group, pow)
+import qualified Data.List as List
+import Plonk.Types.Circuit (Domain (Domain))
 
 log2 :: Int -> Int
 log2 x = floorLog + correction
@@ -38,12 +43,12 @@ padToNearestPowerOfTwoOf i xs = xs ++ replicate padLength 0
     padLength = nearestPowerOfTwo - length xs
     nearestPowerOfTwo = bit $ log2 i
 
-fft
-  :: Group k
-  => Num k
-  => Domain d k
-  -> [k]
-  -> [k]
+fft ::
+  Group k =>
+  Num k =>
+  Domain d k ->
+  [k] ->
+  [k]
 fft (Domain omega_n) as =
   case length as of
     1 -> as
@@ -56,6 +61,6 @@ fft (Domain omega_n) as =
   where
     combine :: Num a => [a] -> [a] -> [a] -> [a]
     combine y0 y1 omegas =
-      (\xs -> map fst xs ++ map snd xs)
-        $ map (\(yk0, yk1, currentOmega) -> (yk0 + currentOmega * yk1, yk0 - currentOmega * yk1))
-        $ List.zip3 y0 y1 omegas
+      (\xs -> map fst xs ++ map snd xs) $
+        map (\(yk0, yk1, currentOmega) -> (yk0 + currentOmega * yk1, yk0 - currentOmega * yk1)) $
+          List.zip3 y0 y1 omegas

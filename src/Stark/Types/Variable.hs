@@ -1,5 +1,6 @@
-module Stark.Types.Variable ( Variable (Variable, unVariable) ) where
+module Stark.Types.Variable (Variable (Variable, unVariable)) where
 
-import           Data.Kind (Type)
+import Data.Kind (Type)
+
 type Variable :: Type
-newtype Variable = Variable { unVariable :: Int }
+newtype Variable = Variable {unVariable :: Int}

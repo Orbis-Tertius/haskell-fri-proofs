@@ -1,141 +1,132 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Stark.Fri.Types
-  ( Offset (Offset, unOffset)
-  , Omega (Omega, unOmega)
-  , DomainLength (DomainLength, unDomainLength)
-  , ExpansionFactor (ExpansionFactor, unExpansionFactor)
-  , NumColinearityTests (NumColinearityTests, unNumColinearityTests)
-  , ListSize (ListSize, unListSize)
-  , RandomSeed (RandomSeed, unRandomSeed)
-  , ReducedListSize (ReducedListSize, unReducedListSize)
-  , SampleSize (SampleSize, unSampleSize)
-  , ReducedIndex (ReducedIndex, unReducedIndex)
-  , Codeword (Codeword, unCodeword)
-  , A (A, unA)
-  , B (B, unB)
-  , C (C, unC)
-  , Query (Query, unQuery)
-  , AuthPaths (AuthPaths, unAuthPaths)
-  , ProofStream (ProofStream)
-  , Challenge (Challenge, unChallenge)
-  , FriConfiguration (FriConfiguration)
-  ) where
+  ( Offset (Offset, unOffset),
+    Omega (Omega, unOmega),
+    DomainLength (DomainLength, unDomainLength),
+    ExpansionFactor (ExpansionFactor, unExpansionFactor),
+    NumColinearityTests (NumColinearityTests, unNumColinearityTests),
+    ListSize (ListSize, unListSize),
+    RandomSeed (RandomSeed, unRandomSeed),
+    ReducedListSize (ReducedListSize, unReducedListSize),
+    SampleSize (SampleSize, unSampleSize),
+    ReducedIndex (ReducedIndex, unReducedIndex),
+    Codeword (Codeword, unCodeword),
+    A (A, unA),
+    B (B, unB),
+    C (C, unC),
+    Query (Query, unQuery),
+    AuthPaths (AuthPaths, unAuthPaths),
+    ProofStream (ProofStream),
+    Challenge (Challenge, unChallenge),
+    FriConfiguration (FriConfiguration),
+  )
+where
 
-
-import           Codec.Serialise           (Serialise)
-import           Data.ByteString           (ByteString)
-import           Data.Kind                 (Type)
-import           Data.Word                 (Word64)
-import           GHC.Generics              (Generic)
-
-import           Stark.Types.AuthPath      (AuthPath)
-import           Stark.Types.CapCommitment (CapCommitment)
-import           Stark.Types.CapLength     (CapLength)
-import           Stark.Types.Scalar        (Scalar)
-
+import Codec.Serialise (Serialise)
+import Data.ByteString (ByteString)
+import Data.Kind (Type)
+import Data.Word (Word64)
+import GHC.Generics (Generic)
+import Stark.Types.AuthPath (AuthPath)
+import Stark.Types.CapCommitment (CapCommitment)
+import Stark.Types.CapLength (CapLength)
+import Stark.Types.Scalar (Scalar)
 
 type Offset :: Type
-newtype Offset = Offset { unOffset :: Scalar }
-  deriving stock (Eq, Ord, Show, Generic)
-  deriving newtype Num
-
-
-type Omega :: Type
-newtype Omega = Omega { unOmega :: Scalar }
-  deriving stock (Eq, Ord, Show, Generic)
-  deriving newtype Num
-
-type DomainLength :: Type
-newtype DomainLength = DomainLength { unDomainLength :: Word64 }
+newtype Offset = Offset {unOffset :: Scalar}
   deriving stock (Eq, Ord, Show, Generic)
   deriving newtype (Num)
 
+type Omega :: Type
+newtype Omega = Omega {unOmega :: Scalar}
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (Num)
+
+type DomainLength :: Type
+newtype DomainLength = DomainLength {unDomainLength :: Word64}
+  deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (Num)
 
 type ExpansionFactor :: Type
-newtype ExpansionFactor = ExpansionFactor { unExpansionFactor :: Rational }
+newtype ExpansionFactor = ExpansionFactor {unExpansionFactor :: Rational}
   deriving stock (Show)
 
 type NumColinearityTests :: Type
-newtype NumColinearityTests = NumColinearityTests { unNumColinearityTests :: Word64 }
+newtype NumColinearityTests = NumColinearityTests {unNumColinearityTests :: Word64}
   deriving stock (Show)
 
 type ListSize :: Type
-newtype ListSize = ListSize { unListSize :: Word64 }
+newtype ListSize = ListSize {unListSize :: Word64}
 
 type RandomSeed :: Type
-newtype RandomSeed = RandomSeed { unRandomSeed :: ByteString }
+newtype RandomSeed = RandomSeed {unRandomSeed :: ByteString}
 
 type ReducedListSize :: Type
-newtype ReducedListSize = ReducedListSize { unReducedListSize :: Word64 }
+newtype ReducedListSize = ReducedListSize {unReducedListSize :: Word64}
 
 type SampleSize :: Type
-newtype SampleSize = SampleSize { unSampleSize :: Word64 }
+newtype SampleSize = SampleSize {unSampleSize :: Word64}
 
 type ReducedIndex :: Type
-newtype ReducedIndex = ReducedIndex { unReducedIndex :: Word64 }
+newtype ReducedIndex = ReducedIndex {unReducedIndex :: Word64}
   deriving stock (Eq, Ord)
 
 type Codeword :: Type
-newtype Codeword = Codeword { unCodeword :: [Scalar] }
+newtype Codeword = Codeword {unCodeword :: [Scalar]}
   deriving stock (Eq, Show)
-  deriving newtype Serialise
+  deriving newtype (Serialise)
 
 type A :: Type -> Type
-newtype A a = A { unA :: a }
+newtype A a = A {unA :: a}
   deriving stock (Eq, Generic, Show)
-  deriving newtype Serialise
+  deriving newtype (Serialise)
 
 type B :: Type -> Type
-newtype B a = B { unB :: a }
+newtype B a = B {unB :: a}
   deriving stock (Eq, Generic, Show)
-  deriving newtype Serialise
+  deriving newtype (Serialise)
 
 type C :: Type -> Type
-newtype C a = C { unC :: a }
+newtype C a = C {unC :: a}
   deriving stock (Eq, Generic, Show)
-  deriving newtype Serialise
-
+  deriving newtype (Serialise)
 
 type ABC :: Type -> Type
 type ABC a = (A a, B a, C a)
 
 type Query :: Type
-newtype Query = Query { unQuery :: ABC Scalar }
+newtype Query = Query {unQuery :: ABC Scalar}
   deriving stock (Eq, Generic, Show)
-  deriving newtype Serialise
+  deriving newtype (Serialise)
 
 type AuthPaths :: Type
-newtype AuthPaths = AuthPaths { unAuthPaths :: ABC AuthPath }
+newtype AuthPaths = AuthPaths {unAuthPaths :: ABC AuthPath}
   deriving stock (Eq, Generic, Show)
-  deriving newtype Serialise
+  deriving newtype (Serialise)
 
 type ProofStream :: Type
-data ProofStream =
-  ProofStream
-  { commitments  :: [CapCommitment]
-  , queries      :: [[Query]]
-  , lastCodeword :: Maybe Codeword
-  , authPaths    :: [[AuthPaths]]
+data ProofStream = ProofStream
+  { commitments :: [CapCommitment],
+    queries :: [[Query]],
+    lastCodeword :: Maybe Codeword,
+    authPaths :: [[AuthPaths]]
   }
   deriving stock (Eq, Generic, Show)
 
 instance Serialise ProofStream
 
-
 type Challenge :: Type
-newtype Challenge = Challenge { unChallenge :: Scalar }
-  deriving newtype Serialise
-
+newtype Challenge = Challenge {unChallenge :: Scalar}
+  deriving newtype (Serialise)
 
 type FriConfiguration :: Type
-data FriConfiguration =
-  FriConfiguration
-  { offset              :: Offset
-  , omega               :: Omega
-  , domainLength        :: DomainLength
-  , expansionFactor     :: ExpansionFactor
-  , numColinearityTests :: NumColinearityTests
-  , capLength           :: CapLength
+data FriConfiguration = FriConfiguration
+  { offset :: Offset,
+    omega :: Omega,
+    domainLength :: DomainLength,
+    expansionFactor :: ExpansionFactor,
+    numColinearityTests :: NumColinearityTests,
+    capLength :: CapLength
   }
   deriving stock (Generic, Show)
