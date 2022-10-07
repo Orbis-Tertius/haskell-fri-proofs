@@ -1,29 +1,35 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Spec.Stark.MerkleTreeSpec ( testMerkleTree ) where
+module Spec.Stark.MerkleTreeSpec (testMerkleTree) where
 
-
-import           Crypto.Number.Basic   (log2)
-import           Hedgehog              (Property, assert, forAll, property)
-import           Hedgehog.Gen          (enum)
-import           Spec.Gen              (genAuthPath, genBinaryTree,
-                                        genCapCommitment, genScalar)
-import           Stark.Cast            (intToWord64, word64ToInt,
-                                        word64ToInteger)
-import           Stark.MerkleTree      (commit, open, verify)
-import           Stark.Prelude         (uncurry4)
-import           Stark.Types.CapLength (CapLength (CapLength))
-import           Stark.Types.Index     (Index (Index, unIndex))
-import           Test.Tasty            (TestTree, testGroup)
-import           Test.Tasty.Hedgehog   (testPropertyNamed)
-
+import Crypto.Number.Basic (log2)
+import Hedgehog (Property, assert, forAll, property)
+import Hedgehog.Gen (enum)
+import Spec.Gen
+  ( genAuthPath,
+    genBinaryTree,
+    genCapCommitment,
+    genScalar,
+  )
+import Stark.Cast
+  ( intToWord64,
+    word64ToInt,
+    word64ToInteger,
+  )
+import Stark.MerkleTree (commit, open, verify)
+import Stark.Prelude (uncurry4)
+import Stark.Types.CapLength (CapLength (CapLength))
+import Stark.Types.Index (Index (Index, unIndex))
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.Hedgehog (testPropertyNamed)
 
 testMerkleTree :: TestTree
-testMerkleTree = testGroup "Merkle Tree" [
-  testPropertyNamed "successfully verifies openings of commitments" "propVerifiesOpenings" propVerifiesOpenings,
-  testPropertyNamed "rejects random inputs" "propRejectsRandomInputs" propRejectsRandomInputs
-  ]
-
+testMerkleTree =
+  testGroup
+    "Merkle Tree"
+    [ testPropertyNamed "successfully verifies openings of commitments" "propVerifiesOpenings" propVerifiesOpenings,
+      testPropertyNamed "rejects random inputs" "propRejectsRandomInputs" propRejectsRandomInputs
+    ]
 
 propVerifiesOpenings :: Property
 propVerifiesOpenings = property $ do
@@ -35,13 +41,16 @@ propVerifiesOpenings = property $ do
   let c = commit capLength t
       p = open capLength i t
       x = xs !! word64ToInt (unIndex i)
-  assert $ uncurry4 (verify capLength) (c, i, p ,x)
+  assert $ uncurry4 (verify capLength) (c, i, p, x)
 
 propRejectsRandomInputs :: Property
 propRejectsRandomInputs = property $ do
   capLength <- forAll (CapLength . (2 ^) <$> enum (0 :: Int) 8)
-  (c, i, p, x) <- forAll ((,,,) <$> genCapCommitment
-                               <*> (Index <$> enum 0 1024)
-                              <*> genAuthPath
-                            <*> genScalar)
-  assert $ not $ uncurry4 (verify capLength) (c, i, p ,x)
+  (c, i, p, x) <-
+    forAll
+      ( (,,,) <$> genCapCommitment
+          <*> (Index <$> enum 0 1024)
+          <*> genAuthPath
+          <*> genScalar
+      )
+  assert $ not $ uncurry4 (verify capLength) (c, i, p, x)
