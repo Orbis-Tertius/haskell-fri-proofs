@@ -36,7 +36,7 @@ import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
-import Data.List (find, inits, zip4, zip5, foldl')
+import Data.List (find, foldl', inits, zip4, zip5)
 import qualified Data.List.Safe as L
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)

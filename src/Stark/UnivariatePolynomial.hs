@@ -51,7 +51,9 @@ constant coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 0) coef)))
 
 lagrangeBases :: [Scalar] -> [UnivariatePolynomial Scalar]
 lagrangeBases xs =
-  [ foldl' (*) 1
+  [ foldl'
+      (*)
+      1
       [ (linear 1 - constant xi) * constant (recip (xj - xi))
         | xi <- xs,
           xj /= xi
@@ -62,7 +64,9 @@ lagrangeBases xs =
 interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
 interpolate ps =
   normalize $
-    foldl' (+) 0
+    foldl'
+      (+)
+      0
       [ constant yj * lj
         | (yj, lj) <- zip (snd <$> ps) (lagrangeBases (fst <$> ps))
       ]
