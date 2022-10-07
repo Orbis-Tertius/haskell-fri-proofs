@@ -1,0 +1,56 @@
+ - group:
+     name: dangerous-functions
+     enabled: true
+     rules:
+       - error: {lhs: forkIO, rhs: async, name: "No forkIO"}
+       - error: {lhs: forkProcess, rhs: async, name: "No forkProcess"}
+       - error: {lhs: head, rhs: headMay, name: "No head"}
+       - error: {lhs: tail, rhs: tailMay, name: "No tail"}
+       - error: {lhs: init, rhs: initMay, name: "No init"}
+       - error: {lhs: last, rhs: lastMay, name: "No last"}
+       - error: {lhs: (!!), rhs: indexMay, name: "No !!"}
+       - error: {lhs: fromJust, rhs: fromMaybe, name: "No fromJust"}
+       - error: {lhs: read, rhs: readMay, name: "No read"}
+       - error: {lhs: toEnum, rhs: toEnumMay, name: "No toEnum"}
+       - error: {lhs: Prelude.fromEnum, rhs: Prelude.SafeEnum.fromEnum, name: "No fromEnum"}
+       - error: {lhs: succ, rhs: succMay, name: "No succ"}
+       - error: {lhs: pred, rhs: predMay, name: "No pred"}
+       - error: {lhs: minimum, rhs: minimumMay, name: "No minimum"}
+       - error: {lhs: maximum, rhs: maximumMay, name: "No maximum"}
+       - error: {lhs: minimumBy, rhs: minimumByMay, name: "No minimumBy"}
+       - error: {lhs: maximumBy, rhs: maximumByMay, name: "No maximumBy"}
+       - error: {lhs: decodeUtf8, rhs: decodeUtf8', name: "No decodeUtf8"}
+       - error: {lhs: throw, rhs: throwIO, name: "No throw"}
+       - error: {lhs: undefined, rhs: die, name: "No undefined"}
+       - error: {lhs: error, rhs: die}
+       - error: {lhs: Double, rhs: Fixed, name: "No Double"}
+       - error: {lhs: Float, rhs: Fixed, name: "No Float"}
+       - error: {lhs: fromIntegral, rhs: toIntegralSized, name: "No fromIntegral"}
+       - error: {lhs: fromString, rhs: encodeUtf8, name: "No fromString"}
+       - error: {lhs: System.IO.getChar, rhs: Data.ByteString.getChar}
+       - error: {lhs: System.IO.getLine, rhs: Data.ByteString.getLine}
+       - error: {lhs: System.IO.getContents, rhs: Data.ByteString.getContents}
+       - error: {lhs: System.IO.interact, rhs: Data.ByteString.interact}
+       - error: {lhs: System.IO.readIO, rhs: Data.ByteString.readIO}
+       - error: {lhs: System.IO.readLn, rhs: Data.ByteString.readLn}
+       - error: {lhs: System.IO.readFile, rhs: Data.ByteString.readFile}
+       - error: {lhs: System.IO.putChar, rhs: Data.ByteString.putChar}
+       - error: {lhs: System.IO.print, rhs: Data.ByteString.print}
+       - error: {lhs: System.IO.writeFile, rhs: Data.ByteString.writeFile}
+       - error: {lhs: System.IO.appendFile, rhs: Data.ByteString.appendFile}
+       - error: {lhs: Data.Text.IO.readFile, rhs: Data.ByteString.readFile}
+       - error: {lhs: Data.Text.IO.Lazy.readFile, rhs: Data.ByteString.Lazy.readFile}
+       - error: {lhs: nub, rhs: ordNub}
+       - error: {lhs: foldl, rhs: foldl'}
+       - error: {lhs: foldMap, rhs: foldMap'}
+       - error: {lhs: sum, rhs: foldl'}
+       - error: {lhs: product, rhs: foldl'}
+       - error: {lhs: genericLength, rhs: length}
+       - error: {lhs: unsafePeriodIO, rhs: id, name: "No unsafePerformIO"}
+       - error: {lhs: unsafeDupablePerformIO, rhs: id, name: "No unsafeDupablePerformIO"}
+       - error: {lhs: unsafeInterleaveIO, rhs: id, name: "No unsafeInterleaveIO"}
+       - error: {lhs: unsafeFixIO, rhs: id, name: "No unsafeFixIO"}
+       - error: {lhs: accursedUnutterablePerformIO, rhs: id, name: "No accursedUnutterablePerformIO"}
+       - hint: {lhs: return, rhs: pure, name: "Use pure"}
+       - error: {lhs: findMax, rhs: lookupMax, name: "No findMax"}
+       - error: {lhs: findMin, rhs: lookupMin, name: "No findMin"}
