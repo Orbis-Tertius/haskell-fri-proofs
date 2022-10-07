@@ -15,13 +15,14 @@ common globals
     TypeFamilies
 
   ghc-options:
-    -Werror -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
+    -Weverything -Wno-all-missed-specialisations -Wno-implicit-prelude
     -Wno-missing-safe-haskell-mode -Wno-prepositive-qualified-module
     -Wno-safe -Wno-unsafe
 
 library
   import:             globals
   exposed-modules:
+    Die
     Plonk.Arithmetization
     Plonk.Example
     Plonk.FFT
@@ -59,10 +60,12 @@ library
     , extra
     , finite-field
     , generic-lens
+    , ghc
     , groups
     , lens
     , listsafe
     , polynomial-algebra
+    , safe
     , serialise
     , vinyl
     , basement
@@ -94,10 +97,12 @@ test-suite spec
     , cryptonite
     , fri-proofs
     , generic-lens
+    , ghc
     , hedgehog
     , lens
     , polynomial-algebra
     , QuickCheck
+    , safe
     , tasty
     , tasty-hedgehog
     , vinyl

@@ -23,6 +23,7 @@ import Data.Generics.Labels ()
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Data.Word (Word64)
+import Die (die)
 import Hedgehog (Gen)
 import Hedgehog.Gen
   ( bytes,
@@ -74,7 +75,7 @@ defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
   FriConfiguration
     (Offset generator)
-    (Omega . fromMaybe (error "could not find omega") $ primitiveNthRoot dl)
+    (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
     (ExpansionFactor 2)
     (NumColinearityTests 4)
@@ -104,7 +105,7 @@ genCommitment = Commitment . MerkleHash <$> genByteString
 genCapCommitment :: Gen CapCommitment
 genCapCommitment = do
   n :: Int <- (2 ^) <$> enum (0 :: Int) 6
-  CapCommitment . fromMaybe (error "could not generate binary tree")
+  CapCommitment . fromMaybe (die "could not generate binary tree")
     . BinaryTree.fromList
     <$> list (Range.singleton n) genCommitment
 
@@ -146,10 +147,10 @@ genBinaryTree :: Gen a -> Gen (Word64, [a], BinaryTree a)
 genBinaryTree g = do
   n <- genBinaryTreeSize
   xs <- list (Range.singleton (word64ToInt n)) g
-  return
+  pure
     ( n,
       xs,
-      fromMaybe (error "failed to generate binary tree")
+      fromMaybe (die "failed to generate binary tree")
         . BinaryTree.fromList
         $ xs
     )

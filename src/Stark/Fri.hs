@@ -36,13 +36,14 @@ import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
-import Data.List (find, inits, zip4, zip5)
+import Data.List (find, inits, zip4, zip5, foldl')
 import qualified Data.List.Safe as L
 import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Tuple.Extra (fst3, snd3, thd3)
 import Debug.Trace (trace)
+import Die (die)
 import Stark.BinaryTree (fromList)
 import Stark.Cast
   ( intToWord64,
@@ -114,15 +115,15 @@ getCodeword config poly =
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
-  foldl (\acc b -> (acc `shift` 8) `xor` Index (word8ToWord64 b)) 0 (unpack bs)
+  foldl' (\acc b -> (acc `shift` 8) `xor` Index (word8ToWord64 b)) 0 (unpack bs)
     `mod` Index len
 
 sampleIndices :: RandomSeed -> ListSize -> ReducedListSize -> SampleSize -> Set Index
 sampleIndices seed ls rls@(ReducedListSize rls') (SampleSize n)
-  | n > rls' = error "cannot sample more indices than available in last codeword"
-  | n > 2 * rls' = error "not enough entropy in indices wrt last codeword"
+  | n > rls' = die "cannot sample more indices than available in last codeword"
+  | n > 2 * rls' = die "not enough entropy in indices wrt last codeword"
   | otherwise =
-    fromMaybe (error "the impossible has happened: sampleIndices reached the end of the list")
+    fromMaybe (die "the impossible has happened: sampleIndices reached the end of the list")
       . find ((>= n) . intToWord64 . Set.size)
       $ fst3 <$> iterate (sampleIndicesStep seed ls rls) (mempty, mempty, 0)
 
@@ -178,7 +179,7 @@ addQueries q (ProofStream commitments queries codewords authPaths) =
 addCodeword :: Codeword -> ProofStream -> ProofStream
 addCodeword c (ProofStream commitments queries Nothing authPaths) =
   ProofStream commitments queries (Just c) authPaths
-addCodeword _ _ = error "tried to add the last codeword but it is already present"
+addCodeword _ _ = die "tried to add the last codeword but it is already present"
 
 addAuthPaths :: [AuthPaths] -> ProofStream -> ProofStream
 addAuthPaths ps (ProofStream commitments queries codewords authPaths) =
@@ -187,13 +188,13 @@ addAuthPaths ps (ProofStream commitments queries codewords authPaths) =
 commitCodeword :: CapLength -> Codeword -> CapCommitment
 commitCodeword capLength =
   Merkle.commit capLength
-    . fromMaybe (error "codeword is not a binary tree")
+    . fromMaybe (die "codeword is not a binary tree")
     . fromList
     . unCodeword
 
 openCodeword :: CapLength -> Codeword -> Index -> AuthPath
 openCodeword capLength (Codeword xs) (Index i) =
-  Merkle.open capLength (Index i) (fromMaybe (error "codeword is not a binary tree") (fromList xs))
+  Merkle.open capLength (Index i) (fromMaybe (die "codeword is not a binary tree") (fromList xs))
 
 commitPhase ::
   DomainLength ->
@@ -207,7 +208,7 @@ commitPhase ::
 commitPhase domainLength expansionFactor numColinearityTests capLength omega offset codeword =
   let n = numRounds domainLength expansionFactor numColinearityTests capLength
       (proofStream', codewords', codeword', _, _) =
-        fromMaybe (error "could not find last commit round") $
+        fromMaybe (die "could not find last commit round") $
           iterate (commitRound capLength) (emptyProofStream, [], codeword, omega, offset)
             L.!! (n - 1)
    in ( addCodeword
@@ -252,7 +253,7 @@ queryRound
     let aIndices = cIndices
         bIndices = (+ Index (intToWord64 (length currentCodeword `quot` 2))) <$> cIndices
         leafProofElems =
-          fromMaybe (error $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices))
+          fromMaybe (die $ "missing leaf: " <> show (length currentCodeword, length nextCodeword, cIndices, aIndices, bIndices))
             <$> zipWith3
               (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
               ((currentCodeword L.!!) <$> aIndices)
@@ -273,7 +274,7 @@ queryRound
 
 queryPhase :: CapLength -> [Codeword] -> [Index] -> ProofStream -> ProofStream
 queryPhase capLength codewords indices proofStream =
-  snd3 . fromMaybe (error "could not find last query round") $
+  snd3 . fromMaybe (die "could not find last query round") $
     iterate f (indices, proofStream, 0) L.!! max 0 (length codewords - 2)
   where
     f :: ([Index], ProofStream, Int) -> ([Index], ProofStream, Int)
@@ -285,7 +286,7 @@ queryPhase capLength codewords indices proofStream =
       )
 
     e :: Int -> Maybe a -> a
-    e x = fromMaybe (error ("missing codeword " <> show x))
+    e x = fromMaybe (die ("missing codeword " <> show x))
 
 prove :: FriConfiguration -> Codeword -> (ProofStream, [Index])
 prove (FriConfiguration offset omega domainLength expansionFactor numColinearityTests capLength) codeword
@@ -308,7 +309,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
                       ( length
                           ( unCodeword
                               ( fromMaybe
-                                  (error "missing second codeword")
+                                  (die "missing second codeword")
                                   (codewords L.!! (1 :: Int))
                               )
                           )
@@ -320,7 +321,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
                       ( length
                           ( unCodeword
                               ( fromMaybe
-                                  (error "missing last codeword")
+                                  (die "missing last codeword")
                                   (codewords L.!! (length codewords - 1))
                               )
                           )
@@ -330,7 +331,7 @@ prove (FriConfiguration offset omega domainLength expansionFactor numColinearity
               (SampleSize (unNumColinearityTests numColinearityTests))
         proofStream1 = queryPhase capLength codewords indices proofStream0
      in (proofStream1, indices)
-  | otherwise = error "domain length does not match length of initial codeword"
+  | otherwise = die "domain length does not match length of initial codeword"
 
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
@@ -346,7 +347,7 @@ getLastOffset config =
 -- the list of corresponding challenges.
 getAlphas :: [CapCommitment] -> [Challenge]
 getAlphas roots =
-  fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> tail (inits roots)
+  fiatShamirChallenge . (\cs -> ProofStream cs [] Nothing []) <$> drop 1 (inits roots)
 
 -- Returns evaluations of the polynomial at the indices if the proof is valid, or Nothing otherwise.
 verify :: FriConfiguration -> ProofStream -> Bool
@@ -356,7 +357,7 @@ verify config proofStream =
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
       nr = numRounds (config ^. #domainLength) (config ^. #expansionFactor) (config ^. #numColinearityTests) (config ^. #capLength)
-      lastRoot = fromMaybe (error "could not find last root") $ roots L.!! (length roots - 1)
+      lastRoot = fromMaybe (die "could not find last root") $ roots L.!! (length roots - 1)
    in case (proofStream ^. #lastCodeword, roots) of
         (Just lastCodeword, _ : _) ->
           let lastCodewordLength = length (unCodeword lastCodeword)

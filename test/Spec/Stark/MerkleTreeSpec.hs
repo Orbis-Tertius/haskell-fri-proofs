@@ -5,6 +5,7 @@ module Spec.Stark.MerkleTreeSpec (testMerkleTree) where
 import Crypto.Number.Basic (log2)
 import Hedgehog (Property, assert, forAll, property)
 import Hedgehog.Gen (enum)
+import Safe (atMay)
 import Spec.Gen
   ( genAuthPath,
     genBinaryTree,
@@ -40,8 +41,11 @@ propVerifiesOpenings = property $ do
   i <- forAll (Index <$> enum 0 (s - 1))
   let c = commit capLength t
       p = open capLength i t
-      x = xs !! word64ToInt (unIndex i)
-  assert $ uncurry4 (verify capLength) (c, i, p, x)
+      mx = xs `atMay` word64ToInt (unIndex i)
+  case mx of
+    Just x ->
+      assert $ uncurry4 (verify capLength) (c, i, p, x)
+    Nothing -> assert False
 
 propRejectsRandomInputs :: Property
 propRejectsRandomInputs = property $ do

@@ -3,7 +3,7 @@
 module Spec.Stark.UnivariatePolynomialSpec (testUnivariatePolynomial) where
 
 import Control.Monad (forM_, unless)
-import Data.List (nub)
+import GHC.Utils.Misc (ordNub)
 import Hedgehog
   ( Property,
     assert,
@@ -31,7 +31,7 @@ propInterpolate :: Property
 propInterpolate = property $ do
   points <-
     forAll
-      ( zip <$> (nub <$> list (Range.linear 1 10) genScalar)
+      ( zip <$> (ordNub <$> list (Range.linear 1 10) genScalar)
           <*> list (Range.linear 1 10) genScalar
       )
   let p = interpolate points
@@ -43,7 +43,7 @@ propRecognizesColinear = property $ do
     forAll
       ( (,,) <$> genScalar
           <*> genScalar
-          <*> (nub <$> list (Range.linear 1 10) genScalar)
+          <*> (ordNub <$> list (Range.linear 1 10) genScalar)
       )
   let y x = m * x + b
       ys = y <$> xs
@@ -57,7 +57,7 @@ propRejectsNonColinear = property $ do
           <*> genScalar
           <*> genScalar
           <*> ( (:) <$> genScalar
-                  <*> (nub <$> list (Range.linear 1 10) genScalar)
+                  <*> (ordNub <$> list (Range.linear 1 10) genScalar)
               )
       )
   let y x = m * x + b

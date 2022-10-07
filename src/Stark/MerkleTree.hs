@@ -13,6 +13,7 @@ import Crypto.Number.Basic (log2)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Maybe (fromMaybe)
 import Debug.Trace (trace)
+import Die (die)
 import qualified Stark.BinaryTree as Tree
 import Stark.Cast (intToWord64, word64ToInteger)
 import Stark.Hash (hash)
@@ -54,7 +55,7 @@ open__ i t@(IsNode x y) =
    in if i < m
         then open__ i x <> AuthPath [commitCapLeaf y]
         else open__ (i - m) y <> AuthPath [commitCapLeaf x]
-open__ i t = error ("open_ pattern match failure: " <> show (i, t))
+open__ i t = die ("open_ pattern match failure: " <> show (i, t))
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
 open_ (CapLength capLength) i t =
@@ -70,8 +71,8 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
   case p of
     AuthPath [] ->
       let z =
-            fromMaybe (error "capLeaves index out of range 0") $
-              capLeaves Tree.!! i
+            fromMaybe (die "capLeaves index out of range 0") $
+              capLeaves `Tree.at` i
        in ( unIndex i < unCapLength capLength
               || trace ("index out of range: " <> show i <> " should be <" <> show capLength) False
           )

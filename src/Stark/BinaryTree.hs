@@ -2,7 +2,7 @@ module Stark.BinaryTree
   ( depth,
     size,
     fromList,
-    (!!),
+    at,
   )
 where
 
@@ -38,9 +38,9 @@ fromList xs =
   let (ls, rs) = splitAt (length xs `quot` 2) xs
    in IsNode <$> fromList ls <*> fromList rs
 
-(!!) :: BinaryTree a -> Index -> Maybe a
-(IsLeaf x) !! 0 = Just x
-(IsLeaf _) !! _ = Nothing
-(IsNode x y) !! i =
+at :: BinaryTree a -> Index -> Maybe a
+(IsLeaf x) `at` 0 = Just x
+(IsLeaf _) `at` _ = Nothing
+(IsNode x y) `at` i =
   let n = intToWord64 (size x)
-   in if unIndex i < n then x !! i else y !! (i - Index n)
+   in if unIndex i < n then x `at` i else y `at` (i - Index n)

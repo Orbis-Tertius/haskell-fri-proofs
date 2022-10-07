@@ -11,6 +11,7 @@ module Stark.UnivariatePolynomial
   )
 where
 
+import Data.List (foldl')
 import Data.Map
   ( elems,
     lookupMax,
@@ -50,7 +51,7 @@ constant coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 0) coef)))
 
 lagrangeBases :: [Scalar] -> [UnivariatePolynomial Scalar]
 lagrangeBases xs =
-  [ product
+  [ foldl' (*) 1
       [ (linear 1 - constant xi) * constant (recip (xj - xi))
         | xi <- xs,
           xj /= xi
@@ -61,7 +62,7 @@ lagrangeBases xs =
 interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
 interpolate ps =
   normalize $
-    sum
+    foldl' (+) 0
       [ constant yj * lj
         | (yj, lj) <- zip (snd <$> ps) (lagrangeBases (fst <$> ps))
       ]

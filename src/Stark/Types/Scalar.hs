@@ -28,6 +28,7 @@ import qualified Data.FiniteField.Base as F
 import Data.Kind (Type)
 import Data.Ratio (denominator, numerator)
 import Data.Word (Word64)
+import Die (die)
 import Math.Algebra.Polynomial.Class (Ring)
 import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
 import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
@@ -110,7 +111,7 @@ generator = Scalar 7
 primitiveBigPowerOfTwoRoot :: Scalar
 primitiveBigPowerOfTwoRoot = case primitiveNthRoot (2 ^ (32 :: Integer)) of
   Just x -> x
-  Nothing -> error "impossible"
+  Nothing -> die "impossible"
 
 normalize :: Scalar -> Scalar
 normalize = Scalar . toWord64
@@ -119,7 +120,7 @@ primitiveNthRoot :: Word64 -> Maybe Scalar
 primitiveNthRoot n = do
   guard (n <= initOrder)
   guard (n .&. (n - 1) == 0)
-  return . normalize $ f initRoot initOrder
+  pure . normalize $ f initRoot initOrder
   where
     initRoot = generator ^ (4294967295 :: Int)
 
@@ -155,17 +156,17 @@ instance Num Scalar where
     case fromWord64 . fromInteger $
       n `mod` word64ToInteger order of
       Just n' -> n'
-      Nothing -> error (show n <> " is not less than " <> show order)
+      Nothing -> die (show n <> " is not less than " <> show order)
   (+) = addScalar
   (*) = mulScalar
   negate = negateScalar
-  abs = error "abs Scalar unimplemented"
-  signum = error "signum Scalar unimplemented"
+  abs = die "abs Scalar unimplemented"
+  signum = die "signum Scalar unimplemented"
 
 instance Fractional Scalar where
   recip x = case inverseScalar x of
     Just y -> y
-    Nothing -> error "0 has no reciprocal"
+    Nothing -> die "0 has no reciprocal"
   fromRational x =
     (if x < 0 then negate else id) $
       fromInteger (numerator (abs x))
@@ -175,10 +176,11 @@ instance Eq Scalar where
   x == y = toWord64 x == toWord64 y
 
 instance Enum Scalar where
+  {- HLINT ignore "No toEnum" -}
   toEnum n = case fromWord64 . toEnum $ n of
     Just n' -> n'
-    Nothing -> error "out of bounds"
-  fromEnum = error "Enum Scalar: fromEnum is unsafe"
+    Nothing -> die "out of bounds"
+  fromEnum = die "Enum Scalar: fromEnum is unsafe"
 
 instance Ord Scalar where
   compare x y = compare (toWord64 x) (toWord64 y)
@@ -191,8 +193,8 @@ instance Integral Scalar where
   a `quot` b =
     case inverseScalar b of
       Just c -> a * c
-      Nothing -> error "Scalar division by zero"
-  quotRem = error "quotRem Scalar unimplemented"
+      Nothing -> die "Scalar division by zero"
+  quotRem = die "quotRem Scalar unimplemented"
 
 sample :: BS.ByteString -> Scalar
 sample = fromInteger . sampleInteger

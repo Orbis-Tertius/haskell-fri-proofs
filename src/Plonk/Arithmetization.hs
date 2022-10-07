@@ -44,6 +44,7 @@ import           Plonk.Types.Circuit                (Challenge (Challenge),
 import           Plonk.Types.Fin                    (Fin (FS, FZ))
 import           Plonk.Types.Vect                   (Vect, toList)
 import           Stark.Types.UnivariatePolynomial   (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
+import Die (die)
 
 
 columnVectorToPoly
@@ -143,7 +144,7 @@ class RelativeCellRefToPoly ps n where
     -> UnivariatePolynomial a
 
 instance RelativeCellRefToPoly '[] 'Z where
-  relativeCellRefToPoly _ CNil _ = error "impossible"
+  relativeCellRefToPoly _ CNil _ = die "impossible: relativeCellRefToPoly _ CNil _"
 
 instance RelativeCellRefToPoly xs z => RelativeCellRefToPoly ('MkCol j k ': xs) ('S z) where
   relativeCellRefToPoly
@@ -218,7 +219,7 @@ polynomialLongDivision p0 q = go zeroP p0 where
 
   (bq,cq) = case findMaxTerm' q of
     Just bc -> bc
-    Nothing -> error "polynomialLongDivision: division by zero"
+    Nothing -> die "polynomialLongDivision: division by zero"
 
   go !acc !p = case findMaxTerm' p of
     Nothing      -> (acc,zeroP)
