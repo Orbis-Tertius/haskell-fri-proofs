@@ -64,7 +64,7 @@
         buildInputs = attrs.buildInputs ++ [
           hsPkgs.cabal-install
           pkgs.nixpkgs-fmt
-          hsPkgs.ghcid
+          pkgs.ghcid
           pkgs.ormolu
           hsPkgs.hlint
         ];
