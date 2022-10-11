@@ -52,13 +52,13 @@ type MyCols :: [ColType]
 type MyCols = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon ]
 
 type MyCircuitShape :: DegreeBound -> Type
-type MyCircuitShape d = CircuitShape (Vect ('S ('S ('S ('S 'Z))))) MyCols 'WithData d Scalar
+type MyCircuitShape d = CircuitShape [] MyCols 'WithData d Scalar
 
 exampleCS :: MyCircuitShape d
-exampleCS = Compose (Identity 1  :- Identity 0 :- Identity 1 :- Identity 0 :- Nil)
-       :& Compose (Identity 1 :- Identity 1  :- Identity 0 :- Identity 0 :- Nil)
-       :& Compose (Identity 1  :- Identity 0 :- Identity 0 :- Identity 0 :- Nil)
-       :& Compose (Identity 1  :- Identity 1 :- Identity 0 :- Identity 0 :- Nil)
+exampleCS = Compose [Identity 1, Identity 0, Identity 1]
+       :& Compose [Identity 1, Identity 1, Identity 0, Identity 0]
+       :& Compose [Identity 1, Identity 0, Identity 0, Identity 0]
+       :& Compose [Identity 1, Identity 1, Identity 0, Identity 0]
        :& CNil
 
 type N4 :: Nat
@@ -68,7 +68,7 @@ exampleGC :: [GateConstraint N4 N4 Scalar]
 exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) 1)]
 
 type MyCircuitM :: Type
-type MyCircuitM = CircuitM (Vect N4) MyCols 'WithData N4 Scalar
+type MyCircuitM = CircuitM [] MyCols 'WithData N4 Scalar
 
 type MyCircuitU :: Type
 type MyCircuitU = CircuitM UnivariatePolynomial MyCols 'WithData N4 Scalar

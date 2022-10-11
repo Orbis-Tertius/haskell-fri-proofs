@@ -50,10 +50,10 @@ columnVectorToPoly
   :: Group a
   => Num a
   => Domain n a
-  -> Vect n a
+  -> [a]
   -> UnivariatePolynomial a
 columnVectorToPoly d xs = UnivariatePolynomial . Uni . FreeMod $
-  Map.fromList (zip (U <$> [0..]) (fft d (toList xs)))
+  Map.fromList (zip (U <$> [0..]) (fft d xs))
 
 
 circuitWithDataToPolys

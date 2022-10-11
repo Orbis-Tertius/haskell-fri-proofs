@@ -126,7 +126,7 @@ data CircuitM f ps h d a =
   deriving stock Generic
 
 type Circuit :: [ColType] -> HasData -> NumRows -> DegreeBound -> Type -> Type
-type Circuit ps h m = CircuitM (Vect m) ps h
+type Circuit ps h m = CircuitM [] ps h
 
 infixr 7 :&
 
