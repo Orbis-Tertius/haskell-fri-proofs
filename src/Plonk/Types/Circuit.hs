@@ -4,7 +4,7 @@
 module Plonk.Types.Circuit
   ( Length
   , CircuitShape (..)
-  , CircuitM (CircuitM)
+  , CircuitM (CircuitM, shape, constraints)
   , Circuit
   , Constraint
   , GateConstraint (..)
@@ -33,7 +33,6 @@ import           GHC.Generics                                 (Generic)
 import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
 import           Math.Algebra.Polynomial.Pretty               (Pretty (pretty))
 import           Plonk.Types.Fin                              (Fin)
-import           Plonk.Types.Vect                             (Vect)
 import           Plonk.Types.Z2                               (Z2 (One, Zero))
 
 type Length :: [b] -> Nat

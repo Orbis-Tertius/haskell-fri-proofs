@@ -29,7 +29,6 @@ library
     Plonk.Transcript
     Plonk.Types.Circuit
     Plonk.Types.Fin
-    Plonk.Types.Vect
     Plonk.Types.Z2
     Stark.BinaryTree
     Stark.FiniteField
