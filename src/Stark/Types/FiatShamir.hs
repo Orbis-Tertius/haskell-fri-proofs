@@ -27,9 +27,10 @@ class Sampleable a where
 
 
 type IOP :: Type -> Type -> (Type -> Type) -> Type -> Type
-data IOP c t w m a where
-  AppendToTranscript
-    :: m t -> IOP c t w m ()
+data IOP c t w s m a where
+  GetSetupData :: s
+  Setup :: m s
+  AppendToTranscript :: m t -> IOP c t w m ()
   Reject :: IOP c t m ()
   SampleChallenge :: IOP c t m c
 
@@ -38,6 +39,7 @@ proverFiatShamir
   => Serialise t
   => Members '[State t] r
   => Members '[Input w] r
+  => Members '[Input s] r
   => Monoid t
   => w -> Sem (IOP c t w ': r) a -> Sem r a
 
@@ -45,7 +47,14 @@ verifierFiatShamir
   :: Sampleable c
   => Serialise t
   => Members '[Input [t]] r
+  => Members '[Input s] r
   => Sem (IOP c [t] ': r) a -> Sem r a
+
+setup
+  :: Sampleable c
+  => Serialise t
+  => Sem (IOP c [t] ': r) a -> Sem r s
+
 
 -- 
 -- 
