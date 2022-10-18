@@ -6,8 +6,13 @@
 
 module Stark.Types.FiatShamir
   ( IOP
+  , setup
+  , getTranscript
   , appendToTranscript
-  , fiatShamir
+  , reject
+  , sampleChallenge
+  , proverFiatShamir
+  , verifierFiatShamir
   , sampleChallenge
   , Sampleable(sample)
   ) where
@@ -18,6 +23,7 @@ import qualified Data.ByteString      as BS
 import qualified Data.ByteString.Lazy as BSL
 import           Data.Kind            (Constraint, Type)
 import           Polysemy             (Members, Sem, interpret, makeSem)
+import Polysemy.Input (Input)
 import           Polysemy.State       (State, get, put)
 
 
@@ -26,13 +32,23 @@ class Sampleable a where
   sample :: BS.ByteString -> a
 
 
-type IOP :: Type -> Type -> (Type -> Type) -> Type -> Type
-data IOP c t w s m a where
-  GetSetupData :: s
-  Setup :: m s
-  AppendToTranscript :: m t -> IOP c t w m ()
-  Reject :: IOP c t m ()
-  SampleChallenge :: IOP c t m c
+type IOP
+  :: Type -- c
+  -> Type -- t
+  -> Type -- w
+  -> Type -- s
+  -> (Type -> Type) -- pm
+  -> (Type -> Type) -- m
+  -> Type -- a
+  -> Type
+data IOP c t w s pm m a where
+  Setup :: IOP c t w s pm m s
+  GetTranscript :: IOP c t w s pm m t
+  AppendToTranscript :: pm t -> IOP c t w s pm m ()
+  Reject :: IOP c t w s pm m ()
+  SampleChallenge :: IOP c t w s pm m c
+
+makeSem ''IOP
 
 proverFiatShamir
   :: Sampleable c
@@ -41,19 +57,20 @@ proverFiatShamir
   => Members '[Input w] r
   => Members '[Input s] r
   => Monoid t
-  => w -> Sem (IOP c t w ': r) a -> Sem r a
+  => w -> Sem (IOP c t w s pm ': r) a -> Sem r a
+proverFiatShamir = todo
 
 verifierFiatShamir
   :: Sampleable c
   => Serialise t
   => Members '[Input [t]] r
   => Members '[Input s] r
-  => Sem (IOP c [t] ': r) a -> Sem r a
+  => Sem (IOP c t w s pm ': r) a -> Sem r a
+verifierFiatShamir = todo
 
-setup
-  :: Sampleable c
-  => Serialise t
-  => Sem (IOP c [t] ': r) a -> Sem r s
+
+todo :: a
+todo = todo
 
 
 -- 

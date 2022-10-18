@@ -33,6 +33,7 @@ library
     Stark.BinaryTree
     Stark.FiniteField
     Stark.Fri
+    Stark.FriIOP
     Stark.Fri.Types
     Stark.Hash
     Stark.MerkleTree
@@ -64,6 +65,8 @@ library
     , groups
     , lens
     , listsafe
+    , monad-extras
+    , mtl
     , polynomial-algebra
     , polysemy
     , polysemy-plugin
