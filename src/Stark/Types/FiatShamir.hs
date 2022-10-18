@@ -37,16 +37,15 @@ type IOP
   -> Type -- t
   -> Type -- w
   -> Type -- s
-  -> (Type -> Type) -- pm
   -> (Type -> Type) -- m
   -> Type -- a
   -> Type
-data IOP c t w s pm m a where
-  Setup :: IOP c t w s pm m s
-  GetTranscript :: IOP c t w s pm m t
-  AppendToTranscript :: pm t -> IOP c t w s pm m ()
-  Reject :: IOP c t w s pm m ()
-  SampleChallenge :: IOP c t w s pm m c
+data IOP c t w s m a where
+  Setup :: IOP c t w s m s
+  GetTranscript :: IOP c t w s m t
+  AppendToTranscript :: t -> IOP c t w s m ()
+  Reject :: IOP c t w s m ()
+  SampleChallenge :: IOP c t w s m c
 
 makeSem ''IOP
 
@@ -57,7 +56,7 @@ proverFiatShamir
   => Members '[Input w] r
   => Members '[Input s] r
   => Monoid t
-  => w -> Sem (IOP c t w s pm ': r) a -> Sem r a
+  => w -> Sem (IOP c t w s ': r) a -> Sem r a
 proverFiatShamir = todo
 
 verifierFiatShamir
@@ -65,7 +64,7 @@ verifierFiatShamir
   => Serialise t
   => Members '[Input [t]] r
   => Members '[Input s] r
-  => Sem (IOP c t w s pm ': r) a -> Sem r a
+  => Sem (IOP c t w s ': r) a -> Sem r a
 verifierFiatShamir = todo
 
 
