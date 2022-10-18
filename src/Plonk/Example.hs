@@ -49,6 +49,7 @@ import           Stark.Types.FiatShamir                       (IOP, sampleChalle
 import           Stark.Types.UnivariatePolynomial             (UnivariatePolynomial)
 import Stark.UnivariatePolynomial (evaluate, linear, constant)
 import Stark.Types.Scalar (Scalar)
+import Plonk.Types.Z2 (PrimeField (MkElem))
 
 type MyCols :: [ColType]
 type MyCols = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon ]
@@ -80,6 +81,17 @@ type MyCircuitU = CircuitM UnivariatePolynomial MyCols 'WithData N4 Scalar
 
 exampleCircuit :: MyCircuitM
 exampleCircuit = CircuitM exampleCS exampleGC
+
+
+{--
+exampleSomething'
+  :: Member (IOP (Challenge (PrimeField 7) (Transcript (PrimeField 7)) r
+  => Member (Error String) r
+  => Sem r ()
+exampleSomething' = do
+  v <-  
+--}
+  
 
 exampleSomething
   :: Member (IOP (Challenge Scalar) (Transcript Scalar)) r

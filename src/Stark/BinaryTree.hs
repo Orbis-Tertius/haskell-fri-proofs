@@ -14,6 +14,10 @@ import           Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
 import           Stark.Types.Index      (Index (Index, unIndex))
 
 
+
+
+
+
 depth :: BinaryTree a -> Int
 depth (IsLeaf _)   = 0
 depth (IsNode x _) = 1 + depth x

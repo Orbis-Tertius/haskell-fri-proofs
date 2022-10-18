@@ -67,6 +67,7 @@ library
     , polynomial-algebra
     , polysemy
     , polysemy-plugin
+    , refined
     , serialise
     , vinyl
 

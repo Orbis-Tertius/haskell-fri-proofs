@@ -1,14 +1,60 @@
 module Plonk.Types.Z2
   ( Z2 (..)
+  , PrimeField (MkElem)
   ) where
 
 
 import           Data.Group                     (Group (invert))
 import           Data.Kind                      (Type)
 import           Data.Ratio                     (denominator, numerator)
+import           Data.Proxy                     (Proxy(Proxy))
+import           GHC.TypeLits                   (KnownNat, Nat, natVal)
 import           Math.Algebra.Polynomial.Class  (Ring)
 import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
 import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+import Refined (LessThan, Refined, refine, unrefine)
+import Refined.Unsafe (reallyUnsafeRefine)
+
+
+
+
+
+
+{--
+type Refined :: k -> Type -> Type
+data Refined p x where
+--}
+  
+
+
+
+
+type PrimeField :: Nat -> Type
+data PrimeField a where
+  MkElem :: Refined (LessThan a) Integer -> PrimeField a 
+  deriving stock (Eq, Show)
+
+instance KnownNat a => Num (PrimeField a) where
+  (+) :: PrimeField a -> PrimeField a -> PrimeField a
+  MkElem x + MkElem y = MkElem $ reallyUnsafeRefine $ (unrefine x + unrefine y) `mod` (natVal (Proxy @a))
+
+  (-) :: PrimeField a -> PrimeField a -> PrimeField a
+  MkElem x - MkElem y = MkElem $ reallyUnsafeRefine $ (unrefine x - unrefine y) `mod` (natVal (Proxy @a))
+
+  (*) :: PrimeField a -> PrimeField a -> PrimeField a
+  MkElem x * MkElem y = MkElem $ reallyUnsafeRefine $ (unrefine x * unrefine y) `mod` (natVal (Proxy @a))
+
+  negate :: PrimeField a -> PrimeField a
+  negate (MkElem x) = MkElem $ reallyUnsafeRefine $ natVal (Proxy @a) - unrefine x
+
+  fromInteger :: Integer -> PrimeField a
+  fromInteger x = MkElem $ reallyUnsafeRefine $ unrefine x `mod` (natVal (Proxy @a))
+
+{--
+instance KnownNat a => Fractional (PrimeField a) where
+  recip :: PrimeField a -> PrimeField a
+  recip x = undefined
+--}
 
 type Z2 :: Type
 data Z2 = Zero | One

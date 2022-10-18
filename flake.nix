@@ -8,8 +8,12 @@
       url = "git+https://gitlab.homotopic.tech/nix/lint-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    horizon-platform = {
+      url = "git+https://gitlab.homotopic.tech/horizon/horizon-platform";
+    };
     horizon-orbis = {
       url = "git+ssh://git@github.com/Orbis-Tertius/horizon-orbis";
+      inputs.horizon-platform.follows = "horizon-platform";
     };
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   };
