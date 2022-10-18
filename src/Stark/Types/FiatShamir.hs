@@ -13,18 +13,16 @@ module Stark.Types.FiatShamir
   , sampleChallenge
   , proverFiatShamir
   , verifierFiatShamir
-  , sampleChallenge
   , Sampleable(sample)
   ) where
 
 
-import           Codec.Serialise      (Serialise, serialise)
+import           Codec.Serialise      (Serialise)
 import qualified Data.ByteString      as BS
-import qualified Data.ByteString.Lazy as BSL
 import           Data.Kind            (Constraint, Type)
-import           Polysemy             (Members, Sem, interpret, makeSem)
+import           Polysemy             (Members, Sem, makeSem)
 import Polysemy.Input (Input)
-import           Polysemy.State       (State, get, put)
+import           Polysemy.State       (State)
 
 
 type Sampleable :: Type -> Constraint

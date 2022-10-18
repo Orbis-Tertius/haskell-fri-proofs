@@ -5,28 +5,31 @@
 
 
 module Stark.FriIOP
-  (
+  ( ProverState (ProverState)
+  , fri
+  , FriDSL (GenerateCommitment, GetLastCodeword)
+  , commitPhase
   ) where
 
 
-import Control.Lens ((^.), _1, _3)
+import Control.Lens ((^.), _1)
 import "monad-extras" Control.Monad.Extra (iterateM)
-import Control.Monad.State (State, get, put)
 import Data.Kind (Type)
 import Polysemy (Sem, Member, makeSem)
-import Stark.Fri (numRounds, addCommitment, commitCodeword, emptyProofStream, addCodeword, splitAndFold)
-import Stark.Fri.Types (Challenge, ProofStream (..), FriConfiguration, Codeword, DomainLength, ExpansionFactor, NumColinearityTests, Omega, Offset)
+import Stark.Fri (numRounds, emptyProofStream, addCodeword)
+import Stark.Fri.Types (Challenge, ProofStream, FriConfiguration, Codeword, DomainLength, ExpansionFactor, NumColinearityTests, Omega, Offset, Query, AuthPaths)
 import Stark.Types.CapLength (CapLength)
-import Stark.Types.FiatShamir (IOP, appendToTranscript, sampleChallenge, getTranscript)
+import Stark.Types.FiatShamir (IOP, appendToTranscript, sampleChallenge, getTranscript, reject)
 import Stark.Types.Index (Index)
 
 
+type FriIOP :: (Type -> Type) -> Type -> Type
 type FriIOP = IOP Challenge ProofStream () ()
 
 
+type ProverState :: Type
 data ProverState =
-  ProverState
-  { codewords :: [Codeword] }
+  ProverState [Codeword]
 
 
 fri :: FriConfiguration
@@ -38,10 +41,14 @@ todo :: a
 todo = todo
 
 
+newtype RoundIndex = RoundIndex Int
+
+
 type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
   GenerateCommitment :: ProofStream -> Challenge -> Omega -> Offset -> FriDSL m ProofStream
   GetLastCodeword :: FriDSL m (Maybe Codeword)
+  GetQueries :: RoundIndex -> Index -> FriDSL m ([Query], [AuthPaths])
 
 makeSem ''FriDSL
 
@@ -58,28 +65,41 @@ commitPhase
   -> Sem r ()
 commitPhase domainLength expansionFactor numColinearityTests capLength omega offset = do
   let n = numRounds domainLength expansionFactor numColinearityTests capLength
-  result <- iterateM (commitRound capLength)
-            (emptyProofStream, omega, offset)
+  appendToTranscript emptyProofStream
+  result <- take n <$> iterateM commitRound
+            (omega, offset)
   lastCodewordM <- getLastCodeword
   case lastCodewordM of
-    Just lastCodeword -> do
-      let lastResult = result !! (length result - 1)
-      appendToTranscript (addCodeword lastCodeword (lastResult ^. _1))
-    Nothing -> pure ()
+    Just lastCodeword ->
+      appendToTranscript . addCodeword lastCodeword =<< getTranscript
+    Nothing -> reject
 
 
 commitRound
   :: Member FriIOP r
   => Member FriDSL r
-  => CapLength
-  -> (ProofStream, Omega, Offset)
-  -> Sem r (ProofStream, Omega, Offset)
-commitRound capLength (proofStream, omega, offset) = do
+  => (Omega, Offset)
+  -> Sem r (Omega, Offset)
+commitRound (omega, offset) = do
   alpha <- sampleChallenge
-  t <- generateCommitment proofStream alpha omega offset
-  appendToTranscript t
-  proofStream' <- getTranscript
-  pure (proofStream', omega ^ two, offset ^ two)
+  proofStream <- getTranscript
+  proofStream' <- generateCommitment proofStream alpha omega offset
+  appendToTranscript proofStream'
+  pure (omega ^ two, offset ^ two)
   where two :: Integer
         two = 2
 
+
+queryPhase
+  :: Member FriIOP r
+  => Member FriDSL r
+  => [Index] -> Sem r ()
+queryPhase = todo
+
+
+queryRound
+  :: Member FriIOP r
+  => Member FriDSL r
+  => [Index]
+  -> Sem r ()
+queryRound = todo
