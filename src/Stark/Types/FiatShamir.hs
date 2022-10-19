@@ -1,4 +1,5 @@
 {-# LANGUAGE LambdaCase      #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies    #-}
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
@@ -6,9 +7,6 @@
 
 module Stark.Types.FiatShamir
   ( IOP
-  , setup
-  , getTranscript
-  , appendToTranscript
   , reject
   , sampleChallenge
   , proverFiatShamir
@@ -17,12 +15,16 @@ module Stark.Types.FiatShamir
   ) where
 
 
-import           Codec.Serialise      (Serialise)
+import           Codec.Serialise      (Serialise, serialise)
+import Control.Monad (unless)
 import qualified Data.ByteString      as BS
+import qualified Data.ByteString.Lazy as BSL
 import           Data.Kind            (Constraint, Type)
-import           Polysemy             (Members, Sem, makeSem)
-import Polysemy.Input (Input)
-import           Polysemy.State       (State)
+import Data.String (IsString)
+import           Polysemy             (Members, Sem, makeSem, interpret)
+import Polysemy.Error (Error, throw)
+import Polysemy.Input (Input, input)
+import           Polysemy.State       (State, get, put)
 
 
 type Sampleable :: Type -> Constraint
@@ -31,108 +33,75 @@ class Sampleable a where
 
 
 type IOP
-  :: Type -- c
-  -> Type -- t
-  -> Type -- w
-  -> Type -- s
-  -> (Type -> Type) -- m
-  -> Type -- a
+  :: Type -- c: challenge
+  -> Type -- r: response
+  -> (Type -> Type) -- m: monad
+  -> Type -- a: result
   -> Type
-data IOP c t w s m a where
-  Setup :: IOP c t w s m s
-  GetTranscript :: IOP c t w s m t
-  AppendToTranscript :: t -> IOP c t w s m ()
-  Reject :: IOP c t w s m ()
-  SampleChallenge :: IOP c t w s m c
+data IOP c r m a where
+  Reject :: IOP c r m a
+  SampleChallenge :: IOP c r m c
+  Respond :: r -> IOP c r m ()
+
+newtype Transcript r = Transcript { unTranscript :: [r] }
+  deriving (Eq, Semigroup, Monoid, Serialise)
 
 makeSem ''IOP
 
 proverFiatShamir
   :: Sampleable c
-  => Serialise t
-  => Members '[State t] r
-  => Members '[Input w] r
-  => Members '[Input s] r
-  => Monoid t
-  => w -> Sem (IOP c t w s ': r) a -> Sem r a
-proverFiatShamir = todo
+  => Serialise r
+  => Members '[State (Transcript r)] effs
+  => Sem (IOP c r ': effs) a -> Sem effs a
+proverFiatShamir =
+  interpret $
+    \case
+      Respond r -> do
+        put . (<> Transcript [r]) =<< get
+      SampleChallenge -> do
+        transcript <- get
+        pure (sample (BSL.toStrict (serialise transcript)))
+
+
+type TranscriptPartition :: Type -> Type
+newtype TranscriptPartition r =
+  TranscriptPartition
+  { unTranscriptPartition :: (Transcript r, Transcript r) }
+
+
+type ErrorMessage :: Type
+newtype ErrorMessage = ErrorMessage { unErrorMessage :: String }
+  deriving IsString
+
 
 verifierFiatShamir
   :: Sampleable c
-  => Serialise t
-  => Members '[Input [t]] r
-  => Members '[Input s] r
-  => Sem (IOP c t w s ': r) a -> Sem r a
-verifierFiatShamir = todo
+  => Serialise r
+  => Eq r
+  => Members '[Input (Transcript r)] effs
+  => Members '[State (TranscriptPartition r)] effs
+  => Members '[Error ErrorMessage] effs
+  => Sem (IOP c r ': effs) a -> Sem effs a
+verifierFiatShamir =
+  interpret $
+    \case
+      Respond r -> do
+        TranscriptPartition (consumed, unconsumed) <- get
+        case consumed of
+          Transcript [] -> put . TranscriptPartition . (Transcript mempty,) =<< input
+          _ -> pure ()
+        case unconsumed of
+          Transcript (r' : rest) -> do
+            unless (r == r')
+              (throw "verifierFiatShamir: out of order responses; maybe this proof does not match the statement?")
+            put $ TranscriptPartition
+                  (consumed <> Transcript [r'],
+                   Transcript rest)
+          Transcript [] -> throw "verifierFiatShamir: unexpected end of transcript"
+      SampleChallenge -> do
+        TranscriptPartition (consumed, _) <- get
+        pure (sample (BSL.toStrict (serialise consumed)))
 
 
 todo :: a
 todo = todo
-
-
--- 
--- 
--- -- Way 1
--- 
--- verify :: Statement -> Transcript -> Sem (IOP Challenge Transcript : r) Bool
--- 
--- prove :: Statement -> Witness -> Sem (IOP Challenge Transcript : r) Bool
--- 
--- fiatShamir (prove stmt witness)
--- 
--- fiatShamir (verify stmt proof)
--- 
--- r <- fiatShamir (verify stmt (fiatShamir (prove stmt witness)))
--- r === True
--- 
--- -- Way 2
--- 
--- prove :: Statement -> Witness -> Sem r Transcript
--- 
--- verify :: Statement -> Transcript -> Sem (IOP Challenge Transcript : r) Bool
--- 
--- prove' :: Statement -> Witness -> Sem (IOP Challenge Transcript : r) Bool
--- prove' stmt witness = verify stmt =<< prove stmt witness
--- 
--- makeSem ''IOP
--- 
--- fiatShamir
---   :: Sampleable c
---   => Serialise t
---   => Members '[State t] r
---   => Monoid t
---   => Sem (IOP c t ': r) a -> Sem r a
--- fiatShamir = interpret $
---   \case
---     AppendToTranscript t -> do
---      put . (<> t) =<< get
---     SampleChallenge -> do
---      x :: q <- get
---      pure (sample (BSL.toStrict (serialise x)))
--- 
--- 
--- -- Way 3
--- 
--- newtype IOP c t m a =
---   IOP [m (RoundFunction c t m a)]
---   deriving newtype Monoid
--- 
--- 
--- data RoundFunction c t m a =
---     ProverRound (t -> m a)
---   | VerifierRound (t -> VerifierResult c)
--- 
--- 
--- data VerifierResult c =
---     AcceptsFinally
---   | Rejects
---   | Challenges c
--- 
--- 
--- -- Way 4
--- 
--- data IOP c t m a w =
---   IOP
---   { prove :: t -> w -> m t
---   , verify :: t -> m Bool
---   }
