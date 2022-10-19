@@ -32,6 +32,11 @@ class Sampleable a where
   sample :: BS.ByteString -> a
 
 
+type ErrorMessage :: Type
+newtype ErrorMessage = ErrorMessage { unErrorMessage :: String }
+  deriving IsString
+
+
 type IOP
   :: Type -- c: challenge
   -> Type -- r: response
@@ -39,7 +44,7 @@ type IOP
   -> Type -- a: result
   -> Type
 data IOP c r m a where
-  Reject :: IOP c r m a
+  Reject :: ErrorMessage -> IOP c r m a
   SampleChallenge :: IOP c r m c
   Respond :: r -> IOP c r m ()
 
@@ -52,6 +57,7 @@ proverFiatShamir
   :: Sampleable c
   => Serialise r
   => Members '[State (Transcript r)] effs
+  => Members '[Error ErrorMessage] effs
   => Sem (IOP c r ': effs) a -> Sem effs a
 proverFiatShamir =
   interpret $
@@ -61,17 +67,13 @@ proverFiatShamir =
       SampleChallenge -> do
         transcript <- get
         pure (sample (BSL.toStrict (serialise transcript)))
+      Reject msg -> throw msg
 
 
 type TranscriptPartition :: Type -> Type
 newtype TranscriptPartition r =
   TranscriptPartition
   { unTranscriptPartition :: (Transcript r, Transcript r) }
-
-
-type ErrorMessage :: Type
-newtype ErrorMessage = ErrorMessage { unErrorMessage :: String }
-  deriving IsString
 
 
 verifierFiatShamir
@@ -101,6 +103,7 @@ verifierFiatShamir =
       SampleChallenge -> do
         TranscriptPartition (consumed, _) <- get
         pure (sample (BSL.toStrict (serialise consumed)))
+      Reject msg -> throw msg
 
 
 todo :: a
