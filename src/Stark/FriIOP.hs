@@ -29,13 +29,14 @@ import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Polysemy (Sem, Member, makeSem)
-import Stark.Fri (sampleIndex, commitCodeword)
-import Stark.Fri.Types (Challenge, FriConfiguration, Codeword, DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword (unLastCodeword), ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex))
+import Stark.Fri (sampleIndex, commitCodeword, getLastOmega, getLastOffset, evalDomain, getMaxDegree)
+import Stark.Fri.Types (Challenge, FriConfiguration, Codeword (unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword (unLastCodeword), ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex))
 import Stark.Hash (hash)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
 import Stark.Types.FiatShamir (IOP, sampleChallenge, reject)
 import Stark.Types.Index (Index (Index, unIndex))
+import Stark.UnivariatePolynomial (interpolate, degree)
 
 
 type FriResponse :: Type
@@ -122,6 +123,15 @@ commitPhase = do
       when (lastRoot /= commitCodeword (config ^. #capLength)
                         (unLastCodeword lastCodeword))
         $ reject "commitPhase: last codeword commitment check failed"
+      let lastDomainLength = roundDomainLength config (RoundIndex (n - 1))
+          lastOmega = getLastOmega config
+          lastOffset = getLastOffset config
+          lastDomain = evalDomain lastOffset lastOmega lastDomainLength
+          poly = interpolate $
+            zip lastDomain (unCodeword (unLastCodeword lastCodeword))
+          maxDegree = getMaxDegree (config ^. #domainLength)
+      when (degree poly > maxDegree)
+        $ reject "commitPhase: last codeword is not low degree"
       pure (lastCodeword, commitments, alphas)
     Nothing -> reject "commitPhase: no last codeword"
 
