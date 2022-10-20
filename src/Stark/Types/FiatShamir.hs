@@ -7,6 +7,9 @@
 
 module Stark.Types.FiatShamir
   ( IOP
+  , ErrorMessage (ErrorMessage, unErrorMessage)
+  , Transcript (Transcript, unTranscript)
+  , TranscriptPartition (TranscriptPartition, unTranscriptPartition)
   , reject
   , sampleChallenge
   , respond
@@ -35,7 +38,7 @@ class Sampleable a where
 
 type ErrorMessage :: Type
 newtype ErrorMessage = ErrorMessage { unErrorMessage :: String }
-  deriving IsString
+  deriving newtype IsString
 
 
 type IOP
@@ -49,8 +52,9 @@ data IOP c r m a where
   SampleChallenge :: IOP c r m c
   Respond :: r -> IOP c r m ()
 
+type Transcript :: Type -> Type
 newtype Transcript r = Transcript { unTranscript :: [r] }
-  deriving (Eq, Semigroup, Monoid, Serialise)
+  deriving newtype (Eq, Semigroup, Monoid, Serialise)
 
 makeSem ''IOP
 
@@ -105,7 +109,3 @@ verifierFiatShamir =
         TranscriptPartition (consumed, _) <- get
         pure (sample (BSL.toStrict (serialise consumed)))
       Reject msg -> throw msg
-
-
-todo :: a
-todo = todo

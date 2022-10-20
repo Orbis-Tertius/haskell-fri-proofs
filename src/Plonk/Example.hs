@@ -66,8 +66,8 @@ exampleCS = Compose [Identity 1, Identity 0, Identity 1]
 type N4 :: Nat
 type N4 = 'S ('S ('S ('S 'Z)))
 
-type N3 :: Nat
-type N3 = 'S ('S ('S 'Z))
+-- type N3 :: Nat
+-- type N3 = 'S ('S ('S 'Z))
 
 exampleGC :: [GateConstraint N4 N4 Scalar]
 exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) 1)]
@@ -75,8 +75,8 @@ exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativ
 type MyCircuitM :: Type
 type MyCircuitM = CircuitM [] MyCols 'WithData N4 Scalar
 
-type MyCircuitU :: Type
-type MyCircuitU = CircuitM UnivariatePolynomial MyCols 'WithData N4 Scalar
+-- type MyCircuitU :: Type
+-- type MyCircuitU = CircuitM UnivariatePolynomial MyCols 'WithData N4 Scalar
 
 exampleCircuit :: MyCircuitM
 exampleCircuit = CircuitM exampleCS exampleGC
