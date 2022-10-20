@@ -59,7 +59,7 @@ newtype RoundIndex = RoundIndex { unRoundIndex :: Int }
 
 type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
-  GetCommitment :: Challenge -> Omega -> Offset -> FriDSL m CapCommitment
+  GetCommitment :: RoundIndex -> FriDSL m CapCommitment
   GetLastCodeword :: FriDSL m (Maybe LastCodeword)
   GetQueries :: RoundIndex -> [ABC Index] -> FriDSL m ([Query], [AuthPaths])
 
@@ -73,9 +73,9 @@ commitPhase
   -> Sem r LastCodeword
 commitPhase config = do
   let n = numRounds config
-  result <- take n <$> iterateM commitRound
-            (config ^. #omega, config ^. #offset)
+  commitments <- sequence $ commitRound config <$> [0 .. RoundIndex (n-1)]
   lastCodewordM <- getLastCodeword
+  -- TODO: verify commitment to last codeword
   case lastCodewordM of
     Just lastCodeword -> pure lastCodeword
     Nothing -> reject "commitPhase: no last codeword found"
@@ -84,15 +84,12 @@ commitPhase config = do
 commitRound
   :: Member FriIOP r
   => Member FriDSL r
-  => (Omega, Offset)
-  -> Sem r (Omega, Offset)
-commitRound (omega, offset) = do
+  => FriConfiguration
+  -> RoundIndex
+  -> Sem r CapCommitment
+commitRound config round = do
   alpha <- sampleChallenge
-  _ <- getCommitment alpha omega offset
-  -- TODO: verify commitments
-  pure (omega ^ two, offset ^ two)
-  where two :: Integer
-        two = 2
+  getCommitment round
 
 
 queryPhase
