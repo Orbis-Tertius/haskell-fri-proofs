@@ -21,22 +21,25 @@ module Stark.FriIOP
 
 
 import Codec.Serialise (Serialise, serialise)
-import Control.Lens ((^.))
+import Control.Lens ((^.), _1, _2, _3)
 import Data.ByteString.Lazy (toStrict)
-import Data.List.Extra ((!?))
+import Data.List.Extra ((!?), zip4)
 import Control.Monad (void, when)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Polysemy (Sem, Member, makeSem)
 import Stark.Fri (sampleIndex, commitCodeword, getLastOmega, getLastOffset, evalDomain, getMaxDegree)
-import Stark.Fri.Types (Challenge, FriConfiguration, Codeword (unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword (unLastCodeword), ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex))
+import Stark.Fri.Types (Challenge (unChallenge), FriConfiguration, Codeword (unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths (unAuthPaths), LastCodeword (unLastCodeword), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (unOffset), Omega (unOmega))
 import Stark.Hash (hash)
+import qualified Stark.MerkleTree as Merkle
+import Stark.Prelude (uncurry4)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
 import Stark.Types.FiatShamir (IOP, sampleChallenge, reject)
 import Stark.Types.Index (Index (Index, unIndex))
-import Stark.UnivariatePolynomial (interpolate, degree)
+import Stark.Types.Scalar (Scalar)
+import Stark.UnivariatePolynomial (interpolate, degree, areColinear)
 
 
 type FriResponse :: Type
@@ -164,17 +167,42 @@ queryRound
   => Member FriDSL r
   => ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
   -> Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
-queryRound (indices, i, (_root:nextRoot:remainingRoots), (_alpha:alphas)) = do
+queryRound (indices, i, (root:nextRoot:remainingRoots), (alpha:alphas)) = do
   config <- getConfig
-  let nextIndices = (fst <$> indices) <&> (`mod` Index (unDomainLength
+  let capLength = config ^. #capLength
+      omega = (config ^. #omega) ^ ((2 :: Integer) ^ i)
+      offset = (config ^. #offset) ^ ((2 :: Integer) ^ i)
+      nextIndices = (fst <$> indices) <&> (`mod` Index (unDomainLength
                       (roundDomainLength config (i + 1))))
       aIndices = A . fst <$> indices
       bIndices = B . (+ Index (unDomainLength (roundDomainLength config i)
                                                 `quot` 2))
              . fst <$> indices
       cIndices = C . fst <$> indices
-  void $ getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
-  -- TODO: verify opening proofs & do colinearity checks
+  (qs, ps) <- getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
+  let ays = (^. #unQuery . _1) <$> qs
+      bys = (^. #unQuery . _2) <$> qs
+      cys = (^. #unQuery . _3) <$> qs
+      f :: Integral x => x -> Scalar
+      f = (* unOffset offset) . (unOmega omega ^)
+      colinearityChecks = all areColinear
+        $ (\(a,b,c) -> [a,b,c])
+        <$> zip3 (zip (f . unA <$> aIndices) (unA <$> ays))
+                 (zip (f . unB <$> bIndices) (unB <$> bys))
+                 (zip (repeat (unChallenge alpha)) (unC <$> cys))
+      allPaths = unAuthPaths <$> ps
+      aPaths = (^. _1 . #unA) <$> allPaths
+      bPaths = (^. _2 . #unB) <$> allPaths
+      cPaths = (^. _3 . #unC) <$> allPaths
+      aAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
+        $ zip4 (repeat root) (unA <$> aIndices) aPaths (unA <$> ays)
+      bAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
+        $ zip4 (repeat root) (unB <$> bIndices) bPaths (unB <$> bys)
+      cAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
+        $ zip4 (repeat nextRoot) (unC <$> cIndices) cPaths (unC <$> cys)
+      authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
+  when (not colinearityChecks) (reject "colinearity check failed")
+  when (not authPathChecks) (reject "auth path check failed")
   pure ( zip nextIndices (snd <$> indices)
        , i + 1
        , nextRoot:remainingRoots
