@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedLabels #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -13,10 +15,11 @@ module Stark.FriIOP
 
 
 import Control.Lens ((^.), _1)
+import Control.Monad (void)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Kind (Type)
 import Polysemy (Sem, Member, makeSem)
-import Stark.Fri (numRounds, emptyProofStream, addCodeword)
+import Stark.Fri (emptyProofStream, addCodeword)
 import Stark.Fri.Types (Challenge, ProofStream, FriConfiguration, Codeword, DomainLength, ExpansionFactor, NumColinearityTests, Omega, Offset, Query, AuthPaths, LastCodeword)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
@@ -50,6 +53,7 @@ todo = todo
 
 
 newtype RoundIndex = RoundIndex Int
+  deriving (Eq, Ord, Num)
 
 
 type FriDSL :: (Type -> Type) -> Type -> Type
@@ -64,21 +68,16 @@ makeSem ''FriDSL
 commitPhase
   :: Member FriIOP r
   => Member FriDSL r
-  => DomainLength
-  -> ExpansionFactor
-  -> NumColinearityTests
-  -> CapLength
-  -> Omega
-  -> Offset
+  => FriConfiguration
   -> Sem r LastCodeword
-commitPhase domainLength expansionFactor numColinearityTests capLength omega offset = do
-  let n = numRounds domainLength expansionFactor numColinearityTests capLength
+commitPhase config = do
+  let n = numRounds config
   result <- take n <$> iterateM commitRound
-            (omega, offset)
+            (config ^. #omega, config ^. #offset)
   lastCodewordM <- getLastCodeword
   case lastCodewordM of
     Just lastCodeword -> pure lastCodeword
-    Nothing -> reject
+    Nothing -> reject "commitPhase: no last codeword found"
 
 
 commitRound
@@ -97,13 +96,20 @@ commitRound (omega, offset) = do
 queryPhase
   :: Member FriIOP r
   => Member FriDSL r
-  => [Index] -> Sem r ()
-queryPhase = todo
+  => FriConfiguration
+  -> [Index]
+  -> Sem r ()
+queryPhase config indices =
+  void (take (numRounds config) <$> iterateM queryRound (indices, 0))
 
 
 queryRound
   :: Member FriIOP r
   => Member FriDSL r
-  => [Index]
-  -> Sem r ()
+  => ([Index], RoundIndex)
+  -> Sem r ([Index], RoundIndex)
 queryRound = todo
+
+
+numRounds :: FriConfiguration -> Int
+numRounds = todo

@@ -45,7 +45,7 @@ import           Plonk.Types.Fin                              (Fin (FZ, FS))
 import           Polysemy                                     (Member, Sem)
 import Polysemy.Error (Error, throw)
 import           Stark.Types.FiatShamir                       (IOP, sampleChallenge,
-                                                               appendToTranscript)
+                                                               respond)
 import           Stark.Types.UnivariatePolynomial             (UnivariatePolynomial)
 import Stark.UnivariatePolynomial (evaluate, linear, constant)
 import Stark.Types.Scalar (Scalar)

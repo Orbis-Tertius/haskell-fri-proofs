@@ -9,6 +9,7 @@ module Stark.Types.FiatShamir
   ( IOP
   , reject
   , sampleChallenge
+  , respond
   , proverFiatShamir
   , verifierFiatShamir
   , Sampleable(sample)
