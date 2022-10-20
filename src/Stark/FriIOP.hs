@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeApplications #-}
@@ -11,6 +13,8 @@ module Stark.FriIOP
   , FriIOP
   , ProverState (ProverState)
   , FriDSL (GetCommitment, GetLastCodeword, GetQueries)
+  , runFriDSLProver
+  , runFriDSLVerifier
   , getCommitment
   , getQueries
   , getLastCodeword
@@ -20,6 +24,7 @@ module Stark.FriIOP
   ) where
 
 
+import Data.Monoid (Last(Last), getLast)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
 import Data.ByteString.Lazy (toStrict)
@@ -28,15 +33,18 @@ import Control.Monad (void, when)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
 import Data.Kind (Type)
-import Polysemy (Sem, Member, makeSem)
-import Stark.Fri (sampleIndex, commitCodeword, getLastOmega, getLastOffset, evalDomain, getMaxDegree)
-import Stark.Fri.Types (Challenge (unChallenge), FriConfiguration, Codeword (unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths (unAuthPaths), LastCodeword (unLastCodeword), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (unOffset), Omega (unOmega))
+import Polysemy (Sem, Member, makeSem, interpret)
+import Polysemy.Error (Error, throw)
+import Polysemy.Input (Input, input)
+import Polysemy.State (State, get, put)
+import Stark.Fri (sampleIndex, commitCodeword, getLastOmega, getLastOffset, evalDomain, getMaxDegree, splitAndFold, openCodeword)
+import Stark.Fri.Types (Challenge (unChallenge), FriConfiguration, Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query (Query), AuthPaths (AuthPaths, unAuthPaths), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (unOffset), Omega (unOmega))
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
-import Stark.Types.FiatShamir (IOP, sampleChallenge, reject)
+import Stark.Types.FiatShamir (IOP, sampleChallenge, reject, ErrorMessage, Transcript (Transcript))
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.UnivariatePolynomial (interpolate, degree, areColinear)
@@ -45,7 +53,7 @@ import Stark.UnivariatePolynomial (interpolate, degree, areColinear)
 type FriResponse :: Type
 data FriResponse =
     Commit CapCommitment
-  | LastCodeword' LastCodeword
+  | LastCodeword' (Last Codeword)
   | QueryRound ([Query], [AuthPaths])
 
 
@@ -67,10 +75,116 @@ type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
   GetConfig :: FriDSL m FriConfiguration
   GetCommitment :: RoundIndex -> Challenge -> FriDSL m CapCommitment
-  GetLastCodeword :: FriDSL m (Maybe LastCodeword)
+  GetLastCodeword :: FriDSL m (Last Codeword)
   GetQueries :: RoundIndex -> [ABC Index] -> FriDSL m ([Query], [AuthPaths])
 
 makeSem ''FriDSL
+
+
+-- It assumes that the state initially contains a list of length 1,
+-- with the largest codeword as its element.
+runFriDSLProver
+  :: Member (Input FriConfiguration) r
+  => Member (State ProverState) r
+  => Member (Error ErrorMessage) r
+  => Sem (FriDSL ': r) a
+  -> Sem r a
+runFriDSLProver =
+  interpret $ \case
+    GetConfig -> input @FriConfiguration
+    GetCommitment i alpha -> do
+      config <- input @FriConfiguration
+      ProverState codewords <- get
+      lastCodewordM <- getLastCodeword'
+      lastCodeword <- maybe
+        (throw "runFriDSLProver: GetCommitment: no last codeword")
+        pure (getLast lastCodewordM)
+      when (i /= RoundIndex (length codewords + 1))
+        $ throw "runFriDSLProver: GetCommitment: rounds are out of order"
+      let omega = (config ^. #omega) ^ (two ^ i)
+          offset = (config ^. #offset) ^ (two ^ i)
+          codeword = splitAndFold omega offset (lastCodeword) alpha
+          commitment = commitCodeword (config ^. #capLength) codeword
+      put (ProverState (codewords <> [codeword]))
+      pure commitment
+    GetLastCodeword -> getLastCodeword'
+    GetQueries (RoundIndex i) indices -> do
+      config <- input @FriConfiguration
+      ProverState codewords <- get
+      currentCodeword <- maybe
+        (throw "runFriDSLProver: GetQueries: missing current codeword")
+        (pure . unCodeword) (codewords !? i)
+      nextCodeword <- maybe
+        (throw "runFriDSLProver: GetQueries: missing next codeword")
+        (pure . unCodeword) (codewords !? (i + 1))
+      let aIndices = (^. _1 . #unA . #unIndex) <$> indices
+          bIndices = (^. _2 . #unB . #unIndex) <$> indices
+          cIndices = (^. _3 . #unC . #unIndex) <$> indices
+      queries <- maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
+        . sequence
+        $ zipWith3 (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
+          ((currentCodeword !?) <$> aIndices)
+          ((currentCodeword !?) <$> bIndices)
+          ((nextCodeword !?) <$> cIndices)
+      let capLength = config ^. #capLength
+          openingProofs = (
+            \(a, b, c) -> AuthPaths
+              ( A $ openCodeword capLength (Codeword currentCodeword) (Index a)
+              , B $ openCodeword capLength (Codeword currentCodeword) (Index b)
+              , C $ openCodeword capLength (Codeword nextCodeword) (Index c)
+              )
+            ) <$> zip3 aIndices bIndices cIndices
+      pure (queries, openingProofs)
+  where
+    getLastCodeword'
+      :: Member (State ProverState) r
+      => Sem r (Last Codeword)
+    getLastCodeword' = do
+      ProverState codewords <- get @ProverState
+      pure $ mconcat $ Last . Just <$> codewords
+
+    two :: Integer
+    two = 2
+
+
+runFriDSLVerifier
+  :: Member (Input FriConfiguration) r
+  => Member (Input (Transcript FriResponse)) r
+  => Member (Error ErrorMessage) r
+  => Sem (FriDSL ': r) a
+  -> Sem r a
+runFriDSLVerifier =
+  interpret $ \case
+    GetConfig -> input @FriConfiguration
+    GetCommitment (RoundIndex i) _alpha -> do
+      Transcript t <- input @(Transcript FriResponse)
+      reply <- maybe (throw "runFriDSLVerifier: GetCommitment: no commitment") pure
+        $ (filter isCommitment t) !? i
+      case reply of
+        Commit c -> pure c
+        _ -> throw "runFriDSLVerifier: GetCommitment: impossible happened"
+    GetLastCodeword -> do
+      Transcript t <- input @(Transcript FriResponse)
+      case filter isLastCodeword t of
+        [LastCodeword' l] -> pure l
+        [] -> throw "runFriDSLVerifier: GetLastCodeword: no last codeword"
+        _ -> throw "runFriDSLVerifier: GetLastCodeword: more than one last codeword"
+    GetQueries (RoundIndex i) _indices -> do
+      Transcript t <- input @(Transcript FriResponse)
+      reply <- maybe (throw "runFriDSLVerifier: GetQueries: no queries") pure
+        $ (filter isQueryRound t) !? i
+      case reply of
+        QueryRound r -> pure r
+        _ -> throw "runFriDSLVerifier: GetQueries: impossible happened"
+  where
+    isCommitment (Commit _) = True
+    isCommitment _ = False
+
+    isLastCodeword (LastCodeword' _) = True
+    isLastCodeword _ = False
+
+    isQueryRound (QueryRound _) = True
+    isQueryRound _ = False
 
 
 fri :: Member FriIOP r
@@ -120,23 +234,22 @@ commitPhase = do
     <$> sequence (commitRound <$> [0 .. RoundIndex (n-1)])
   lastRoot <- maybe (reject "commitPhase: no last root") pure
     $ commitments !? (length commitments - 1)
-  lastCodewordM <- getLastCodeword
-  case lastCodewordM of
-    Just lastCodeword -> do
-      when (lastRoot /= commitCodeword (config ^. #capLength)
-                        (unLastCodeword lastCodeword))
-        $ reject "commitPhase: last codeword commitment check failed"
-      let lastDomainLength = roundDomainLength config (RoundIndex (n - 1))
-          lastOmega = getLastOmega config
-          lastOffset = getLastOffset config
-          lastDomain = evalDomain lastOffset lastOmega lastDomainLength
-          poly = interpolate $
-            zip lastDomain (unCodeword (unLastCodeword lastCodeword))
-          maxDegree = getMaxDegree (config ^. #domainLength)
-      when (degree poly > maxDegree)
-        $ reject "commitPhase: last codeword is not low degree"
-      pure (commitments, alphas)
-    Nothing -> reject "commitPhase: no last codeword"
+  lastCodeword <-
+    maybe (reject "commitPhase: no last codeword") pure . getLast
+      =<< getLastCodeword
+  when (lastRoot /= commitCodeword (config ^. #capLength)
+                    lastCodeword)
+    $ reject "commitPhase: last codeword commitment check failed"
+  let lastDomainLength = roundDomainLength config (RoundIndex (n - 1))
+      lastOmega = getLastOmega config
+      lastOffset = getLastOffset config
+      lastDomain = evalDomain lastOffset lastOmega lastDomainLength
+      poly = interpolate $ -- TODO: use FFT
+        zip lastDomain (unCodeword lastCodeword)
+      maxDegree = getMaxDegree (config ^. #domainLength)
+  when (degree poly > maxDegree)
+    $ reject "commitPhase: last codeword is not low degree"
+  pure (commitments, alphas)
 
 
 commitRound

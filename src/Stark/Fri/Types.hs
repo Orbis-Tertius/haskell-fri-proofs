@@ -10,7 +10,6 @@ module Stark.Fri.Types
   , SampleSize (SampleSize, unSampleSize)
   , ReducedIndex (ReducedIndex, unReducedIndex)
   , Codeword (Codeword, unCodeword)
-  , LastCodeword (LastCodeword, unLastCodeword)
   , A (A, unA)
   , B (B, unB)
   , C (C, unC)
@@ -77,11 +76,6 @@ newtype ReducedIndex = ReducedIndex { unReducedIndex :: Int }
 
 type Codeword :: Type
 newtype Codeword = Codeword { unCodeword :: [Scalar] }
-  deriving stock (Eq, Show)
-  deriving newtype Serialise
-
-type LastCodeword :: Type
-newtype LastCodeword = LastCodeword { unLastCodeword :: Codeword }
   deriving stock (Eq, Show)
   deriving newtype Serialise
 
