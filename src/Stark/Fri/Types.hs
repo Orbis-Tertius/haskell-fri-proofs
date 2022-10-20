@@ -19,11 +19,12 @@ module Stark.Fri.Types
   , ProofStream (ProofStream)
   , Challenge (Challenge, unChallenge)
   , FriConfiguration (FriConfiguration)
+  , randomSeed
   ) where
 
 
-import           Codec.Serialise           (Serialise)
-import           Data.ByteString           (ByteString)
+import           Codec.Serialise           (Serialise, serialise)
+import           Data.ByteString           (ByteString, toStrict)
 import           Data.Kind                 (Type)
 import           GHC.Generics              (Generic)
 
@@ -31,6 +32,9 @@ import           Stark.Types.AuthPath      (AuthPath)
 import           Stark.Types.CapCommitment (CapCommitment)
 import           Stark.Types.CapLength     (CapLength)
 import           Stark.Types.Scalar        (Scalar)
+import Stark.Types.FiatShamir (Sampleable (sample))
+import qualified Stark.FiniteField as FiniteField
+import Stark.Hash (hash)
 
 
 type Offset :: Type
@@ -124,6 +128,14 @@ instance Serialise ProofStream
 type Challenge :: Type
 newtype Challenge = Challenge { unChallenge :: Scalar }
   deriving newtype Serialise
+
+instance Sampleable Challenge where
+  sample = Challenge . FiniteField.sample . unRandomSeed . randomSeed
+
+
+randomSeed :: Serialise a => a -> RandomSeed
+randomSeed = RandomSeed . hash . toStrict . serialise
+
 
 
 type FriConfiguration :: Type

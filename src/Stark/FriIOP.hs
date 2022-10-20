@@ -21,6 +21,8 @@ module Stark.FriIOP
   , RoundIndex (RoundIndex, unRoundIndex)
   , fri
   , commitPhase
+  , prove
+  , verify
   ) where
 
 
@@ -33,18 +35,19 @@ import Control.Monad (void, when)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
 import Data.Kind (Type)
-import Polysemy (Sem, Member, makeSem, interpret)
-import Polysemy.Error (Error, throw)
-import Polysemy.Input (Input, input)
-import Polysemy.State (State, get, put)
+import GHC.Generics (Generic)
+import Polysemy (Sem, Member, makeSem, interpret, run)
+import Polysemy.Error (Error, throw, runError)
+import Polysemy.Input (Input, input, runInputConst)
+import Polysemy.State (State, get, put, runState, execState, evalState)
 import Stark.Fri (sampleIndex, commitCodeword, getLastOmega, getLastOffset, evalDomain, getMaxDegree, splitAndFold, openCodeword)
-import Stark.Fri.Types (Challenge (unChallenge), FriConfiguration, Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query (Query), AuthPaths (AuthPaths, unAuthPaths), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (unOffset), Omega (unOmega))
+import Stark.Fri.Types (Challenge (unChallenge), FriConfiguration, Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query (Query), AuthPaths (AuthPaths, unAuthPaths), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (unOffset), Omega (unOmega), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
-import Stark.Types.FiatShamir (IOP, sampleChallenge, reject, ErrorMessage, Transcript (Transcript))
+import Stark.Types.FiatShamir (IOP, sampleChallenge, reject, ErrorMessage, Transcript (Transcript), proverFiatShamir, verifierFiatShamir, TranscriptPartition (TranscriptPartition))
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.UnivariatePolynomial (interpolate, degree, areColinear)
@@ -55,6 +58,9 @@ data FriResponse =
     Commit CapCommitment
   | LastCodeword' (Last Codeword)
   | QueryRound ([Query], [AuthPaths])
+  deriving stock (Eq, Show, Generic)
+
+instance Serialise FriResponse
 
 
 type FriIOP :: (Type -> Type) -> Type -> Type
@@ -79,6 +85,14 @@ data FriDSL m a where
   GetQueries :: RoundIndex -> [ABC Index] -> FriDSL m ([Query], [AuthPaths])
 
 makeSem ''FriDSL
+
+
+prove :: FriConfiguration -> Codeword -> Either ErrorMessage (Transcript FriResponse)
+prove c w = run $ runInputConst c $ runError @ErrorMessage $ execState @(Transcript FriResponse) mempty $ runState (ProverState [w]) $ proverFiatShamir $ runFriDSLProver $ fri
+
+
+verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
+verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier $ fri
 
 
 -- It assumes that the state initially contains a list of length 1,
@@ -217,10 +231,6 @@ sampleIndices (RandomSeed seed) ls rls (SampleSize sampleSize) =
   , let index = sampleIndex (hash (seed <> toStrict (serialise counter))) ls
   , let reducedIndex = ReducedIndex $ unIndex index `mod` unReducedListSize rls
   ]
-
-
-randomSeed :: Serialise a => a -> RandomSeed
-randomSeed = RandomSeed . hash . toStrict . serialise
 
 
 commitPhase
