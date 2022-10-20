@@ -24,13 +24,13 @@ import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.))
 import Data.ByteString.Lazy (toStrict)
 import Data.List.Extra ((!?))
-import Control.Monad (void)
+import Control.Monad (void, when)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Polysemy (Sem, Member, makeSem)
-import Stark.Fri (sampleIndex)
-import Stark.Fri.Types (Challenge, FriConfiguration, Codeword, DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword, ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex))
+import Stark.Fri (sampleIndex, commitCodeword)
+import Stark.Fri.Types (Challenge, FriConfiguration, Codeword, DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword (unLastCodeword), ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex))
 import Stark.Hash (hash)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
@@ -114,11 +114,16 @@ commitPhase = do
   let n = numRounds config
   (commitments, alphas) <- unzip
     <$> sequence (commitRound <$> [0 .. RoundIndex (n-1)])
+  lastRoot <- maybe (reject "commitPhase: no last root") pure
+    $ commitments !? (length commitments - 1)
   lastCodewordM <- getLastCodeword
-  -- TODO: verify commitment to last codeword
   case lastCodewordM of
-    Just lastCodeword -> pure (lastCodeword, commitments, alphas)
-    Nothing -> reject "commitPhase: no last codeword found"
+    Just lastCodeword -> do
+      when (lastRoot /= commitCodeword (config ^. #capLength)
+                        (unLastCodeword lastCodeword))
+        $ reject "commitPhase: last codeword commitment check failed"
+      pure (lastCodeword, commitments, alphas)
+    Nothing -> reject "commitPhase: no last codeword"
 
 
 commitRound
