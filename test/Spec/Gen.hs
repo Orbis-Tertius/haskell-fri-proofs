@@ -3,7 +3,7 @@
 module Spec.Gen
   ( genFriConfiguration,
     defaultFriConfiguration,
-    genProofStream,
+    genTranscript,
     genCodeword,
     genQuery,
     genAuthPath,
@@ -22,6 +22,7 @@ import Data.ByteString (ByteString)
 import Data.Generics.Labels ()
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Data.Monoid (Last (Last))
 import Data.Word (Word64)
 import Die (die)
 import Hedgehog (Gen)
@@ -32,12 +33,13 @@ import Hedgehog.Gen
     list,
     word64,
   )
+import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 import qualified Stark.BinaryTree as BinaryTree
 import Stark.Cast (word64ToInt)
-import Stark.Fri (getMaxDegree)
+import Stark.Fri (getMaxDegree, FriResponse (Commit, LastCodeword', QueryRound))
 import Stark.Fri.Types
   ( A (A),
     AuthPaths (AuthPaths),
@@ -50,7 +52,6 @@ import Stark.Fri.Types
     NumColinearityTests (NumColinearityTests),
     Offset (Offset),
     Omega (Omega),
-    ProofStream (ProofStream),
     Query (Query),
   )
 import Stark.Types.AuthPath (AuthPath (AuthPath))
@@ -58,6 +59,7 @@ import Stark.Types.BinaryTree (BinaryTree)
 import Stark.Types.CapCommitment (CapCommitment (CapCommitment))
 import Stark.Types.CapLength (CapLength (CapLength))
 import Stark.Types.Commitment (Commitment (Commitment))
+import Stark.Types.FiatShamir (Transcript (Transcript))
 import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 import Stark.Types.Scalar
   ( Scalar,
@@ -83,13 +85,19 @@ defaultFriConfiguration =
     dl :: Word64
     dl = 64
 
-genProofStream :: FriConfiguration -> Gen ProofStream
-genProofStream config =
-  ProofStream
-    <$> list (Range.linear 1 10) genCapCommitment
-    <*> list (Range.linear 1 10) (list (Range.linear 1 10) genQuery)
-    <*> choice [pure Nothing, Just <$> genCodeword config]
-    <*> list (Range.linear 1 10) (list (Range.linear 1 10) genAuthPaths)
+genTranscript :: FriConfiguration -> Gen (Transcript FriResponse)
+genTranscript config =
+  Transcript <$> list (Range.linear 0 100) (genFriResponse config)
+
+genFriResponse :: FriConfiguration -> Gen FriResponse
+genFriResponse config =
+  choice
+  [ Commit <$> genCapCommitment
+  , LastCodeword' . Last <$> Gen.maybe (genCodeword config)
+  , QueryRound <$>
+      ((,) <$> Gen.list (Range.linear 0 10) genQuery
+           <*> Gen.list (Range.linear 0 10) genAuthPaths)
+  ]
 
 genAuthPaths :: Gen AuthPaths
 genAuthPaths =

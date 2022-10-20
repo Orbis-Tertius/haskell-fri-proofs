@@ -2,29 +2,21 @@
 
 module Spec.Stark.MerkleTreeSpec (testMerkleTree) where
 
-<<<<<<< HEAD
-import Hedgehog (Property, assert, forAll, property)
-import Hedgehog.Gen (enum)
-=======
 import Crypto.Number.Basic (log2)
 import Hedgehog (Property, assert, forAll, property)
 import Hedgehog.Gen (enum)
 import Safe (atMay)
->>>>>>> master
 import Spec.Gen
   ( genAuthPath,
     genBinaryTree,
     genCapCommitment,
     genScalar,
   )
-<<<<<<< HEAD
-=======
 import Stark.Cast
   ( intToWord64,
     word64ToInt,
     word64ToInteger,
   )
->>>>>>> master
 import Stark.MerkleTree (commit, open, verify)
 import Stark.Prelude (uncurry4)
 import Stark.Types.CapLength (CapLength (CapLength))
@@ -49,16 +41,11 @@ propVerifiesOpenings = property $ do
   i <- forAll (Index <$> enum 0 (s - 1))
   let c = commit capLength t
       p = open capLength i t
-<<<<<<< HEAD
-      x = xs !! unIndex i
-  assert $ uncurry4 (verify capLength) (c, i, p, x)
-=======
       mx = xs `atMay` word64ToInt (unIndex i)
   case mx of
     Just x ->
       assert $ uncurry4 (verify capLength) (c, i, p, x)
     Nothing -> assert False
->>>>>>> master
 
 propRejectsRandomInputs :: Property
 propRejectsRandomInputs = property $ do

@@ -4,11 +4,11 @@
 module Spec.Stark.FriSpec (testFri) where
 
 import Control.Lens ((^.))
-import Hedgehog (Property, forAll, property, (===))
+import Hedgehog (Property, forAll, property, (/==), (===))
 import Spec.Gen
   ( genFriConfiguration,
     genLowDegreePoly,
-    genProofStream,
+    genTranscript,
     genScalar,
   )
 import Stark.Fri
@@ -61,11 +61,11 @@ propSplitAndFold = property $ do
 propSoundness :: Property
 propSoundness = property $ do
   config <- forAll genFriConfiguration
-  proof <- forAll $ genProofStream config
-  verify config proof === Right ()
+  proof <- forAll $ genTranscript config
+  verify config proof /== Right ()
 
 propCompleteness :: Property
 propCompleteness = property $ do
   config <- forAll genFriConfiguration
   poly <- forAll (genLowDegreePoly config)
-  verify config (fst (prove config (getCodeword config poly))) === True
+  (verify config =<< prove config (getCodeword config poly)) === Right ()

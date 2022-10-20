@@ -34,7 +34,7 @@ class Sampleable a where
 
 type ErrorMessage :: Type
 newtype ErrorMessage = ErrorMessage {unErrorMessage :: String}
-  deriving newtype (IsString)
+  deriving newtype (IsString, Eq, Show)
 
 type IOP ::
   Type -> -- c: challenge
@@ -49,6 +49,7 @@ data IOP c r m a where
 type Transcript :: Type -> Type
 newtype Transcript r = Transcript {unTranscript :: [r]}
   deriving newtype (Eq, Semigroup, Monoid, Serialise)
+  deriving stock Show
 
 makeSem ''IOP
 

@@ -18,7 +18,6 @@ module Stark.Fri.Types
     ABC,
     Query (Query, unQuery),
     AuthPaths (AuthPaths, unAuthPaths),
-    ProofStream (ProofStream),
     Challenge (Challenge, unChallenge),
     FriConfiguration (FriConfiguration),
     randomSeed,
@@ -32,7 +31,6 @@ import Data.Word (Word64)
 import GHC.Generics (Generic)
 import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath)
-import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
 import Stark.Types.FiatShamir (Sampleable (sample))
 import Stark.Types.Scalar (Scalar)
@@ -109,17 +107,6 @@ type AuthPaths :: Type
 newtype AuthPaths = AuthPaths {unAuthPaths :: ABC AuthPath}
   deriving stock (Eq, Generic, Show)
   deriving newtype (Serialise)
-
-type ProofStream :: Type
-data ProofStream = ProofStream
-  { commitments :: [CapCommitment],
-    queries :: [[Query]],
-    lastCodeword :: Maybe Codeword,
-    authPaths :: [[AuthPaths]]
-  }
-  deriving stock (Eq, Generic, Show)
-
-instance Serialise ProofStream
 
 type Challenge :: Type
 newtype Challenge = Challenge {unChallenge :: Scalar}
