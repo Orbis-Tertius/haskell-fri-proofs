@@ -29,13 +29,13 @@ import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
 import Data.Kind (Type)
 import Polysemy (Sem, Member, makeSem)
-import Stark.Fri ()
-import Stark.Fri.Types (Challenge, FriConfiguration, Codeword, DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword, ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize), SampleSize (SampleSize))
+import Stark.Fri (sampleIndex)
+import Stark.Fri.Types (Challenge, FriConfiguration, Codeword, DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query, AuthPaths, LastCodeword, ABC, A (A), B (B), C (C), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex))
 import Stark.Hash (hash)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
 import Stark.Types.FiatShamir (IOP, sampleChallenge, reject)
-import Stark.Types.Index (Index (Index))
+import Stark.Types.Index (Index (Index, unIndex))
 
 
 type FriResponse :: Type
@@ -87,16 +87,22 @@ fri = do
   queryPhase commitments alphas indices
 
 
-sampleIndices :: RandomSeed -> ListSize -> ReducedListSize -> SampleSize -> [Index]
-sampleIndices = todo
+sampleIndices
+  :: RandomSeed
+  -> ListSize
+  -> ReducedListSize
+  -> SampleSize
+  -> [(Index, ReducedIndex)]
+sampleIndices (RandomSeed seed) ls rls (SampleSize sampleSize) =
+  [ (index, reducedIndex)
+  | counter <- [1 .. sampleSize]
+  , let index = sampleIndex (hash (seed <> toStrict (serialise counter))) ls
+  , let reducedIndex = ReducedIndex $ unIndex index `mod` unReducedListSize rls
+  ]
 
 
 randomSeed :: Serialise a => a -> RandomSeed
 randomSeed = RandomSeed . hash . toStrict . serialise
-
-
-todo :: a
-todo = todo
 
 
 commitPhase
@@ -130,7 +136,7 @@ queryPhase
   => Member FriIOP r
   => [CapCommitment]
   -> [Challenge]
-  -> [Index]
+  -> [(Index, ReducedIndex)]
   -> Sem r ()
 queryPhase commitments challenges indices = do
   config <- getConfig
@@ -141,20 +147,23 @@ queryPhase commitments challenges indices = do
 queryRound
   :: Member FriIOP r
   => Member FriDSL r
-  => ([Index], RoundIndex, [CapCommitment], [Challenge])
-  -> Sem r ([Index], RoundIndex, [CapCommitment], [Challenge])
+  => ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
+  -> Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
 queryRound (indices, i, (_root:nextRoot:remainingRoots), (_alpha:alphas)) = do
   config <- getConfig
-  let nextIndices = indices <&> (`mod` Index (unDomainLength
+  let nextIndices = (fst <$> indices) <&> (`mod` Index (unDomainLength
                       (roundDomainLength config (i + 1))))
-      aIndices = A <$> indices
-      bIndices = B <$> (+ Index (unDomainLength (roundDomainLength config i)
-                                                  `quot` 2))
-             <$> indices
-      cIndices = C <$> indices
+      aIndices = A . fst <$> indices
+      bIndices = B . (+ Index (unDomainLength (roundDomainLength config i)
+                                                `quot` 2))
+             . fst <$> indices
+      cIndices = C . fst <$> indices
   void $ getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
   -- TODO: verify opening proofs & do colinearity checks
-  pure (nextIndices, i + 1, nextRoot:remainingRoots, alphas)
+  pure ( zip nextIndices (snd <$> indices)
+       , i + 1
+       , nextRoot:remainingRoots
+       , alphas)
 queryRound (_, _, _:[], _) = reject "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = reject "queryRound: not enough roots (0)"
 queryRound (_, _, _, []) = reject "queryRound: not enough alphas"
