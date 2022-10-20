@@ -10,7 +10,6 @@ module Stark.Types.FiatShamir
   , ErrorMessage (ErrorMessage, unErrorMessage)
   , Transcript (Transcript, unTranscript)
   , TranscriptPartition (TranscriptPartition, unTranscriptPartition)
-  , reject
   , sampleChallenge
   , respond
   , proverFiatShamir
@@ -48,7 +47,6 @@ type IOP
   -> Type -- a: result
   -> Type
 data IOP c r m a where
-  Reject :: ErrorMessage -> IOP c r m a
   SampleChallenge :: IOP c r m c
   Respond :: r -> IOP c r m ()
 
@@ -62,7 +60,6 @@ proverFiatShamir
   :: Sampleable c
   => Serialise r
   => Members '[State (Transcript r)] effs
-  => Members '[Error ErrorMessage] effs
   => Sem (IOP c r ': effs) a -> Sem effs a
 proverFiatShamir =
   interpret $
@@ -72,7 +69,6 @@ proverFiatShamir =
       SampleChallenge -> do
         transcript <- get
         pure (sample (BSL.toStrict (serialise transcript)))
-      Reject msg -> throw msg
 
 
 type TranscriptPartition :: Type -> Type
@@ -108,4 +104,3 @@ verifierFiatShamir =
       SampleChallenge -> do
         TranscriptPartition (consumed, _) <- get
         pure (sample (BSL.toStrict (serialise consumed)))
-      Reject msg -> throw msg

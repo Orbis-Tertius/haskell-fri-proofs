@@ -26,28 +26,32 @@ module Stark.FriIOP
   ) where
 
 
+import           Data.Bits                        (shift, xor)
 import Data.Monoid (Last(Last), getLast)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
+import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
+import Data.Generics.Labels ()
 import Data.List.Extra ((!?), zip4)
 import Control.Monad (void, when)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Functor ((<&>))
-import Data.Kind (Type)
+import Data.Kind (Type, Constraint)
 import GHC.Generics (Generic)
-import Polysemy (Sem, Member, makeSem, interpret, run)
+import Polysemy (Sem, Member, Effect, makeSem, interpret, run)
 import Polysemy.Error (Error, throw, runError)
 import Polysemy.Input (Input, input, runInputConst)
 import Polysemy.State (State, get, put, runState, execState, evalState)
-import Stark.Fri (sampleIndex, commitCodeword, getLastOmega, getLastOffset, evalDomain, getMaxDegree, splitAndFold, openCodeword)
-import Stark.Fri.Types (Challenge (unChallenge), FriConfiguration, Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query (Query), AuthPaths (AuthPaths, unAuthPaths), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (unOffset), Omega (unOmega), randomSeed)
+import qualified Stark.BinaryTree as BinaryTree
+import Stark.Fri.Types (Challenge (Challenge, unChallenge), FriConfiguration, Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Query (Query), AuthPaths (AuthPaths, unAuthPaths), ABC, A (A, unA), B (B, unB), C (C, unC), RandomSeed (RandomSeed), ListSize (ListSize), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), ReducedIndex (ReducedIndex), Offset (Offset, unOffset), Omega (Omega, unOmega), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
+import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength (CapLength))
-import Stark.Types.FiatShamir (IOP, sampleChallenge, reject, ErrorMessage, Transcript (Transcript), proverFiatShamir, verifierFiatShamir, TranscriptPartition (TranscriptPartition))
+import Stark.Types.FiatShamir (IOP, sampleChallenge, ErrorMessage, Transcript (Transcript), proverFiatShamir, verifierFiatShamir, TranscriptPartition (TranscriptPartition))
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.UnivariatePolynomial (interpolate, degree, areColinear)
@@ -87,6 +91,10 @@ data FriDSL m a where
 makeSem ''FriDSL
 
 
+type FriEffects :: [Effect] -> Constraint
+type FriEffects r = ( Member FriIOP r, Member FriDSL r, Member (Error ErrorMessage) r )
+
+
 prove :: FriConfiguration -> Codeword -> Either ErrorMessage (Transcript FriResponse)
 prove c w = run $ runInputConst c $ runError @ErrorMessage $ execState @(Transcript FriResponse) mempty $ runState (ProverState [w]) $ proverFiatShamir $ runFriDSLProver $ fri
 
@@ -118,7 +126,7 @@ runFriDSLProver =
       let omega = (config ^. #omega) ^ (two ^ i)
           offset = (config ^. #offset) ^ (two ^ i)
           codeword = splitAndFold omega offset (lastCodeword) alpha
-          commitment = commitCodeword (config ^. #capLength) codeword
+      commitment <- commitCodeword (config ^. #capLength) codeword
       put (ProverState (codewords <> [codeword]))
       pure commitment
     GetLastCodeword -> getLastCodeword'
@@ -141,11 +149,11 @@ runFriDSLProver =
           ((currentCodeword !?) <$> bIndices)
           ((nextCodeword !?) <$> cIndices)
       let capLength = config ^. #capLength
-          openingProofs = (
-            \(a, b, c) -> AuthPaths
-              ( A $ openCodeword capLength (Codeword currentCodeword) (Index a)
-              , B $ openCodeword capLength (Codeword currentCodeword) (Index b)
-              , C $ openCodeword capLength (Codeword nextCodeword) (Index c)
+      openingProofs <- sequence $
+            (\(a, b, c) -> AuthPaths <$>
+              ( (,,) <$> ( A <$> openCodeword capLength (Codeword currentCodeword) (Index a) )
+                     <*> ( B <$> openCodeword capLength (Codeword currentCodeword) (Index b) )
+                     <*> ( C <$> openCodeword capLength (Codeword nextCodeword) (Index c) )
               )
             ) <$> zip3 aIndices bIndices cIndices
       pure (queries, openingProofs)
@@ -201,13 +209,14 @@ runFriDSLVerifier =
     isQueryRound _ = False
 
 
-fri :: Member FriIOP r
+fri :: Member (Error ErrorMessage) r
+    => Member FriIOP r
     => Member FriDSL r
     => Sem r ()
 fri = do
   config <- getConfig
   (commitments, alphas) <- commitPhase
-  lastCommitPhaseAlpha <- maybe (reject "no commitPhase alphas") pure
+  lastCommitPhaseAlpha <- maybe (throw "no commitPhase alphas") pure
     $ alphas !? (length alphas - 1)
   let n = numRounds config
       indices = sampleIndices
@@ -234,22 +243,21 @@ sampleIndices (RandomSeed seed) ls rls (SampleSize sampleSize) =
 
 
 commitPhase
-  :: Member FriIOP r
-  => Member FriDSL r
+  :: FriEffects r
   => Sem r ([CapCommitment], [Challenge])
 commitPhase = do
   config <- getConfig
   let n = numRounds config
   (commitments, alphas) <- unzip
     <$> sequence (commitRound <$> [0 .. RoundIndex (n-1)])
-  lastRoot <- maybe (reject "commitPhase: no last root") pure
+  lastRoot <- maybe (throw "commitPhase: no last root") pure
     $ commitments !? (length commitments - 1)
   lastCodeword <-
-    maybe (reject "commitPhase: no last codeword") pure . getLast
+    maybe (throw "commitPhase: no last codeword") pure . getLast
       =<< getLastCodeword
-  when (lastRoot /= commitCodeword (config ^. #capLength)
-                    lastCodeword)
-    $ reject "commitPhase: last codeword commitment check failed"
+  expectedLastRoot <- commitCodeword (config ^. #capLength) lastCodeword
+  when (lastRoot /= expectedLastRoot)
+    $ throw "commitPhase: last codeword commitment check failed"
   let lastDomainLength = roundDomainLength config (RoundIndex (n - 1))
       lastOmega = getLastOmega config
       lastOffset = getLastOffset config
@@ -258,7 +266,7 @@ commitPhase = do
         zip lastDomain (unCodeword lastCodeword)
       maxDegree = getMaxDegree (config ^. #domainLength)
   when (degree poly > maxDegree)
-    $ reject "commitPhase: last codeword is not low degree"
+    $ throw "commitPhase: last codeword is not low degree"
   pure (commitments, alphas)
 
 
@@ -273,8 +281,7 @@ commitRound i = do
 
 
 queryPhase
-  :: Member FriDSL r
-  => Member FriIOP r
+  :: FriEffects r
   => [CapCommitment]
   -> [Challenge]
   -> [(Index, ReducedIndex)]
@@ -286,8 +293,7 @@ queryPhase commitments challenges indices = do
 
 
 queryRound
-  :: Member FriIOP r
-  => Member FriDSL r
+  :: FriEffects r
   => ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
   -> Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
 queryRound (indices, i, (root:nextRoot:remainingRoots), (alpha:alphas)) = do
@@ -324,15 +330,15 @@ queryRound (indices, i, (root:nextRoot:remainingRoots), (alpha:alphas)) = do
       cAuthPathChecks = all (uncurry4 (Merkle.verify capLength))
         $ zip4 (repeat nextRoot) (unC <$> cIndices) cPaths (unC <$> cys)
       authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
-  when (not colinearityChecks) (reject "colinearity check failed")
-  when (not authPathChecks) (reject "auth path check failed")
+  when (not colinearityChecks) (throw "colinearity check failed")
+  when (not authPathChecks) (throw "auth path check failed")
   pure ( zip nextIndices (snd <$> indices)
        , i + 1
        , nextRoot:remainingRoots
        , alphas)
-queryRound (_, _, _:[], _) = reject "queryRound: not enough roots (1)"
-queryRound (_, _, [], _) = reject "queryRound: not enough roots (0)"
-queryRound (_, _, _, []) = reject "queryRound: not enough alphas"
+queryRound (_, _, _:[], _) = throw "queryRound: not enough roots (1)"
+queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
+queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
 
 
 roundDomainLength
@@ -361,3 +367,62 @@ numRounds' (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLeng
            (NumColinearityTests n)
            (CapLength n')
   else 0
+
+
+sampleIndex :: ByteString -> ListSize -> Index
+sampleIndex bs (ListSize len) =
+  foldl (\acc b -> (acc `shift` 8) `xor` fromIntegral b) 0 (unpack bs)
+  `mod` Index len
+
+
+commitCodeword
+  :: Member (Error ErrorMessage) r
+  => CapLength
+  -> Codeword
+  -> Sem r CapCommitment
+commitCodeword capLength =
+  fmap (Merkle.commit capLength)
+  . maybe (throw "codeword is not a binary tree") pure
+  . BinaryTree.fromList
+  . unCodeword
+
+
+getLastOmega :: FriConfiguration -> Omega
+getLastOmega config =
+  let nr = numRounds config
+  in (config ^. #omega) ^ (2 * (nr - 1))
+
+
+getLastOffset :: FriConfiguration -> Offset
+getLastOffset config =
+  let nr = numRounds config
+  in (config ^. #offset) ^ (2 * (nr - 1))
+
+
+evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
+evalDomain (Offset o) (Omega m) (DomainLength d)
+  = [o * (m ^ i) | i <- [0..d-1]]
+
+
+getMaxDegree :: DomainLength -> Int
+getMaxDegree (DomainLength d) = floor (logBase 2 (fromIntegral d) :: Double)
+
+
+splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
+splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
+  let (l, r) = splitAt (length codeword `quot` 2) codeword
+  in Codeword $
+  [ recip 2 * ( ( 1 + alpha / (offset * (omega ^ i)) ) * xi
+              + ( 1 - alpha / (offset * (omega ^ i)) ) * xj )
+  | (i, xi, xj) <- zip3 [(0 :: Integer)..] l r ]
+
+
+openCodeword
+  :: Member (Error ErrorMessage) r
+  => CapLength
+  -> Codeword
+  -> Index
+  -> Sem r AuthPath
+openCodeword capLength (Codeword xs) i = do
+  xs' <- maybe (throw "codeword is not a binary tree") pure (BinaryTree.fromList xs)
+  pure $ Merkle.open capLength i xs' 
