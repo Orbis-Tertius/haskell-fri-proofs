@@ -1,25 +1,28 @@
 module Plonk.Transcript
-  ( challengeMessage
-  , qCommitmentMessage
-  , pCommitmentMessage
-  , openingMessage
-  , PQ(P, Q)
-  , CommitmentTo(..)
-  , Commitments(..)
-  , Openings(..)
-  , Transcript(..)
-  ) where
+  ( challengeMessage,
+    qCommitmentMessage,
+    pCommitmentMessage,
+    openingMessage,
+    PQ (P, Q),
+    CommitmentTo (..),
+    Commitments (..),
+    Openings (..),
+    Transcript (..),
+  )
+where
 
-import           Control.Applicative    ((<|>))
-import           Data.Kind              (Type)
-import           Data.Map               as Map (Map, singleton)
-import           Data.Monoid.Generic    (GenericMonoid (GenericMonoid),
-                                         GenericSemigroup (GenericSemigroup))
-import           GHC.Generics           (Generic)
-import           Plonk.Types.Circuit    (Challenge)
-import           Stark.Types.AuthPath   (AuthPath)
-import           Stark.Types.CapCommitment (CapCommitment)
-import           Stark.Types.Index      (Index)
+import Control.Applicative ((<|>))
+import Data.Kind (Type)
+import Data.Map as Map (Map, singleton)
+import Data.Monoid.Generic
+  ( GenericMonoid (GenericMonoid),
+    GenericSemigroup (GenericSemigroup),
+  )
+import GHC.Generics (Generic)
+import Plonk.Types.Circuit (Challenge)
+import Stark.Types.AuthPath (AuthPath)
+import Stark.Types.CapCommitment (CapCommitment)
+import Stark.Types.Index (Index)
 
 type PQ :: Type
 data PQ where
@@ -31,9 +34,10 @@ newtype CommitmentTo pq = MkCommitmentTo CapCommitment
 
 type Commitments :: Type
 data Commitments where
-  MkCommitments :: Maybe (CommitmentTo 'P)
-                -> Maybe (CommitmentTo 'Q)
-                -> Commitments
+  MkCommitments ::
+    Maybe (CommitmentTo 'P) ->
+    Maybe (CommitmentTo 'Q) ->
+    Commitments
 
 instance Semigroup Commitments where
   MkCommitments a b <> MkCommitments c d = MkCommitments (a <|> c) (b <|> d)
@@ -46,15 +50,14 @@ newtype Openings x = Openings (Map Index (x, AuthPath))
   deriving newtype (Semigroup, Monoid)
 
 type Transcript :: Type -> Type
-data Transcript x =
-  Transcript
-  { challenges  :: [Challenge x]
-  , commitments :: Commitments
-  , openings    :: Openings x
+data Transcript x = Transcript
+  { challenges :: [Challenge x],
+    commitments :: Commitments,
+    openings :: Openings x
   }
-  deriving stock Generic
-  deriving Semigroup via GenericSemigroup (Transcript x)
-  deriving Monoid via GenericMonoid (Transcript x)
+  deriving stock (Generic)
+  deriving (Semigroup) via GenericSemigroup (Transcript x)
+  deriving (Monoid) via GenericMonoid (Transcript x)
 
 challengeMessage :: Challenge x -> Transcript x
 challengeMessage c = Transcript [c] mempty mempty

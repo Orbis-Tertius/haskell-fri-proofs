@@ -1,17 +1,16 @@
-module Stark.Types.Scalar ( Scalar (Scalar, unScalar) ) where
+module Stark.Types.Scalar (Scalar (Scalar, unScalar)) where
 
-
-import           Codec.Serialise                (Serialise (decode, encode))
-import           Data.FiniteField.PrimeField    as P (PrimeField, toInteger)
+import Codec.Serialise (Serialise (decode, encode))
+import Data.FiniteField.PrimeField as P (PrimeField, toInteger)
 import Data.Group (Group (invert))
-import           Data.Kind                      (Type)
-import           GHC.Generics                   (Generic)
-import           Math.Algebra.Polynomial.Class  (Ring)
-import           Math.Algebra.Polynomial.Misc   (IsSigned (signOf), Sign (Plus))
-import           Math.Algebra.Polynomial.Pretty (Pretty (pretty))
+import Data.Kind (Type)
+import GHC.Generics (Generic)
+import Math.Algebra.Polynomial.Class (Ring)
+import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
+import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
 
 type Scalar :: Type
-newtype Scalar = Scalar { unScalar :: PrimeField 270497897142230380135924736767050121217 }
+newtype Scalar = Scalar {unScalar :: PrimeField 270497897142230380135924736767050121217}
   deriving stock (Eq, Ord, Show, Generic)
   deriving newtype (Num, Fractional)
 
@@ -34,4 +33,4 @@ instance IsSigned Scalar where
 instance Pretty Scalar where
   pretty = show . unScalar
 
-instance Ring Scalar where
+instance Ring Scalar
