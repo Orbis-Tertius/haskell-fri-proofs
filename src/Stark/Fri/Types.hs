@@ -14,6 +14,7 @@ module Stark.Fri.Types
   , A (A, unA)
   , B (B, unB)
   , C (C, unC)
+  , ABC
   , Query (Query, unQuery)
   , AuthPaths (AuthPaths, unAuthPaths)
   , ProofStream (ProofStream)
@@ -47,6 +48,7 @@ newtype Omega = Omega { unOmega :: Scalar }
 type DomainLength :: Type
 newtype DomainLength = DomainLength { unDomainLength :: Int }
   deriving stock (Eq, Ord, Show, Generic)
+  deriving newtype (Num, Enum, Real, Integral)
 
 
 type ExpansionFactor :: Type
