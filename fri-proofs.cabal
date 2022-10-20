@@ -33,7 +33,6 @@ library
     Stark.BinaryTree
     Stark.FiniteField
     Stark.Fri
-    Stark.FriIOP
     Stark.Fri.Types
     Stark.Hash
     Stark.MerkleTree
