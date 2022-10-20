@@ -78,7 +78,7 @@ fri :: Member FriIOP r
     => Sem r ()
 fri = do
   config <- getConfig
-  (_lastCodeword, commitments, alphas) <- commitPhase
+  (commitments, alphas) <- commitPhase
   lastCommitPhaseAlpha <- maybe (reject "no commitPhase alphas") pure
     $ alphas !? (length alphas - 1)
   let n = numRounds config
@@ -112,7 +112,7 @@ randomSeed = RandomSeed . hash . toStrict . serialise
 commitPhase
   :: Member FriIOP r
   => Member FriDSL r
-  => Sem r (LastCodeword, [CapCommitment], [Challenge])
+  => Sem r ([CapCommitment], [Challenge])
 commitPhase = do
   config <- getConfig
   let n = numRounds config
@@ -135,7 +135,7 @@ commitPhase = do
           maxDegree = getMaxDegree (config ^. #domainLength)
       when (degree poly > maxDegree)
         $ reject "commitPhase: last codeword is not low degree"
-      pure (lastCodeword, commitments, alphas)
+      pure (commitments, alphas)
     Nothing -> reject "commitPhase: no last codeword"
 
 
