@@ -59,6 +59,7 @@ newtype RoundIndex = RoundIndex { unRoundIndex :: Int }
 
 type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
+  GetConfig :: FriDSL m FriConfiguration
   GetCommitment :: RoundIndex -> FriDSL m CapCommitment
   GetLastCodeword :: FriDSL m (Maybe LastCodeword)
   GetQueries :: RoundIndex -> [ABC Index] -> FriDSL m ([Query], [AuthPaths])
@@ -69,11 +70,11 @@ makeSem ''FriDSL
 commitPhase
   :: Member FriIOP r
   => Member FriDSL r
-  => FriConfiguration
-  -> Sem r LastCodeword
-commitPhase config = do
+  => Sem r LastCodeword
+commitPhase = do
+  config <- getConfig
   let n = numRounds config
-  commitments <- sequence $ commitRound config <$> [0 .. RoundIndex (n-1)]
+  commitments <- sequence $ commitRound <$> [0 .. RoundIndex (n-1)]
   lastCodewordM <- getLastCodeword
   -- TODO: verify commitment to last codeword
   case lastCodewordM of
@@ -84,10 +85,9 @@ commitPhase config = do
 commitRound
   :: Member FriIOP r
   => Member FriDSL r
-  => FriConfiguration
-  -> RoundIndex
+  => RoundIndex
   -> Sem r CapCommitment
-commitRound config round = do
+commitRound round = do
   alpha <- sampleChallenge
   getCommitment round
 
@@ -95,11 +95,29 @@ commitRound config round = do
 queryPhase
   :: Member FriIOP r
   => Member FriDSL r
-  => FriConfiguration
-  -> [Index]
+  => [Index]
   -> Sem r ()
-queryPhase config indices =
-  void (take (numRounds config) <$> iterateM (queryRound config) (indices, 0))
+queryPhase indices = do
+  config <- getConfig
+  void (take (numRounds config) <$> iterateM queryRound (indices, 0))
+
+
+queryRound
+  :: Member FriIOP r
+  => Member FriDSL r
+  => ([Index], RoundIndex)
+  -> Sem r ([Index], RoundIndex)
+queryRound (indices, round) = do
+  config <- getConfig
+  let nextIndices = indices <&> (`mod` Index (unDomainLength
+                      (roundDomainLength config (round+1))))
+      aIndices = A <$> indices
+      bIndices = B <$> (+ Index (unDomainLength (roundDomainLength config round) `quot` 2))
+             <$> indices
+      cIndices = C <$> indices
+  void $ getQueries round ((,,) <$> aIndices <*> bIndices <*> cIndices)
+  -- TODO: verify opening proofs & do colinearity checks
+  pure (nextIndices, round+1)
 
 
 roundDomainLength
@@ -108,24 +126,6 @@ roundDomainLength
   -> DomainLength
 roundDomainLength config i =
   (config ^. #domainLength) `quot` (2 ^ i)
-
-
-queryRound
-  :: Member FriIOP r
-  => Member FriDSL r
-  => FriConfiguration
-  -> ([Index], RoundIndex)
-  -> Sem r ([Index], RoundIndex)
-queryRound config (indices, round) = do
-  let nextIndices =  indices <&> (`mod` Index (unDomainLength
-                        (roundDomainLength config (round+1))))
-      aIndices = A <$> indices
-      bIndices = B <$> (+ Index (unDomainLength (roundDomainLength config round) `quot` 2))
-             <$> indices
-      cIndices = C <$> indices
-  void $ getQueries round ((,,) <$> aIndices <*> bIndices <*> cIndices)
-  -- TODO: verify opening proofs & do colinearity checks
-  pure (nextIndices, round+1)
 
 
 numRounds :: FriConfiguration -> Int
