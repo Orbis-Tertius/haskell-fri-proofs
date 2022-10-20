@@ -24,9 +24,13 @@ module Stark.Fri
     commitPhase,
     prove,
     verify,
+    getMaxDegree,
+    evalDomain,
+    splitAndFold,
   )
 where
 
+import Stark.Cast (word64ToInt)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
 import Control.Monad (void, when)
@@ -146,9 +150,9 @@ runFriDSLProver =
           . sequence
           $ zipWith3
             (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
-            ((currentCodeword !?) <$> aIndices)
-            ((currentCodeword !?) <$> bIndices)
-            ((nextCodeword !?) <$> cIndices)
+            ((currentCodeword !?) . word64ToInt <$> aIndices)
+            ((currentCodeword !?) . word64ToInt <$> bIndices)
+            ((nextCodeword !?) . word64ToInt <$> cIndices)
       let capLength = config ^. #capLength
       openingProofs <-
         sequence $

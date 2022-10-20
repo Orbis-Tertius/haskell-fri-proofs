@@ -7,29 +7,25 @@ module Stark.UnivariatePolynomial
     constant,
     linear,
     areColinear,
+    normalize,
   )
 where
 
-import Control.Arrow ((***))
-import qualified Data.FiniteField.PrimeField as PrimeField
+import Data.List (foldl')
 import Data.Map
   ( elems,
     lookupMax,
     singleton,
   )
-import Math.Algebra.Polynomial.Class
-  ( Polynomial (evalP),
-    Ring,
-  )
+import Math.Algebra.Polynomial.Class (Polynomial (evalP), Ring)
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
 import Math.Algebra.Polynomial.Univariate
   ( U (U),
     Univariate (Uni),
-    fromQUni,
     unUni,
   )
-import Math.Algebra.Polynomial.Univariate.Lagrange (lagrangeInterp)
-import Stark.Types.Scalar (Scalar (unScalar))
+import Stark.Types.Scalar (Scalar)
+import qualified Stark.Types.Scalar as Scalar
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 degree :: UnivariatePolynomial a -> Int
@@ -53,11 +49,31 @@ linear coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 1) coef)))
 constant :: Scalar -> UnivariatePolynomial Scalar
 constant coef = UnivariatePolynomial (Uni (FreeMod (singleton (U 0) coef)))
 
+lagrangeBases :: [Scalar] -> [UnivariatePolynomial Scalar]
+lagrangeBases xs =
+  [ foldl'
+      (*)
+      1
+      [ (linear 1 - constant xi) * constant (recip (xj - xi))
+        | xi <- xs,
+          xj /= xi
+      ]
+    | xj <- xs
+  ]
+
 interpolate :: [(Scalar, Scalar)] -> UnivariatePolynomial Scalar
-interpolate f = UnivariatePolynomial . fromQUni $ lagrangeInterp ((g *** g) <$> f)
-  where
-    g :: Scalar -> Rational
-    g = fromIntegral . PrimeField.toInteger . unScalar
+interpolate ps =
+  normalize $
+    foldl'
+      (+)
+      0
+      [ constant yj * lj
+        | (yj, lj) <- zip (snd <$> ps) (lagrangeBases (fst <$> ps))
+      ]
 
 areColinear :: [(Scalar, Scalar)] -> Bool
 areColinear = (< 2) . degree . interpolate
+
+normalize :: UnivariatePolynomial Scalar -> UnivariatePolynomial Scalar
+normalize (UnivariatePolynomial (Uni (FreeMod p))) =
+  UnivariatePolynomial . Uni . FreeMod $ Scalar.normalize <$> p

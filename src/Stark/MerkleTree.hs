@@ -9,10 +9,13 @@ module Stark.MerkleTree
 where
 
 import Codec.Serialise (Serialise, serialise)
+import Crypto.Number.Basic (log2)
 import qualified Data.ByteString.Lazy as BSL
 import Data.Maybe (fromMaybe)
 import Debug.Trace (trace)
+import Die (die)
 import qualified Stark.BinaryTree as Tree
+import Stark.Cast (intToWord64, word64ToInteger)
 import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath (AuthPath, unAuthPath))
 import Stark.Types.BinaryTree (BinaryTree (IsLeaf, IsNode))
@@ -47,20 +50,16 @@ commitCapLeaf (IsNode x y) = mergeCommitments (commitCapLeaf x, commitCapLeaf y)
 open__ :: Index -> BinaryTree MerkleHash -> AuthPath
 open__ 0 (IsLeaf _) = AuthPath []
 open__ i t@(IsNode x y) =
-  let n = Index $ Tree.size t
+  let n = Index $ intToWord64 (Tree.size t)
       m = n `quot` 2
    in if i < m
         then open__ i x <> AuthPath [commitCapLeaf y]
         else open__ (i - m) y <> AuthPath [commitCapLeaf x]
-open__ i t = error ("open_ pattern match failure: " <> show (i, t))
+open__ i t = die ("open_ pattern match failure: " <> show (i, t))
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
 open_ (CapLength capLength) i t =
-  AuthPath
-    . take
-      ( Tree.depth t
-          - round (logBase (2 :: Double) (fromIntegral capLength))
-      )
+  AuthPath . take (Tree.depth t - log2 (word64ToInteger capLength))
     . unAuthPath
     $ open__ i t
 
@@ -72,13 +71,17 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
   case p of
     AuthPath [] ->
       let z =
-            fromMaybe (error "capLeaves index out of range 0") $
-              capLeaves Tree.!! i
+            fromMaybe (die "capLeaves index out of range 0") $
+              capLeaves `Tree.at` i
        in ( unIndex i < unCapLength capLength
-              || trace "index out of range" False
+              || trace ("index out of range: " <> show i <> " should be <" <> show capLength) False
           )
-            && ( capLength == CapLength (Tree.size capLeaves)
-                   || trace "wrong CapLength" False
+            && ( capLength == CapLength (intToWord64 (Tree.size capLeaves))
+                   || trace
+                     ( "wrong CapLength: " <> " expected " <> show capLength <> " but got "
+                         <> show (Tree.size capLeaves)
+                     )
+                     False
                )
             && (z == y || trace "commitment check failed" False)
     AuthPath (x : xs) ->

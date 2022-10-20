@@ -3,97 +3,94 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin -Wno-unused-imports #-}
 
 module Plonk.Example
-  ( exampleCircuit,
-    exampleCS,
-    exampleGC,
+  ( -- exampleCircuit,
+    -- exampleCS,
+    -- exampleGC,
     --   , exampleSomething
   )
 where
 
-import Data.Functor.Compose (Compose (Compose))
-import Data.Functor.Identity (Identity (Identity, runIdentity))
-import Data.Kind (Type)
-import Data.Maybe (fromMaybe)
-import Data.Vinyl.TypeLevel (Nat (S, Z))
-import Math.Algebra.Polynomial.FreeModule (singleton)
-import Math.Algebra.Polynomial.Monomial.Generic (singletonMonom)
-import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
-import Plonk.Arithmetization
-  ( circuitWithDataToPolys,
-    combineCircuitPolys,
-    divUniPoly,
-    getZerofier,
-  )
-import Plonk.Transcript
-  ( CommitmentTo (MkCommitmentTo),
-    Transcript,
-    pCommitmentMessage,
-    qCommitmentMessage,
-  )
-import Plonk.Types.Circuit
-  ( Challenge (unChallenge),
-    CircuitM (CircuitM, shape),
-    CircuitShape (CNil, (:&)),
-    ColIndex (ColIndex),
-    ColType (MkCol),
-    DegreeBound,
-    Domain (Domain),
-    EN (EqCon, NEqCon),
-    Entry,
-    FAI (Advice, Fixed, Instance),
-    GateConstraint (MkGateConstraint),
-    HasData (WithData),
-    RelativeCellRef (MkRelativeCellRef),
-    RelativeRowIndex (RelativeRowIndex),
-  )
-import Plonk.Types.Fin (Fin (FS, FZ))
-import Polysemy (Member, Sem)
-import Polysemy.Error (Error, throw)
-import Stark.FiniteField (generator, primitiveNthRoot)
-import Stark.Fri (commitCodeword, getCodeword)
-import Stark.Fri.Types (Codeword, DomainLength (DomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration (FriConfiguration), NumColinearityTests (NumColinearityTests), Offset (Offset), Omega (Omega))
-import Stark.Types.CapCommitment (CapCommitment)
-import Stark.Types.CapLength (CapLength (CapLength))
-import Stark.Types.FiatShamir
-  ( IOP,
-    respond,
-    sampleChallenge,
-  )
-import Stark.Types.Scalar (Scalar)
-import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
-import Stark.UnivariatePolynomial (constant, evaluate, linear)
+-- import Data.Functor.Compose (Compose (Compose))
+-- import Data.Functor.Identity (Identity (Identity, runIdentity))
+-- import Data.Kind (Type)
+-- import Data.Maybe (fromMaybe)
+-- import Data.Vinyl.TypeLevel (Nat (S, Z))
+-- import Math.Algebra.Polynomial.FreeModule (singleton)
+-- import Math.Algebra.Polynomial.Monomial.Generic (singletonMonom)
+-- import qualified Math.Algebra.Polynomial.Multivariate.Generic as Multi
+-- import Plonk.Arithmetization
+--   ( circuitWithDataToPolys,
+--     combineCircuitPolys,
+--     divUniPoly,
+--     getZerofier,
+--   )
+-- import Plonk.Transcript
+--   ( CommitmentTo (MkCommitmentTo),
+--     Transcript,
+--     pCommitmentMessage,
+--     qCommitmentMessage,
+--   )
+-- import Plonk.Types.Circuit
+--   ( Challenge (unChallenge),
+--     Z2 (One, Zero),
+--     CircuitM (CircuitM, shape),
+--     CircuitShape (CNil, (:&)),
+--     ColIndex (ColIndex),
+--     ColType (MkCol),
+--     DegreeBound,
+--     Domain (Domain),
+--     EN (EqCon, NEqCon),
+--     Entry,
+--     FAI (Advice, Fixed, Instance),
+--     GateConstraint (MkGateConstraint),
+--     HasData (WithData),
+--     RelativeCellRef (MkRelativeCellRef),
+--     RelativeRowIndex (RelativeRowIndex),
+--   )
+-- import Plonk.Types.Fin (Fin (FS, FZ))
+-- import Polysemy (Member, Sem)
+-- import Polysemy.Error (Error, throw)
+-- import Stark.Fri (commitCodeword, getCodeword)
+-- import Stark.Fri.Types (Codeword, DomainLength (DomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration (FriConfiguration), NumColinearityTests (NumColinearityTests), Offset (Offset), Omega (Omega))
+-- import Stark.Types.CapCommitment (CapCommitment)
+-- import Stark.Types.CapLength (CapLength (CapLength))
+-- import Stark.Types.FiatShamir
+--   ( IOP,
+--     respond,
+--     sampleChallenge,
+--   )
+-- import Stark.Types.Scalar (Scalar, generator, primitiveNthRoot)
+-- import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
+-- import Stark.UnivariatePolynomial (constant, evaluate, linear)
+-- 
+-- type MyCols :: [ColType]
+-- type MyCols = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon]
 
-type MyCols :: [ColType]
-type MyCols = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon]
+-- type MyCircuitShape :: DegreeBound -> Type
+-- type MyCircuitShape d = CircuitShape [] MyCols 'WithData d Scalar
 
-type MyCircuitShape :: DegreeBound -> Type
-type MyCircuitShape d = CircuitShape [] MyCols 'WithData d Scalar
-
-exampleCS :: MyCircuitShape d
-exampleCS =
-  Compose [Identity 1, Identity 0, Identity 1]
-    :& Compose [Identity 1, Identity 1, Identity 0, Identity 0]
-    :& Compose [Identity 1, Identity 0, Identity 0, Identity 0]
-    :& Compose [Identity 1, Identity 1, Identity 0, Identity 0]
-    :& CNil
-
-type N4 :: Nat
-type N4 = 'S ('S ('S ('S 'Z)))
+-- exampleCS :: MyCircuitShape d
+-- exampleCS =
+--   Compose (Identity One :- Identity Zero :- Identity One :- Nil)
+--     :& Compose (Identity Zero :- Identity One :- Identity Zero :- Nil)
+--     :& Compose (Identity One :- Identity Zero :- Identity Zero :- Nil)
+--     :& Compose (Identity One :- Identity Zero :- Identity Zero :- Nil)
+--     :& CNil
 
 -- type N3 :: Nat
 -- type N3 = 'S ('S ('S 'Z))
 
-exampleGC :: [GateConstraint N4 N4 Scalar]
-exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) 1)]
-
-type MyCircuitM :: Type
-type MyCircuitM = CircuitM [] MyCols 'WithData N4 Scalar
+-- exampleGC :: [GateConstraint N4 N4 Scalar]
+-- exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) 1)]
+-- 
+-- type MyCircuitM :: Type
+-- type MyCircuitM = CircuitM [] MyCols 'WithData N4 Scalar
 
 -- type MyCircuitU :: Type
 -- type MyCircuitU = CircuitM UnivariatePolynomial MyCols 'WithData N4 Scalar
 
-exampleCircuit :: MyCircuitM
-exampleCircuit = CircuitM exampleCS exampleGC
+-- exampleCircuit :: MyCircuitM
+-- exampleCircuit = CircuitM exampleCS exampleGC
 
 -- exampleSomething
 --   :: Member (IOP (Challenge Scalar) (Transcript Scalar)) r

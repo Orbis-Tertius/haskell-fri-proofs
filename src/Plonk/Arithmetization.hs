@@ -1,13 +1,16 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 module Plonk.Arithmetization
-  ( columnVectorToPoly
-  , circuitWithDataToPolys
-  , circTraverse
-  , circShapeTraverse
-  , combineCircuitPolys
-  , getZerofier
-  , divUniPoly
-  ) where
+  ( columnVectorToPoly,
+    circuitWithDataToPolys,
+    circTraverse,
+    circShapeTraverse,
+    combineCircuitPolys,
+    getZerofier,
+    divUniPoly,
+  )
+where
 
 
 import           Data.Functor.Compose               (Compose (Compose),
@@ -19,6 +22,7 @@ import           Data.Kind                          (Constraint)
 import qualified Data.Map                           as Map
 import           Data.Vinyl.TypeLevel               (Nat (S, Z),
                                                      NatToInt (natToInt))
+import Die (die)
 import           Math.Algebra.Polynomial.Class      (AlmostPolynomial (scalarP, scaleP, sumP),
                                                      CoeffP, Polynomial (evalP),
                                                      Ring, divM, isZeroP,
@@ -63,176 +67,172 @@ circuitWithDataToPolys
   -> CircuitM UnivariatePolynomial ps 'WithData d a
 circuitWithDataToPolys dom = circMap (columnVectorToPoly dom)
 
-
-circTraverse :: Applicative g
-             => Functor f
-             => Functor h
-             => (h a -> g (f a))
-             -> CircuitM h ps 'WithData d a
-             -> g (CircuitM f ps 'WithData d a)
+circTraverse ::
+  Applicative g =>
+  Functor f =>
+  Functor h =>
+  (h a -> g (f a)) ->
+  CircuitM h ps 'WithData d a ->
+  g (CircuitM f ps 'WithData d a)
 circTraverse k (CircuitM shape constraints) =
-   flip CircuitM constraints <$> circShapeTraverse k shape
+  flip CircuitM constraints <$> circShapeTraverse k shape
 
-circMap
-  :: Functor f
-  => Functor g
-  => (f a -> g a)
-  -> CircuitM f ps 'WithData d a
-  -> CircuitM g ps 'WithData d a
+circMap ::
+  Functor f =>
+  Functor g =>
+  (f a -> g a) ->
+  CircuitM f ps 'WithData d a ->
+  CircuitM g ps 'WithData d a
 circMap k (CircuitM shape constraints) = CircuitM (circShapeMap k shape) constraints
 
-circShapeMap
-  :: Functor f
-  => Functor g
-  => (f a -> g a)
-  -> CircuitShape f ps 'WithData d a
-  -> CircuitShape g ps 'WithData d a
-circShapeMap _ CNil      = CNil
+circShapeMap ::
+  Functor f =>
+  Functor g =>
+  (f a -> g a) ->
+  CircuitShape f ps 'WithData d a ->
+  CircuitShape g ps 'WithData d a
+circShapeMap _ CNil = CNil
 circShapeMap q (x :& xs) = mapI q x :& circShapeMap q xs
 
-mapI
- :: Functor f
- => Functor g
- => (f a -> g a)
- -> Compose f Identity a
- -> Compose g Identity a
+mapI ::
+  Functor f =>
+  Functor g =>
+  (f a -> g a) ->
+  Compose f Identity a ->
+  Compose g Identity a
 mapI f (Compose q) = Compose $ fmap Identity . f . fmap runIdentity $ q
 
-
-circShapeTraverse :: Applicative g
-                  => Functor f
-                  => Functor h
-                  => (h a -> g (f a))
-                  -> CircuitShape h ps 'WithData d a
-                  -> g (CircuitShape f ps 'WithData d a)
+circShapeTraverse ::
+  Applicative g =>
+  Functor f =>
+  Functor h =>
+  (h a -> g (f a)) ->
+  CircuitShape h ps 'WithData d a ->
+  g (CircuitShape f ps 'WithData d a)
 circShapeTraverse _ CNil = pure CNil
 circShapeTraverse k (x :& xs) =
   (:&) <$> wrapInIdentity k x <*> circShapeTraverse k xs
 
-
-wrapInIdentity
-  :: Functor g
-  => Functor f
-  => Functor h
-  => (h a -> g (f a))
-  -> (Compose h Identity) a -> g ((Compose f Identity) a)
+wrapInIdentity ::
+  Functor g =>
+  Functor f =>
+  Functor h =>
+  (h a -> g (f a)) ->
+  (Compose h Identity) a ->
+  g ((Compose f Identity) a)
 wrapInIdentity f (Compose xs) =
   Compose . fmap Identity
     <$> f (runIdentity <$> xs)
 
-
-plugInDataToGateConstraint
-  :: Ring a
-  => RelativeCellRefToPoly ps n
-  => Domain d a
-  -> CircuitShape UnivariatePolynomial ps 'WithData d a
-  -> GateConstraint n d a
-  -> UnivariatePolynomial a
+plugInDataToGateConstraint ::
+  Ring a =>
+  RelativeCellRefToPoly ps n =>
+  Domain d a ->
+  CircuitShape UnivariatePolynomial ps 'WithData d a ->
+  GateConstraint n d a ->
+  UnivariatePolynomial a
 plugInDataToGateConstraint omega shape (MkGateConstraint poly) =
   evalP scalarP (relativeCellRefToPoly omega shape) poly
 
-
 type RelativeCellRefToPoly :: [ColType] -> Nat -> Constraint
 class RelativeCellRefToPoly ps n where
-  relativeCellRefToPoly
-    :: Ring a
-    => Domain d a
-    -> CircuitShape UnivariatePolynomial ps 'WithData d a
-    -> RelativeCellRef n
-    -> UnivariatePolynomial a
+  relativeCellRefToPoly ::
+    Ring a =>
+    Domain d a ->
+    CircuitShape UnivariatePolynomial ps 'WithData d a ->
+    RelativeCellRef n ->
+    UnivariatePolynomial a
 
 instance RelativeCellRefToPoly '[] 'Z where
-  relativeCellRefToPoly _ CNil _ = error "impossible"
+  relativeCellRefToPoly _ CNil _ = die "impossible: relativeCellRefToPoly _ CNil _"
 
 instance RelativeCellRefToPoly xs z => RelativeCellRefToPoly ('MkCol j k ': xs) ('S z) where
   relativeCellRefToPoly
     omega
     (col0 :& _)
     (MkRelativeCellRef i (ColIndex FZ)) =
-    rotateColPoly omega i (runIdentity <$> getCompose col0)
+      rotateColPoly omega i (runIdentity <$> getCompose col0)
   relativeCellRefToPoly
     omega
     (_ :& cols)
     (MkRelativeCellRef i (ColIndex (FS n))) =
-      relativeCellRefToPoly omega cols
+      relativeCellRefToPoly
+        omega
+        cols
         (MkRelativeCellRef i (ColIndex n))
 
-
-rotateColPoly
-  :: Ring a
-  => Domain d a
-  -> RelativeRowIndex
-  -> UnivariatePolynomial a
-  -> UnivariatePolynomial a
+rotateColPoly ::
+  Ring a =>
+  Domain d a ->
+  RelativeRowIndex ->
+  UnivariatePolynomial a ->
+  UnivariatePolynomial a
 rotateColPoly (Domain omega) (RelativeRowIndex i) =
   subsP (const (scaleP (omega i) (monomP (U 1))))
 
-
-linearlyCombineGatePolys
-  :: Ring a
-  => Challenge a
-  -> [UnivariatePolynomial a]
-  -> UnivariatePolynomial a
+linearlyCombineGatePolys ::
+  Ring a =>
+  Challenge a ->
+  [UnivariatePolynomial a] ->
+  UnivariatePolynomial a
 linearlyCombineGatePolys (Challenge gamma) polys =
-  UnivariatePolynomial . sumP
-    $ zipWith scaleP (iterate (* gamma) 1) (unUnivariatePolynomial <$> polys)
+  UnivariatePolynomial . sumP $
+    zipWith scaleP (iterate (* gamma) 1) (unUnivariatePolynomial <$> polys)
 
-
-combineCircuitPolys
-  :: n ~ Length ps
-  => RelativeCellRefToPoly ps n
-  => Ring a
-  => Domain d a
-  -> CircuitM UnivariatePolynomial ps 'WithData d a
-  -> Challenge a
-  -> UnivariatePolynomial a
+combineCircuitPolys ::
+  n ~ Length ps =>
+  RelativeCellRefToPoly ps n =>
+  Ring a =>
+  Domain d a ->
+  CircuitM UnivariatePolynomial ps 'WithData d a ->
+  Challenge a ->
+  UnivariatePolynomial a
 combineCircuitPolys omega (CircuitM shape gates) challenge =
   linearlyCombineGatePolys challenge $
     plugInDataToGateConstraint omega shape <$> gates
 
-
-getZerofier
-  :: forall n a.
-     NatToInt n
-  => Num a
-  => Group a
-  => Domain n a
-  -> UnivariatePolynomial a
-getZerofier d@(Domain q) = UnivariatePolynomial . Uni . FreeMod $
-  Map.fromList (zip (U <$> [0..]) (fft d (q <$> [0 .. natToInt @n - 1])))
-
+getZerofier ::
+  forall n a.
+  NatToInt n =>
+  Num a =>
+  Group a =>
+  Domain n a ->
+  UnivariatePolynomial a
+getZerofier d@(Domain q) =
+  UnivariatePolynomial . Uni . FreeMod $
+    Map.fromList (zip (U <$> [0 ..]) (fft d (q <$> [0 .. natToInt @n - 1])))
 
 -- returns the quotient if the denominator
 -- perfectly divides the numerator.
-divUniPoly :: Ring a
-           => Fractional a
-           => UnivariatePolynomial a
-           -> UnivariatePolynomial a
-           -> Maybe (UnivariatePolynomial a)
+divUniPoly ::
+  Ring a =>
+  Fractional a =>
+  UnivariatePolynomial a ->
+  UnivariatePolynomial a ->
+  Maybe (UnivariatePolynomial a)
 divUniPoly = divideMaybe
 
+polynomialLongDivision :: forall p. (Polynomial p, Fractional (CoeffP p)) => p -> p -> (p, p)
+polynomialLongDivision p0 q = go zeroP p0
+  where
+    (bq, cq) = case findMaxTerm' q of
+      Just bc -> bc
+      Nothing -> die "polynomialLongDivision: division by zero"
 
-polynomialLongDivision :: forall p. (Polynomial p, Fractional (CoeffP p)) => p -> p -> (p,p)
-polynomialLongDivision p0 q = go zeroP p0 where
-
-  (bq,cq) = case findMaxTerm' q of
-    Just bc -> bc
-    Nothing -> error "polynomialLongDivision: division by zero"
-
-  go !acc !p = case findMaxTerm' p of
-    Nothing      -> (acc,zeroP)
-    Just (bp,cp) -> case divM bp bq of
-      Nothing      -> (acc,p)
-      Just br      -> let cr = (cp / cq)
-                          u  = scaleP cr (mulByMonomP br q)
-                          p' = p - u
-                          acc' = (acc + monomP' br cr)
-                      in  go acc' p'
+    go !acc !p = case findMaxTerm' p of
+      Nothing -> (acc, zeroP)
+      Just (bp, cp) -> case divM bp bq of
+        Nothing -> (acc, p)
+        Just br ->
+          let cr = (cp / cq)
+              u = scaleP cr (mulByMonomP br q)
+              p' = p - u
+              acc' = (acc + monomP' br cr)
+           in go acc' p'
 
 divideMaybe :: (Polynomial p, Fractional (CoeffP p)) => p -> p -> Maybe p
 divideMaybe p q = case polynomialLongDivision p q of
-  (s,r) -> if isZeroP r then Just s else Nothing
-
+  (s, r) -> if isZeroP r then Just s else Nothing
 
 findMaxTerm' :: FreeModule f => f -> Maybe (BaseF f, CoeffF f)
 findMaxTerm' = findMaxTerm . toFreeModule

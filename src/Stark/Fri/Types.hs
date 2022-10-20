@@ -1,3 +1,5 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Stark.Fri.Types
   ( Offset (Offset, unOffset),
     Omega (Omega, unOmega),
@@ -26,14 +28,15 @@ where
 import Codec.Serialise (Serialise, serialise)
 import Data.ByteString (ByteString, toStrict)
 import Data.Kind (Type)
+import Data.Word (Word64)
 import GHC.Generics (Generic)
-import qualified Stark.FiniteField as FiniteField
 import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
 import Stark.Types.FiatShamir (Sampleable (sample))
 import Stark.Types.Scalar (Scalar)
+import qualified Stark.Types.Scalar as Scalar
 
 type Offset :: Type
 newtype Offset = Offset {unOffset :: Scalar}
@@ -46,7 +49,7 @@ newtype Omega = Omega {unOmega :: Scalar}
   deriving newtype (Num)
 
 type DomainLength :: Type
-newtype DomainLength = DomainLength {unDomainLength :: Int}
+newtype DomainLength = DomainLength {unDomainLength :: Word64}
   deriving stock (Eq, Ord, Show, Generic)
   deriving newtype (Num, Enum, Real, Integral)
 
@@ -55,23 +58,23 @@ newtype ExpansionFactor = ExpansionFactor {unExpansionFactor :: Rational}
   deriving stock (Show)
 
 type NumColinearityTests :: Type
-newtype NumColinearityTests = NumColinearityTests {unNumColinearityTests :: Int}
+newtype NumColinearityTests = NumColinearityTests {unNumColinearityTests :: Word64}
   deriving stock (Show)
 
 type ListSize :: Type
-newtype ListSize = ListSize {unListSize :: Int}
+newtype ListSize = ListSize {unListSize :: Word64}
 
 type RandomSeed :: Type
 newtype RandomSeed = RandomSeed {unRandomSeed :: ByteString}
 
 type ReducedListSize :: Type
-newtype ReducedListSize = ReducedListSize {unReducedListSize :: Int}
+newtype ReducedListSize = ReducedListSize {unReducedListSize :: Word64}
 
 type SampleSize :: Type
-newtype SampleSize = SampleSize {unSampleSize :: Int}
+newtype SampleSize = SampleSize {unSampleSize :: Word64}
 
 type ReducedIndex :: Type
-newtype ReducedIndex = ReducedIndex {unReducedIndex :: Int}
+newtype ReducedIndex = ReducedIndex {unReducedIndex :: Word64}
   deriving stock (Eq, Ord)
 
 type Codeword :: Type
@@ -123,7 +126,7 @@ newtype Challenge = Challenge {unChallenge :: Scalar}
   deriving newtype (Serialise)
 
 instance Sampleable Challenge where
-  sample = Challenge . FiniteField.sample . unRandomSeed . randomSeed
+  sample = Challenge . Scalar.sample . unRandomSeed . randomSeed
 
 randomSeed :: Serialise a => a -> RandomSeed
 randomSeed = RandomSeed . hash . toStrict . serialise
