@@ -108,8 +108,9 @@ inverseScalar (Scalar ((+ epsilon) -> 0)) = Nothing
 inverseScalar x = Just $ x ^ (order - 2)
 
 half :: Scalar
-half = fromMaybe (die "Stark.Types.Scalar.half: partiality")
-  $ inverseScalar 2
+half =
+  fromMaybe (die "Stark.Types.Scalar.half: partiality") $
+    inverseScalar 2
 
 generator :: Scalar
 generator = Scalar 7
