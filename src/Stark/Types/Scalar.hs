@@ -16,6 +16,7 @@ module Stark.Types.Scalar
     sample,
     scalarToRational,
     scalarToInteger,
+    integerToScalar,
     normalize,
   )
 where
@@ -23,7 +24,7 @@ where
 import Basement.Types.Word128 (Word128 (Word128))
 import Codec.Serialise (Serialise)
 import Control.Monad (guard)
-import Data.Bits (shiftR, (.&.))
+import Data.Bits (shiftR, (.&.), toIntegralSized)
 import qualified Data.ByteString as BS
 import qualified Data.FiniteField.Base as F
 import Data.Kind (Type)
@@ -214,3 +215,14 @@ scalarToInteger = word64ToInteger . unScalar
 
 scalarToRational :: Scalar -> Rational
 scalarToRational = word64ToRatio . unScalar
+
+integerToScalar :: Integer -> Maybe Scalar
+integerToScalar x =
+  if x < 0
+  then negate <$> integerToScalar (negate x)
+  else -- the reason for not just using toIntegralSized
+       -- here is that it would give the wrong answer
+       -- on the values in [order,2^64).
+       if x < word64ToInteger order
+       then Scalar <$> toIntegralSized x
+       else Nothing
