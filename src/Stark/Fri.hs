@@ -120,7 +120,7 @@ runFriDSLProver =
           (throw "runFriDSLProver: GetCommitment: no last codeword")
           pure
           (getLast lastCodewordM)
-      when (i /= RoundIndex (length codewords + 1)) $
+      when (i /= RoundIndex (length codewords - 1)) $
         throw "runFriDSLProver: GetCommitment: rounds are out of order"
       let omega = (config ^. #omega) ^ (two ^ i)
           offset = (config ^. #offset) ^ (two ^ i)
