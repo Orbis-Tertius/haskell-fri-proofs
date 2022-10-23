@@ -9,6 +9,7 @@ module Stark.Types.Scalar
     fromWord64,
     toWord64,
     inverseScalar,
+    half,
     generator,
     primitiveBigPowerOfTwoRoot,
     primitiveNthRoot,
@@ -26,6 +27,7 @@ import Data.Bits (shiftR, (.&.))
 import qualified Data.ByteString as BS
 import qualified Data.FiniteField.Base as F
 import Data.Kind (Type)
+import Data.Maybe (fromMaybe)
 import Data.Ratio (denominator, numerator)
 import Data.Word (Word64)
 import Die (die)
@@ -104,6 +106,10 @@ inverseScalar :: Scalar -> Maybe Scalar
 inverseScalar (Scalar 0) = Nothing
 inverseScalar (Scalar ((+ epsilon) -> 0)) = Nothing
 inverseScalar x = Just $ x ^ (order - 2)
+
+half :: Scalar
+half = fromMaybe (die "Stark.Types.Scalar.half: partiality")
+  $ inverseScalar 2
 
 generator :: Scalar
 generator = Scalar 7
