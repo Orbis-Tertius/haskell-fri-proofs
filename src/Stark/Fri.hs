@@ -33,7 +33,7 @@ where
 import Stark.Cast (word64ToInt, word64ToInteger, intToInteger)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
-import Control.Monad (void, when)
+import Control.Monad (void, when, forM_)
 import Crypto.Number.Basic (log2)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Bits (shift, xor)
@@ -57,7 +57,7 @@ import Stark.Prelude (uncurry4)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
-import Stark.Types.FiatShamir (ErrorMessage, IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, sampleChallenge, verifierFiatShamir)
+import Stark.Types.FiatShamir (ErrorMessage (ErrorMessage), IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, sampleChallenge, verifierFiatShamir)
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
@@ -81,7 +81,7 @@ data ProverState
 
 type RoundIndex :: Type
 newtype RoundIndex = RoundIndex {unRoundIndex :: Int}
-  deriving newtype (Eq, Ord, Num, Enum, Real, Integral)
+  deriving newtype (Eq, Ord, Show, Num, Enum, Real, Integral)
 
 type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
@@ -312,8 +312,7 @@ queryRound ::
   Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
 queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = do
   config <- getConfig
-  let capLength = config ^. #capLength
-      omega = (config ^. #omega) ^ ((2 :: Integer) ^ i)
+  let omega = (config ^. #omega) ^ ((2 :: Integer) ^ i)
       offset = config ^. #offset
       nextIndices =
         (fst <$> indices)
@@ -349,27 +348,28 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
               (zip (f . unB <$> bIndices) (unB <$> bys))
               (zip (repeat (unChallenge alpha)) (unC <$> cys))
       allPaths = unAuthPaths <$> ps
+      aPaths, bPaths, cPaths :: [AuthPath]
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
       cPaths = (^. _3 . #unC) <$> allPaths
-      aAuthPathChecks =
-        all (uncurry4 (Merkle.verify capLength)) $
-          zip4 (repeat root) (unA <$> aIndices) aPaths (unA <$> ays)
-      bAuthPathChecks =
-        all (uncurry4 (Merkle.verify capLength)) $
-          zip4 (repeat root) (unB <$> bIndices) bPaths (unB <$> bys)
-      cAuthPathChecks =
-        all (uncurry4 (Merkle.verify capLength)) $
-          zip4 (repeat nextRoot) (unC <$> cIndices) cPaths (unC <$> cys)
-      authPathChecks = aAuthPathChecks && bAuthPathChecks && cAuthPathChecks
+  forM_ (mconcat [ zip4 (repeat root) (unA <$> aIndices) aPaths (unA <$> ays)
+                 , zip4 (repeat root) (unB <$> bIndices) bPaths (unB <$> bys)
+                 , zip4 (repeat nextRoot) (unC <$> cIndices) cPaths (unC <$> cys)
+                 ])
+    $ uncurry4 (authPathCheck (config ^. #capLength))
   when (not colinearityChecks) (throw "colinearity check failed")
-  when (not authPathChecks) (throw "auth path check failed")
   pure
     ( zip nextIndices (snd <$> indices),
       i + 1,
       nextRoot : remainingRoots,
       alphas
     )
+  where
+    authPathCheck :: FriEffects r => CapLength -> CapCommitment -> Index -> AuthPath -> Scalar -> Sem r ()
+    authPathCheck capLength commitment j authPath y =
+      when (not (Merkle.verify capLength commitment j authPath y))
+        (throw . ErrorMessage $ "auth path check failed: " <> show (commitment, i, authPath, y))
+        
 queryRound (_, _, _ : [], _) = throw "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
 queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
