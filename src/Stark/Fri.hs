@@ -24,16 +24,17 @@ module Stark.Fri
     commitPhase,
     prove,
     verify,
-    getMaxDegree,
+    getMaxLowDegree,
     evalDomain,
     splitAndFold,
   )
 where
 
-import Stark.Cast (word64ToInt)
+import Stark.Cast (word64ToInt, word64ToInteger, intToInteger)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
 import Control.Monad (void, when)
+import Crypto.Number.Basic (log2)
 import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
@@ -49,13 +50,13 @@ import Polysemy.Error (Error, runError, throw)
 import Polysemy.Input (Input, input, runInputConst)
 import Polysemy.State (State, evalState, execState, get, put, runState)
 import qualified Stark.BinaryTree as BinaryTree
-import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C, unC), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (NumColinearityTests, unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
+import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C, unC), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry4)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
-import Stark.Types.CapLength (CapLength (CapLength))
+import Stark.Types.CapLength (CapLength)
 import Stark.Types.FiatShamir (ErrorMessage, IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, sampleChallenge, verifierFiatShamir)
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
@@ -274,12 +275,11 @@ commitPhase = do
     throw "commitPhase: last codeword commitment check failed"
   let lastDomainLength = roundDomainLength config (RoundIndex (n - 1))
       lastOmega = getLastOmega config
-      lastOffset = getLastOffset config
-      lastDomain = evalDomain lastOffset lastOmega lastDomainLength
+      lastDomain = evalDomain (config ^. #offset) lastOmega lastDomainLength
       poly =
         interpolate $ -- TODO: use FFT
           zip lastDomain (unCodeword lastCodeword)
-      maxDegree = getMaxDegree (config ^. #domainLength)
+      maxDegree = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
   when (degree poly > maxDegree) $
     throw "commitPhase: last codeword is not low degree"
   pure (commitments, alphas)
@@ -314,7 +314,7 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
   config <- getConfig
   let capLength = config ^. #capLength
       omega = (config ^. #omega) ^ ((2 :: Integer) ^ i)
-      offset = (config ^. #offset) ^ ((2 :: Integer) ^ i)
+      offset = config ^. #offset
       nextIndices =
         (fst <$> indices)
           <&> ( `mod`
@@ -386,20 +386,10 @@ numRounds config =
   numRounds'
     (config ^. #domainLength)
     (config ^. #expansionFactor)
-    (config ^. #numColinearityTests)
-    (config ^. #capLength)
 
-numRounds' :: DomainLength -> ExpansionFactor -> NumColinearityTests -> CapLength -> Int
-numRounds' (DomainLength d) (ExpansionFactor e) (NumColinearityTests n) (CapLength n') =
-  if fromIntegral d > e && d > n' && 4 * n < d
-    then
-      1
-        + numRounds'
-          (DomainLength (d `div` 2))
-          (ExpansionFactor e)
-          (NumColinearityTests n)
-          (CapLength n')
-    else 0
+numRounds' :: DomainLength -> ExpansionFactor -> Int
+numRounds' (DomainLength d) (ExpansionFactor e) =
+  log2 (word64ToInteger d `div` intToInteger e)
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
@@ -422,17 +412,13 @@ getLastOmega config =
   let nr = numRounds config
    in (config ^. #omega) ^ (2 * (nr - 1))
 
-getLastOffset :: FriConfiguration -> Offset
-getLastOffset config =
-  let nr = numRounds config
-   in (config ^. #offset) ^ (2 * (nr - 1))
-
 evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
 evalDomain (Offset o) (Omega m) (DomainLength d) =
   [o * (m ^ i) | i <- [0 .. d - 1]]
 
-getMaxDegree :: DomainLength -> Int
-getMaxDegree (DomainLength d) = floor (logBase 2 (fromIntegral d) :: Double)
+getMaxLowDegree :: DomainLength -> ExpansionFactor -> Int
+getMaxLowDegree (DomainLength d) (ExpansionFactor e) =
+  word64ToInt d `div` e
 
 splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
 splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =

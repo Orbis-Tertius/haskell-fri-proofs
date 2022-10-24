@@ -14,7 +14,7 @@ import Spec.Gen
 import Stark.Fri
   ( evalDomain,
     getCodeword,
-    getMaxDegree,
+    getMaxLowDegree,
     prove,
     splitAndFold,
     verify,
@@ -22,7 +22,6 @@ import Stark.Fri
 import Stark.Fri.Types
   ( Challenge (Challenge),
     Codeword (unCodeword),
-    DomainLength (DomainLength),
   )
 import Stark.UnivariatePolynomial (degree, interpolate)
 import Test.Tasty (TestTree, localOption, testGroup)
@@ -47,16 +46,25 @@ propSplitAndFold = property $ do
   poly <- forAll (genLowDegreePoly config)
   alpha <- Challenge <$> forAll genScalar
   let c = getCodeword config poly
-      c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
-      two :: Int = 2
+      d = evalDomain (config ^. #offset) (config ^. #omega)
+                     (config ^. #domainLength)
+      polyI = interpolate (zip d (unCodeword c))
+      m = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
+  poly === polyI
+  -- max (degree polyI) m === m
+  let c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
+      dLength' = ((config ^. #domainLength) `div` 2)
       d' =
         evalDomain
-          ((config ^. #offset) ^ two)
+          (config ^. #offset)
           ((config ^. #omega) ^ two)
-          (DomainLength 32)
+          dLength'
       poly' = interpolate (zip d' (unCodeword c'))
-      m = getMaxDegree (config ^. #domainLength)
-  max (degree poly') m === m
+      m' = getMaxLowDegree dLength' (config ^. #expansionFactor)
+  max (degree poly') m' === m'
+  where
+    two :: Int
+    two = 2
 
 propSoundness :: Property
 propSoundness = property $ do

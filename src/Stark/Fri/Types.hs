@@ -52,7 +52,7 @@ newtype DomainLength = DomainLength {unDomainLength :: Word64}
   deriving newtype (Num, Enum, Real, Integral)
 
 type ExpansionFactor :: Type
-newtype ExpansionFactor = ExpansionFactor {unExpansionFactor :: Rational}
+newtype ExpansionFactor = ExpansionFactor {unExpansionFactor :: Int}
   deriving stock (Show)
 
 type NumColinearityTests :: Type

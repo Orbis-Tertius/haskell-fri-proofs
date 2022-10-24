@@ -39,7 +39,7 @@ import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 import qualified Stark.BinaryTree as BinaryTree
 import Stark.Cast (word64ToInt)
-import Stark.Fri (getMaxDegree, FriResponse (Commit, LastCodeword', QueryRound))
+import Stark.Fri (getMaxLowDegree, FriResponse (Commit, LastCodeword', QueryRound))
 import Stark.Fri.Types
   ( A (A),
     AuthPaths (AuthPaths),
@@ -64,7 +64,6 @@ import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 import Stark.Types.Scalar
   ( Scalar,
     fromWord64,
-    generator,
     order,
     primitiveNthRoot,
   )
@@ -76,7 +75,7 @@ genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> enum (0 ::
 defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
   FriConfiguration
-    (Offset generator)
+    (Offset 1)
     (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
     (ExpansionFactor 2)
@@ -135,7 +134,7 @@ genCodeword config =
 
 genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial Scalar)
 genLowDegreePoly config = do
-  let maxDegree = getMaxDegree (config ^. #domainLength)
+  let maxDegree = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
   coefs <- list (Range.singleton maxDegree) genScalar
   let monos :: [U x]
       monos = U <$> [0 .. maxDegree - 1]
