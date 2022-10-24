@@ -70,7 +70,7 @@ import Stark.Types.Scalar
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial))
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> enum (0 :: Int) 4
+genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> enum (0 :: Int) 0
 
 defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
@@ -78,7 +78,7 @@ defaultFriConfiguration =
     (Offset 1)
     (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
-    (ExpansionFactor 2)
+    (ExpansionFactor 8)
     (NumColinearityTests 4)
   where
     dl :: Word64
