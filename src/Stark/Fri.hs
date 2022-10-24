@@ -42,7 +42,7 @@ import Data.ByteString.Lazy (toStrict)
 import Data.Functor ((<&>))
 import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
-import Data.List.Extra (zip4, (!?))
+import Data.List.Extra (zip4, (!?), zipWith6)
 import Data.Monoid (Last (Last), getLast)
 import GHC.Generics (Generic)
 import Polysemy (Effect, Member, Sem, interpret, makeSem, run)
@@ -149,10 +149,13 @@ runFriDSLProver =
       queries <-
         maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
           . sequence
-          $ zipWith3
-            (\a b c -> Query <$> ((,,) <$> (A <$> a) <*> (B <$> b) <*> (C <$> c)))
+          $ zipWith6
+            (\ai a bi b ci c -> Query <$> ((,,) <$> (A . (ai,) <$> a) <*> (B . (bi,) <$> b) <*> (C . (ci,) <$> c)))
+            (Index <$> aIndices)
             ((currentCodeword !?) . word64ToInt <$> aIndices)
+            (Index <$> bIndices)
             ((currentCodeword !?) . word64ToInt <$> bIndices)
+            (Index <$> cIndices)
             ((nextCodeword !?) . word64ToInt <$> cIndices)
       let capLength = config ^. #capLength
       openingProofs <-
@@ -335,26 +338,27 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
           <$> indices
       cIndices = C . fst <$> indices
   (qs, ps) <- getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
-  let ays = (^. #unQuery . _1) <$> qs
-      bys = (^. #unQuery . _2) <$> qs
-      cys = (^. #unQuery . _3) <$> qs
+  -- TODO: check query indices
+  let ays = (^. #unQuery . _1 . #unA . _2) <$> qs
+      bys = (^. #unQuery . _2 . #unB . _2) <$> qs
+      cys = (^. #unQuery . _3 . #unC . _2) <$> qs
       f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
       colinearityChecks =
         all areColinear $
           (\(a, b, c) -> [a, b, c])
             <$> zip3
-              (zip (f . unA <$> aIndices) (unA <$> ays))
-              (zip (f . unB <$> bIndices) (unB <$> bys))
-              (zip (repeat (unChallenge alpha)) (unC <$> cys))
+              (zip (f . unA <$> aIndices) ays)
+              (zip (f . unB <$> bIndices) bys)
+              (zip (repeat (unChallenge alpha)) cys)
       allPaths = unAuthPaths <$> ps
       aPaths, bPaths, cPaths :: [AuthPath]
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
       cPaths = (^. _3 . #unC) <$> allPaths
-  forM_ (mconcat [ zip4 (repeat root) (unA <$> aIndices) aPaths (unA <$> ays)
-                 , zip4 (repeat root) (unB <$> bIndices) bPaths (unB <$> bys)
-                 , zip4 (repeat nextRoot) (unC <$> cIndices) cPaths (unC <$> cys)
+  forM_ (mconcat [ zip4 (repeat root) (unA <$> aIndices) aPaths ays
+                 , zip4 (repeat root) (unB <$> bIndices) bPaths bys
+                 , zip4 (repeat nextRoot) (unC <$> cIndices) cPaths cys
                  ])
     $ uncurry4 (authPathCheck (config ^. #capLength))
   when (not colinearityChecks) (throw "colinearity check failed")

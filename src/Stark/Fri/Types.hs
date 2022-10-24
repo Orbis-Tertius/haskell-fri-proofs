@@ -33,6 +33,7 @@ import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapLength (CapLength)
 import Stark.Types.FiatShamir (Sampleable (sample))
+import Stark.Types.Index (Index)
 import Stark.Types.Scalar (Scalar)
 import qualified Stark.Types.Scalar as Scalar
 
@@ -99,7 +100,7 @@ type ABC :: Type -> Type
 type ABC a = (A a, B a, C a)
 
 type Query :: Type
-newtype Query = Query {unQuery :: ABC Scalar}
+newtype Query = Query {unQuery :: ABC (Index, Scalar)}
   deriving stock (Eq, Generic, Show)
   deriving newtype (Serialise)
 
