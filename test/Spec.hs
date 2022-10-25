@@ -20,8 +20,8 @@ tests :: TestTree
 tests =
   testGroup
     "Tests"
-    [ testFri,
-      testMerkleTree,
-      testScalar,
-      testUnivariatePolynomial
+    [ testFri --,
+      -- testMerkleTree,
+      -- testScalar,
+      -- testUnivariatePolynomial
     ]

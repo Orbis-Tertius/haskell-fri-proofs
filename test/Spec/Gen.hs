@@ -60,6 +60,7 @@ import Stark.Types.CapCommitment (CapCommitment (CapCommitment))
 import Stark.Types.CapLength (CapLength (CapLength))
 import Stark.Types.Commitment (Commitment (Commitment))
 import Stark.Types.FiatShamir (Transcript (Transcript))
+import Stark.Types.Index (Index (Index))
 import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 import Stark.Types.Scalar
   ( Scalar,
@@ -79,7 +80,7 @@ defaultFriConfiguration =
     (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
     (ExpansionFactor 8)
-    (NumColinearityTests 4)
+    (NumColinearityTests 1)
   where
     dl :: Word64
     dl = 64
@@ -117,10 +118,18 @@ genCapCommitment = do
     <$> list (Range.singleton n) genCommitment
 
 genQuery :: Gen Query
-genQuery = Query <$> ((,,) <$> (A <$> genScalar) <*> (B <$> genScalar) <*> (C <$> genScalar))
+genQuery = Query <$> ((,,)
+  <$> (A <$> ((,) <$> genIndex <*> genScalar))
+  <*> (B <$> ((,) <$> genIndex <*> genScalar))
+  <*> (C <$> ((,) <$> genIndex <*> genScalar)))
+
+genIndex :: Gen Index
+genIndex = Index <$> Gen.integral (Range.linear 0 10)
 
 genAuthPath :: Gen AuthPath
-genAuthPath = AuthPath <$> list (Range.linear 1 10) (Commitment . MerkleHash <$> genByteString)
+genAuthPath = AuthPath <$> list (Range.linear 1 10)
+  ((,) <$> (Commitment . MerkleHash <$> genByteString)
+       <*> (Commitment . MerkleHash <$> genByteString))
 
 genByteString :: Gen ByteString
 genByteString = bytes (Range.linear 1 10)

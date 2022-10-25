@@ -52,9 +52,16 @@ open__ 0 (IsLeaf _) = AuthPath []
 open__ i t@(IsNode x y) =
   let n = Index $ intToWord64 (Tree.size t)
       m = n `quot` 2
-   in if i < m
-        then open__ i x <> AuthPath [commitCapLeaf y]
-        else open__ (i - m) y <> AuthPath [commitCapLeaf x]
+      yc = commitCapLeaf y
+      xc = commitCapLeaf x
+      h = mergeCommitments (xc, yc)
+   in if m == 1
+        then (if i == 0
+              then AuthPath [(yc, h)]
+              else AuthPath [(xc, h)])
+        else if i < m
+        then open__ i x <> AuthPath [(yc, h)]
+        else open__ (i - m) y <> AuthPath [(xc, h)]
 open__ i t = die ("open_ pattern match failure: " <> show (i, t))
 
 open_ :: CapLength -> Index -> BinaryTree MerkleHash -> AuthPath
@@ -84,10 +91,15 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
                      False
                )
             && (z == y || trace "commitment check failed" False)
-    AuthPath (x : xs) ->
-      if even i
-        then verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (y, x))
-        else verify_ capLength c (i `quot` 2) (AuthPath xs) (mergeCommitments (x, y))
+    AuthPath ((x,h) : xs) ->
+      trace ("even? " <> show (even i))
+       $ if even i
+        then let h' = mergeCommitments (y,x)
+          in trace (show (i, length xs, h == h'))
+            $ h == h' && verify_ capLength c (i `quot` 2) (AuthPath xs) h'
+        else let h' = mergeCommitments (x,y)
+          in trace (show (i, length xs, h == h'))
+           $ h == h' && verify_ capLength c (i `quot` 2) (AuthPath xs) h'
 
 verify ::
   Serialise a =>

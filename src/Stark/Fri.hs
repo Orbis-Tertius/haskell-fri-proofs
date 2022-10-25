@@ -143,9 +143,10 @@ runFriDSLProver =
           (throw "runFriDSLProver: GetQueries: missing next codeword")
           (pure . unCodeword)
           (codewords !? (i + 1))
-      let aIndices = (^. _1 . #unA . #unIndex) <$> indices
-          bIndices = (^. _2 . #unB . #unIndex) <$> indices
-          cIndices = (^. _3 . #unC . #unIndex) <$> indices
+      let nextDomainLength = unDomainLength (roundDomainLength config (RoundIndex (i + 1)))
+          aIndices = (`mod` nextDomainLength) . (^. _1 . #unA . #unIndex) <$> indices
+          bIndices = (+ nextDomainLength) <$> aIndices
+          cIndices = aIndices
       queries <-
         maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
           . sequence
@@ -338,10 +339,12 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
           <$> indices
       cIndices = C . fst <$> indices
   (qs, ps) <- getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
-  -- TODO: check query indices
-  let ays = (^. #unQuery . _1 . #unA . _2) <$> qs
-      bys = (^. #unQuery . _2 . #unB . _2) <$> qs
-      cys = (^. #unQuery . _3 . #unC . _2) <$> qs
+  let as = (^. #unQuery . _1 . #unA) <$> qs
+      bs = (^. #unQuery . _2 . #unB) <$> qs
+      cs = (^. #unQuery . _3 . #unC) <$> qs
+      ays = (^. _2) <$> as
+      bys = (^. _2) <$> bs
+      cys = (^. _2) <$> cs
       f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
       colinearityChecks =
@@ -356,12 +359,12 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
       cPaths = (^. _3 . #unC) <$> allPaths
-  forM_ (mconcat [ zip4 (repeat root) (unA <$> aIndices) aPaths ays
-                 , zip4 (repeat root) (unB <$> bIndices) bPaths bys
-                 , zip4 (repeat nextRoot) (unC <$> cIndices) cPaths cys
+  when (not colinearityChecks) (throw "colinearity check failed")
+  forM_ (mconcat [ zip4 (repeat root) (unA <$> aIndices) aPaths as
+                 , zip4 (repeat root) (unB <$> bIndices) bPaths bs
+                 , zip4 (repeat nextRoot) (unC <$> cIndices) cPaths cs
                  ])
     $ uncurry4 (authPathCheck (config ^. #capLength))
-  when (not colinearityChecks) (throw "colinearity check failed")
   pure
     ( zip nextIndices (snd <$> indices),
       i + 1,
@@ -369,11 +372,13 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       alphas
     )
   where
-    authPathCheck :: FriEffects r => CapLength -> CapCommitment -> Index -> AuthPath -> Scalar -> Sem r ()
-    authPathCheck capLength commitment j authPath y =
-      when (not (Merkle.verify capLength commitment j authPath y))
-        (throw . ErrorMessage $ "auth path check failed: " <> show (commitment, i, authPath, y))
-        
+    authPathCheck :: FriEffects r => CapLength -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
+    authPathCheck capLength commitment j authPath q = do
+      when (j /= (q ^. _1))
+        (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (j, q ^. _1))
+      when (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
+        (throw . ErrorMessage $ "auth path check failed: " <> show (i, q, commitment, authPath))
+
 queryRound (_, _, _ : [], _) = throw "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
 queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
