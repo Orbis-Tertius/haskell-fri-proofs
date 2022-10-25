@@ -79,11 +79,11 @@ defaultFriConfiguration =
     (Offset 1)
     (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
-    (ExpansionFactor 8)
+    (ExpansionFactor 2)
     (NumColinearityTests 1)
   where
     dl :: Word64
-    dl = 16
+    dl = 64
 
 genTranscript :: FriConfiguration -> Gen (Transcript FriResponse)
 genTranscript config =
