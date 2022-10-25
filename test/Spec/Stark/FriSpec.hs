@@ -8,8 +8,8 @@ import Hedgehog (Property, forAll, property, (/==), (===))
 import Spec.Gen
   ( genFriConfiguration,
     genLowDegreePoly,
-    genTranscript,
     genScalar,
+    genTranscript,
   )
 import Stark.Fri
   ( evalDomain,
@@ -46,8 +46,11 @@ propSplitAndFold = property $ do
   poly <- forAll (genLowDegreePoly config)
   alpha <- Challenge <$> forAll genScalar
   let c = getCodeword config poly
-      d = evalDomain (config ^. #offset) (config ^. #omega)
-                     (config ^. #domainLength)
+      d =
+        evalDomain
+          (config ^. #offset)
+          (config ^. #omega)
+          (config ^. #domainLength)
       polyI = interpolate (zip d (unCodeword c))
       m = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
   poly === polyI

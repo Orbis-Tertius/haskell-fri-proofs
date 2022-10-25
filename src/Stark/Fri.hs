@@ -30,10 +30,9 @@ module Stark.Fri
   )
 where
 
-import Stark.Cast (word64ToInt, word64ToInteger, intToInteger)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
-import Control.Monad (when, forM_)
+import Control.Monad (forM_, when)
 import Crypto.Number.Basic (log2)
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
@@ -41,7 +40,7 @@ import Data.ByteString.Lazy (toStrict)
 import Data.Functor ((<&>))
 import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
-import Data.List.Extra ((!?), zipWith6, zip5)
+import Data.List.Extra (zip5, zipWith6, (!?))
 import Data.Monoid (Last (Last), getLast)
 import GHC.Generics (Generic)
 import Polysemy (Effect, Member, Sem, interpret, makeSem, run)
@@ -49,6 +48,7 @@ import Polysemy.Error (Error, runError, throw)
 import Polysemy.Input (Input, input, runInputConst)
 import Polysemy.State (State, evalState, execState, get, put, runState)
 import qualified Stark.BinaryTree as BinaryTree
+import Stark.Cast (intToInteger, word64ToInt, word64ToInteger)
 import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C, unC), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
@@ -56,7 +56,7 @@ import Stark.Prelude (uncurry5)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
-import Stark.Types.FiatShamir (ErrorMessage (ErrorMessage), IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, sampleChallenge, verifierFiatShamir, respond)
+import Stark.Types.FiatShamir (ErrorMessage (ErrorMessage), IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, respond, sampleChallenge, verifierFiatShamir)
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
@@ -97,13 +97,13 @@ type FriEffects r = (Member FriIOP r, Member FriDSL r, Member (Error ErrorMessag
 
 prove :: FriConfiguration -> Codeword -> Either ErrorMessage (Transcript FriResponse)
 prove c w = do
-  run
-    $ runInputConst c
-    $ runError @ErrorMessage
-    $ execState @(Transcript FriResponse) mempty
-    $ runState (ProverState [w])
-    $ proverFiatShamir
-    $ runFriDSLProver $ fri
+  run $
+    runInputConst c $
+      runError @ErrorMessage $
+        execState @(Transcript FriResponse) mempty $
+          runState (ProverState [w]) $
+            proverFiatShamir $
+              runFriDSLProver $ fri
 
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
 verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier $ fri
@@ -391,10 +391,13 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       bPaths = (^. _2 . #unB) <$> allPaths
       cPaths = (^. _3 . #unC) <$> allPaths
   when (not colinearityChecks) (throw "colinearity check failed")
-  forM_ (mconcat [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as
-                 , zip5 (repeat "A") (repeat root) (unB <$> bIndices) bPaths bs
-                 , zip5 (repeat "A") (repeat nextRoot) (unC <$> cIndices) cPaths cs
-                 ])
+  forM_
+    ( mconcat
+        [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
+          zip5 (repeat "A") (repeat root) (unB <$> bIndices) bPaths bs,
+          zip5 (repeat "A") (repeat nextRoot) (unC <$> cIndices) cPaths cs
+        ]
+    )
     $ uncurry5 (authPathCheck (config ^. #capLength))
   pure
     ( zip nextIndices (snd <$> indices),
@@ -405,11 +408,12 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
   where
     authPathCheck :: FriEffects r => CapLength -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
     authPathCheck capLength abc commitment j authPath q = do
-      when (j /= (q ^. _1))
+      when
+        (j /= (q ^. _1))
         (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, i, j, q ^. _1, commitment, authPath))
-      when (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
+      when
+        (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
         (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
-
 queryRound (_, _, _ : [], _) = throw "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
 queryRound (_, _, _, []) = throw "queryRound: not enough alphas"

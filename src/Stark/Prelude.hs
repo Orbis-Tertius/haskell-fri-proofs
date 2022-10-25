@@ -1,5 +1,7 @@
 module Stark.Prelude
-  ( uncurry4, uncurry5, (<$$>),
+  ( uncurry4,
+    uncurry5,
+    (<$$>),
   )
 where
 

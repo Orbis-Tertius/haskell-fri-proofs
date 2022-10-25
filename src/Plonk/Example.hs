@@ -3,12 +3,14 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin -Wno-unused-imports #-}
 
 module Plonk.Example
-  ( -- exampleCircuit,
-    -- exampleCS,
-    -- exampleGC,
-    --   , exampleSomething
+  (
   )
 where
+
+-- exampleCircuit,
+-- exampleCS,
+-- exampleGC,
+--   , exampleSomething
 
 -- import Data.Functor.Compose (Compose (Compose))
 -- import Data.Functor.Identity (Identity (Identity, runIdentity))
@@ -62,7 +64,7 @@ where
 -- import Stark.Types.Scalar (Scalar, generator, primitiveNthRoot)
 -- import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 -- import Stark.UnivariatePolynomial (constant, evaluate, linear)
--- 
+--
 -- type MyCols :: [ColType]
 -- type MyCols = '[ 'MkCol 'Instance 'EqCon, 'MkCol 'Advice 'NEqCon, 'MkCol 'Fixed 'EqCon, 'MkCol 'Fixed 'EqCon]
 
@@ -82,7 +84,7 @@ where
 
 -- exampleGC :: [GateConstraint N4 N4 Scalar]
 -- exampleGC = [MkGateConstraint $ Multi.Poly (singleton (singletonMonom (MkRelativeCellRef (RelativeRowIndex 0) (ColIndex FZ)) 1) 1)]
--- 
+--
 -- type MyCircuitM :: Type
 -- type MyCircuitM = CircuitM [] MyCols 'WithData N4 Scalar
 

@@ -90,10 +90,13 @@ verifierFiatShamir =
         case unconsumed of
           Transcript (r' : rest) ->
             if r == r'
-            then put (TranscriptPartition (consumed <> Transcript [r], Transcript rest))
-            else throw . ErrorMessage
-              $ "verifierFiatShamir: Respond: responses are out of order: expected "
-             <> show r <> " but got " <> show r'
+              then put (TranscriptPartition (consumed <> Transcript [r], Transcript rest))
+              else
+                throw . ErrorMessage $
+                  "verifierFiatShamir: Respond: responses are out of order: expected "
+                    <> show r
+                    <> " but got "
+                    <> show r'
           Transcript [] -> throw (ErrorMessage "verifierFiatShamir: Respond: premature end of transcript")
       SampleChallenge -> do
         TranscriptPartition (consumed, _) <- get

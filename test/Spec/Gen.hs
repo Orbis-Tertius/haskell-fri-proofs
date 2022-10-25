@@ -39,7 +39,7 @@ import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 import qualified Stark.BinaryTree as BinaryTree
 import Stark.Cast (word64ToInt)
-import Stark.Fri (getMaxLowDegree, FriResponse (Commit, LastCodeword', QueryRound))
+import Stark.Fri (FriResponse (Commit, LastCodeword', QueryRound), getMaxLowDegree)
 import Stark.Fri.Types
   ( A (A),
     AuthPaths (AuthPaths),
@@ -92,12 +92,13 @@ genTranscript config =
 genFriResponse :: FriConfiguration -> Gen FriResponse
 genFriResponse config =
   choice
-  [ Commit <$> genCapCommitment
-  , LastCodeword' . Last <$> Gen.maybe (genCodeword config)
-  , QueryRound <$>
-      ((,) <$> Gen.list (Range.linear 0 10) genQuery
-           <*> Gen.list (Range.linear 0 10) genAuthPaths)
-  ]
+    [ Commit <$> genCapCommitment,
+      LastCodeword' . Last <$> Gen.maybe (genCodeword config),
+      QueryRound
+        <$> ( (,) <$> Gen.list (Range.linear 0 10) genQuery
+                <*> Gen.list (Range.linear 0 10) genAuthPaths
+            )
+    ]
 
 genAuthPaths :: Gen AuthPaths
 genAuthPaths =
@@ -118,19 +119,26 @@ genCapCommitment = do
     <$> list (Range.singleton n) genCommitment
 
 genQuery :: Gen Query
-genQuery = Query <$> ((,,)
-  <$> (A <$> ((,) <$> genIndex <*> genScalar))
-  <*> (B <$> ((,) <$> genIndex <*> genScalar))
-  <*> (C <$> ((,) <$> genIndex <*> genScalar)))
+genQuery =
+  Query
+    <$> ( (,,)
+            <$> (A <$> ((,) <$> genIndex <*> genScalar))
+            <*> (B <$> ((,) <$> genIndex <*> genScalar))
+            <*> (C <$> ((,) <$> genIndex <*> genScalar))
+        )
 
 genIndex :: Gen Index
 genIndex = Index <$> Gen.integral (Range.linear 0 10)
 
 genAuthPath :: Gen AuthPath
-genAuthPath = AuthPath <$> list (Range.linear 1 10)
-  ((,,) <$> (Commitment . MerkleHash <$> genByteString)
-        <*> (Commitment . MerkleHash <$> genByteString)
-        <*> (Commitment . MerkleHash <$> genByteString))
+genAuthPath =
+  AuthPath
+    <$> list
+      (Range.linear 1 10)
+      ( (,,) <$> (Commitment . MerkleHash <$> genByteString)
+          <*> (Commitment . MerkleHash <$> genByteString)
+          <*> (Commitment . MerkleHash <$> genByteString)
+      )
 
 genByteString :: Gen ByteString
 genByteString = bytes (Range.linear 1 10)
