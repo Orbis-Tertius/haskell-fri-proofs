@@ -91,12 +91,12 @@ verify_ capLength c@(CapCommitment capLeaves) i p y =
     AuthPath ((x,y',h) : xs) ->
       trace ("even? " <> show (even i))
        $ if even i
-        then let h' = mergeCommitments (x,y)
-          in trace (show (i, length xs, h == h', y == y'))
-            $ y == y' && h == h' && verify_ capLength c (i `quot` 2) (AuthPath xs) h'
+        then let h' = mergeCommitments (x,y')
+          in trace (show (i, length xs, h == h', y == x))
+            $ y == x && h == h' && verify_ capLength c (i `quot` 2) (AuthPath xs) h'
         else let h' = mergeCommitments (x,y')
-          in trace (show (i, length xs, h == h', x == y))
-           $ h == h' && x == y && verify_ capLength c (i `quot` 2) (AuthPath xs) h'
+          in trace (show (i, length xs, h == h', y == y'))
+           $ y == y' && h == h' && verify_ capLength c (i `quot` 2) (AuthPath xs) h'
 
 verify ::
   Serialise a =>

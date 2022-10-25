@@ -25,6 +25,7 @@ import Data.Kind (Constraint, Type)
 import Data.String (IsString)
 import GHC.Generics (Generic)
 import Polysemy (Members, Sem, interpret, makeSem)
+import Polysemy.Error (Error, throw)
 import Polysemy.State (State, get, put)
 import Stark.Prelude ()
 
@@ -73,15 +74,27 @@ newtype TranscriptPartition r = TranscriptPartition
   {unTranscriptPartition :: (Transcript r, Transcript r)}
 
 verifierFiatShamir ::
+  Eq r =>
   Sampleable c =>
   Serialise r =>
+  Show r =>
+  Members '[Error ErrorMessage] effs =>
   Members '[State (TranscriptPartition r)] effs =>
   Sem (IOP c r ': effs) a ->
   Sem effs a
 verifierFiatShamir =
   interpret $
     \case
-      Respond _ -> pure ()
+      Respond r -> do
+        TranscriptPartition (consumed, unconsumed) <- get
+        case unconsumed of
+          Transcript (r' : rest) ->
+            if r == r'
+            then put (TranscriptPartition (consumed <> Transcript [r], Transcript rest))
+            else throw . ErrorMessage
+              $ "verifierFiatShamir: Respond: responses are out of order: expected "
+             <> show r <> " but got " <> show r'
+          Transcript [] -> throw (ErrorMessage "verifierFiatShamir: Respond: premature end of transcript")
       SampleChallenge -> do
         TranscriptPartition (consumed, _) <- get
         pure (sample (BSL.toStrict (serialise consumed)))

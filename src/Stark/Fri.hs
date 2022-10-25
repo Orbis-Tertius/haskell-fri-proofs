@@ -159,10 +159,9 @@ runFriDSLProver =
           (throw "runFriDSLProver: GetQueries: missing next codeword")
           (pure . unCodeword)
           (codewords !? (i + 1))
-      let nextDomainLength = unDomainLength (roundDomainLength config (RoundIndex (i + 1)))
-          aIndices = (`mod` nextDomainLength) . (^. _1 . #unA . #unIndex) <$> indices
-          bIndices = (+ nextDomainLength) <$> aIndices
-          cIndices = aIndices
+      let aIndices = (^. _1 . #unA . #unIndex) <$> indices
+          bIndices = (^. _2 . #unB . #unIndex) <$> indices
+          cIndices = (^. _3 . #unC . #unIndex) <$> indices
       queries <-
         maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
           . sequence
@@ -393,7 +392,7 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       cPaths = (^. _3 . #unC) <$> allPaths
   when (not colinearityChecks) (throw "colinearity check failed")
   forM_ (mconcat [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as
-                 , zip5 (repeat "A")  (repeat root) (unB <$> bIndices) bPaths bs
+                 , zip5 (repeat "A") (repeat root) (unB <$> bIndices) bPaths bs
                  , zip5 (repeat "A") (repeat nextRoot) (unC <$> cIndices) cPaths cs
                  ])
     $ uncurry5 (authPathCheck (config ^. #capLength))
@@ -407,7 +406,7 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
     authPathCheck :: FriEffects r => CapLength -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
     authPathCheck capLength abc commitment j authPath q = do
       when (j /= (q ^. _1))
-        (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, j, q ^. _1))
+        (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, i, j, q ^. _1, commitment, authPath))
       when (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
         (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
 

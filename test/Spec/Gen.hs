@@ -83,7 +83,7 @@ defaultFriConfiguration =
     (NumColinearityTests 1)
   where
     dl :: Word64
-    dl = 64
+    dl = 16
 
 genTranscript :: FriConfiguration -> Gen (Transcript FriResponse)
 genTranscript config =

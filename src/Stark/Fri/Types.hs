@@ -111,7 +111,7 @@ newtype AuthPaths = AuthPaths {unAuthPaths :: ABC AuthPath}
 
 type Challenge :: Type
 newtype Challenge = Challenge {unChallenge :: Scalar}
-  deriving newtype (Serialise)
+  deriving newtype (Eq, Show, Serialise)
 
 instance Sampleable Challenge where
   sample = Challenge . Scalar.sample . unRandomSeed . randomSeed
