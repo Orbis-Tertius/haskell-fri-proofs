@@ -128,8 +128,9 @@ genIndex = Index <$> Gen.integral (Range.linear 0 10)
 
 genAuthPath :: Gen AuthPath
 genAuthPath = AuthPath <$> list (Range.linear 1 10)
-  ((,) <$> (Commitment . MerkleHash <$> genByteString)
-       <*> (Commitment . MerkleHash <$> genByteString))
+  ((,,) <$> (Commitment . MerkleHash <$> genByteString)
+        <*> (Commitment . MerkleHash <$> genByteString)
+        <*> (Commitment . MerkleHash <$> genByteString))
 
 genByteString :: Gen ByteString
 genByteString = bytes (Range.linear 1 10)

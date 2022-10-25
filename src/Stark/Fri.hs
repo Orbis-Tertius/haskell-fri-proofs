@@ -33,16 +33,15 @@ where
 import Stark.Cast (word64ToInt, word64ToInteger, intToInteger)
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
-import Control.Monad (void, when, forM_)
+import Control.Monad (when, forM_)
 import Crypto.Number.Basic (log2)
-import "monad-extras" Control.Monad.Extra (iterateM)
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Functor ((<&>))
 import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
-import Data.List.Extra (zip4, (!?), zipWith6)
+import Data.List.Extra ((!?), zipWith6, zip5)
 import Data.Monoid (Last (Last), getLast)
 import GHC.Generics (Generic)
 import Polysemy (Effect, Member, Sem, interpret, makeSem, run)
@@ -53,11 +52,11 @@ import qualified Stark.BinaryTree as BinaryTree
 import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C, unC), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
-import Stark.Prelude (uncurry4)
+import Stark.Prelude (uncurry5)
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
-import Stark.Types.FiatShamir (ErrorMessage (ErrorMessage), IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, sampleChallenge, verifierFiatShamir)
+import Stark.Types.FiatShamir (ErrorMessage (ErrorMessage), IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, sampleChallenge, verifierFiatShamir, respond)
 import Stark.Types.Index (Index (Index, unIndex))
 import Stark.Types.Scalar (Scalar)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
@@ -86,6 +85,7 @@ newtype RoundIndex = RoundIndex {unRoundIndex :: Int}
 type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
   GetConfig :: FriDSL m FriConfiguration
+  GetInitialCommitment :: FriDSL m CapCommitment
   GetCommitment :: RoundIndex -> Challenge -> FriDSL m CapCommitment
   GetLastCodeword :: FriDSL m (Last Codeword)
   GetQueries :: RoundIndex -> [ABC Index] -> FriDSL m ([Query], [AuthPaths])
@@ -96,7 +96,14 @@ type FriEffects :: [Effect] -> Constraint
 type FriEffects r = (Member FriIOP r, Member FriDSL r, Member (Error ErrorMessage) r)
 
 prove :: FriConfiguration -> Codeword -> Either ErrorMessage (Transcript FriResponse)
-prove c w = run $ runInputConst c $ runError @ErrorMessage $ execState @(Transcript FriResponse) mempty $ runState (ProverState [w]) $ proverFiatShamir $ runFriDSLProver $ fri
+prove c w = do
+  run
+    $ runInputConst c
+    $ runError @ErrorMessage
+    $ execState @(Transcript FriResponse) mempty
+    $ runState (ProverState [w])
+    $ proverFiatShamir
+    $ runFriDSLProver $ fri
 
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
 verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier $ fri
@@ -112,6 +119,15 @@ runFriDSLProver ::
 runFriDSLProver =
   interpret $ \case
     GetConfig -> input @FriConfiguration
+    GetInitialCommitment -> do
+      config <- input @FriConfiguration
+      lastCodewordM <- getLastCodeword'
+      lastCodeword <-
+        maybe
+          (throw "runFriDSLProver: GetInitialCommitment: no last codeword")
+          pure
+          (getLast lastCodewordM)
+      commitCodeword (config ^. #capLength) lastCodeword
     GetCommitment i alpha -> do
       config <- input @FriConfiguration
       ProverState codewords <- get
@@ -125,7 +141,7 @@ runFriDSLProver =
         throw "runFriDSLProver: GetCommitment: rounds are out of order"
       let omega = (config ^. #omega) ^ (two ^ i)
           offset = (config ^. #offset) ^ (two ^ i)
-          codeword = splitAndFold omega offset (lastCodeword) alpha
+          codeword = splitAndFold omega offset lastCodeword alpha
       commitment <- commitCodeword (config ^. #capLength) codeword
       put (ProverState (codewords <> [codeword]))
       pure commitment
@@ -190,11 +206,19 @@ runFriDSLVerifier ::
 runFriDSLVerifier =
   interpret $ \case
     GetConfig -> input @FriConfiguration
+    GetInitialCommitment -> do
+      Transcript t <- input @(Transcript FriResponse)
+      reply <-
+        maybe (throw "runFriDSLVerifier: GetInitialCommitment: no commitment") pure $
+          (filter isCommitment t) !? 0
+      case reply of
+        Commit c -> pure c
+        _ -> throw "runFriDSLVerifier: GetInitialCommitment: impossible happened"
     GetCommitment (RoundIndex i) _alpha -> do
       Transcript t <- input @(Transcript FriResponse)
       reply <-
         maybe (throw "runFriDSLVerifier: GetCommitment: no commitment") pure $
-          (filter isCommitment t) !? i
+          (filter isCommitment t) !? (i + 1)
       case reply of
         Commit c -> pure c
         _ -> throw "runFriDSLVerifier: GetCommitment: impossible happened"
@@ -265,6 +289,8 @@ commitPhase ::
 commitPhase = do
   config <- getConfig
   let n = numRounds config
+  commitment0 <- getInitialCommitment
+  respond (Commit commitment0)
   (commitments, alphas) <-
     unzip
       <$> sequence (commitRound <$> [0 .. RoundIndex (n - 1)])
@@ -275,6 +301,7 @@ commitPhase = do
     maybe (throw "commitPhase: no last codeword") pure . getLast
       =<< getLastCodeword
   expectedLastRoot <- commitCodeword (config ^. #capLength) lastCodeword
+  respond (LastCodeword' (Last (Just lastCodeword)))
   when (lastRoot /= expectedLastRoot) $
     throw "commitPhase: last codeword commitment check failed"
   let lastDomainLength = roundDomainLength config (RoundIndex (n - 1))
@@ -286,7 +313,7 @@ commitPhase = do
       maxDegree = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
   when (degree poly > maxDegree) $
     throw "commitPhase: last codeword is not low degree"
-  pure (commitments, alphas)
+  pure (commitment0 : commitments, alphas)
 
 commitRound ::
   Member FriIOP r =>
@@ -295,7 +322,9 @@ commitRound ::
   Sem r (CapCommitment, Challenge)
 commitRound i = do
   alpha <- sampleChallenge
-  (,alpha) <$> getCommitment i alpha
+  c <- getCommitment i alpha
+  respond (Commit c)
+  pure (c, alpha)
 
 queryPhase ::
   FriEffects r =>
@@ -304,11 +333,14 @@ queryPhase ::
   [(Index, ReducedIndex)] ->
   Sem r ()
 queryPhase commitments challenges indices = do
-  config <- getConfig
-  void
-    ( take (numRounds config)
-        <$> iterateM queryRound (indices, 0, commitments, challenges)
-    )
+  go (indices, 0, commitments, challenges)
+  where
+    go :: FriEffects r => ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge]) -> Sem r ()
+    go x@(_, RoundIndex i, _, _) = do
+      config <- getConfig
+      if i < numRounds config
+        then go =<< queryRound x
+        else pure ()
 
 queryRound ::
   FriEffects r =>
@@ -326,7 +358,7 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
                         (roundDomainLength config (i + 1))
                     )
               )
-      aIndices = A . fst <$> indices
+      aIndices = A <$> nextIndices
       bIndices =
         B
           . ( +
@@ -335,10 +367,10 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
                       `quot` 2
                   )
             )
-          . fst
-          <$> indices
-      cIndices = C . fst <$> indices
+          <$> nextIndices
+      cIndices = C <$> nextIndices
   (qs, ps) <- getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
+  respond (QueryRound (qs, ps))
   let as = (^. #unQuery . _1 . #unA) <$> qs
       bs = (^. #unQuery . _2 . #unB) <$> qs
       cs = (^. #unQuery . _3 . #unC) <$> qs
@@ -360,11 +392,11 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       bPaths = (^. _2 . #unB) <$> allPaths
       cPaths = (^. _3 . #unC) <$> allPaths
   when (not colinearityChecks) (throw "colinearity check failed")
-  forM_ (mconcat [ zip4 (repeat root) (unA <$> aIndices) aPaths as
-                 , zip4 (repeat root) (unB <$> bIndices) bPaths bs
-                 , zip4 (repeat nextRoot) (unC <$> cIndices) cPaths cs
+  forM_ (mconcat [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as
+                 , zip5 (repeat "A")  (repeat root) (unB <$> bIndices) bPaths bs
+                 , zip5 (repeat "A") (repeat nextRoot) (unC <$> cIndices) cPaths cs
                  ])
-    $ uncurry4 (authPathCheck (config ^. #capLength))
+    $ uncurry5 (authPathCheck (config ^. #capLength))
   pure
     ( zip nextIndices (snd <$> indices),
       i + 1,
@@ -372,12 +404,12 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       alphas
     )
   where
-    authPathCheck :: FriEffects r => CapLength -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
-    authPathCheck capLength commitment j authPath q = do
+    authPathCheck :: FriEffects r => CapLength -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
+    authPathCheck capLength abc commitment j authPath q = do
       when (j /= (q ^. _1))
-        (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (j, q ^. _1))
+        (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, j, q ^. _1))
       when (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
-        (throw . ErrorMessage $ "auth path check failed: " <> show (i, q, commitment, authPath))
+        (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
 
 queryRound (_, _, _ : [], _) = throw "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
