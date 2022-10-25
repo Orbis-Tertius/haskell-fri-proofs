@@ -35,8 +35,8 @@ testFri =
   localOption (HedgehogShrinkLimit (Just 0)) $
     testGroup
       "Fri"
-      [ -- testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
-        -- testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
+      [ testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
+        testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
         testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" propCompleteness
       ]
 
