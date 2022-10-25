@@ -39,65 +39,60 @@ newtype ErrorMessage = ErrorMessage {unErrorMessage :: String}
 
 type IOP ::
   Type -> -- c: challenge
-  Type -> -- r: response
+  Type -> -- t: transcript
+  Type -> -- d: response
   (Type -> Type) -> -- m: monad
   Type -> -- a: result
   Type
-data IOP c r m a where
-  SampleChallenge :: IOP c r m c
-  Respond :: r -> IOP c r m ()
-
-type Transcript :: Type -> Type
-newtype Transcript r = Transcript {unTranscript :: [r]}
-  deriving newtype (Eq, Semigroup, Monoid, Serialise)
-  deriving stock (Generic, Show)
+data IOP c t d m a where
+  SampleChallenge :: IOP c t d m c
+  Respond :: r -> IOP c t d m ()
 
 makeSem ''IOP
 
 proverFiatShamir ::
   Sampleable c =>
-  Serialise r =>
-  Members '[State (Transcript r)] effs =>
-  Sem (IOP c r ': effs) a ->
+  Serialise d =>
+  Members '[State t] effs =>
+  (d -> t -> t) ->
+  Sem (IOP c d ': effs) a ->
   Sem effs a
-proverFiatShamir =
+proverFiatShamir applyDelta =
   interpret $
     \case
       Respond r -> do
-        put . (<> Transcript [r]) =<< get
+        put . (r `applyDelta`) =<< get
       SampleChallenge -> do
         transcript <- get
         pure (sample (BSL.toStrict (serialise transcript)))
 
-type TranscriptPartition :: Type -> Type
-newtype TranscriptPartition r = TranscriptPartition
-  {unTranscriptPartition :: (Transcript r, Transcript r)}
+newtype DeltaIndex d = DeltaIndex { unDeltaIndex :: Int }
 
 verifierFiatShamir ::
   Eq r =>
   Sampleable c =>
-  Serialise r =>
-  Show r =>
+  Serialise d =>
+  Show d =>
   Members '[Error ErrorMessage] effs =>
-  Members '[State (TranscriptPartition r)] effs =>
+  (t -> DeltaIndex d -> d) ->
   Sem (IOP c r ': effs) a ->
   Sem effs a
-verifierFiatShamir =
+verifierFiatShamir extractDeltas =
   interpret $
     \case
       Respond r -> do
         TranscriptPartition (consumed, unconsumed) <- get
         case unconsumed of
-          Transcript (r' : rest) ->
+          (r' : rest) ->
             if r == r'
-              then put (TranscriptPartition (consumed <> Transcript [r], Transcript rest))
+              then put (TranscriptPartition (consumed <> [r], rest))
               else
                 throw . ErrorMessage $
                   "verifierFiatShamir: Respond: responses are out of order: expected "
                     <> show r
                     <> " but got "
                     <> show r'
-          Transcript [] -> throw (ErrorMessage "verifierFiatShamir: Respond: premature end of transcript")
+          [] -> throw (ErrorMessage "verifierFiatShamir: Respond: premature end of transcript")
       SampleChallenge -> do
         TranscriptPartition (consumed, _) <- get
         pure (sample (BSL.toStrict (serialise consumed)))

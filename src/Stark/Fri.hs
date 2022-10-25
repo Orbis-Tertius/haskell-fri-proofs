@@ -78,10 +78,6 @@ type ProverState :: Type
 data ProverState
   = ProverState [Codeword]
 
-type RoundIndex :: Type
-newtype RoundIndex = RoundIndex {unRoundIndex :: Int}
-  deriving newtype (Eq, Ord, Show, Num, Enum, Real, Integral)
-
 type FriDSL :: (Type -> Type) -> Type -> Type
 data FriDSL m a where
   GetConfig :: FriDSL m FriConfiguration
@@ -106,7 +102,14 @@ prove c w = do
               runFriDSLProver $ fri
 
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
-verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier $ fri
+verify c t =
+  run
+    $ evalState (TranscriptPartition (mempty, t))
+    $ runInputConst t
+    $ runInputConst c
+    $ runError @ErrorMessage
+    $ verifierFiatShamir
+    $ runFriDSLVerifier $ fri
 
 -- It assumes that the state initially contains a list of length 1,
 -- with the largest codeword as its element.

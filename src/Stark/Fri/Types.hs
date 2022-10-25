@@ -20,6 +20,7 @@ module Stark.Fri.Types
     AuthPaths (AuthPaths, unAuthPaths),
     Challenge (Challenge, unChallenge),
     FriConfiguration (FriConfiguration),
+    Proof (Proof),
     randomSeed,
   )
 where
@@ -129,3 +130,20 @@ data FriConfiguration = FriConfiguration
     capLength :: CapLength
   }
   deriving stock (Generic, Show)
+
+
+type RoundIndex :: Type
+newtype RoundIndex = RoundIndex {unRoundIndex :: Int}
+  deriving newtype (Eq, Ord, Show, Num, Enum, Real, Integral)
+
+
+type Proof :: Type
+data Proof =
+  Proof
+  { initialCommitment :: Maybe Commitment
+  , roundCommitments :: Map RoundIndex CapCommitment
+  , lastCodeword :: Maybe Codeword
+  , queries :: Map RoundIndex (Query, AuthPaths)
+  }
+
+instance Monoid Proof where
