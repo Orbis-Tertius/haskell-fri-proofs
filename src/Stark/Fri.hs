@@ -378,24 +378,21 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       cys = (^. _2) <$> cs
       f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
-      colinearityChecks =
-        all areColinear $
-          (\(a, b, c) -> [a, b, c])
-            <$> zip3
-              (zip (f . unA <$> aIndices) ays)
-              (zip (f . unB <$> bIndices) bys)
-              (zip (repeat (unChallenge alpha)) cys)
+      points = zip3
+        (A <$> (zip (f . unA <$> aIndices) ays))
+        (B <$> (zip (f . unB <$> bIndices) bys))
+        (C <$> (zip (repeat (unChallenge alpha)) cys))
       allPaths = unAuthPaths <$> ps
       aPaths, bPaths, cPaths :: [AuthPath]
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
       cPaths = (^. _3 . #unC) <$> allPaths
-  when (not colinearityChecks) (throw "colinearity check failed")
+  forM_ points colinearityCheck
   forM_
     ( mconcat
         [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
-          zip5 (repeat "A") (repeat root) (unB <$> bIndices) bPaths bs,
-          zip5 (repeat "A") (repeat nextRoot) (unC <$> cIndices) cPaths cs
+          zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs,
+          zip5 (repeat "C") (repeat nextRoot) (unC <$> cIndices) cPaths cs
         ]
     )
     $ uncurry5 (authPathCheck (config ^. #capLength))
@@ -406,6 +403,12 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       alphas
     )
   where
+    colinearityCheck :: FriEffects r => ABC (Scalar, Scalar) -> Sem r ()
+    colinearityCheck (A a, B b, C c) =
+      when (not (areColinear [a, b, c]))
+        . throw . ErrorMessage $ "colinearity check failed: "
+          <> show (i, a, b, c)
+
     authPathCheck :: FriEffects r => CapLength -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
     authPathCheck capLength abc commitment j authPath q = do
       when
