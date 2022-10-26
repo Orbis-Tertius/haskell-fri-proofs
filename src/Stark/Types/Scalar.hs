@@ -20,7 +20,7 @@ module Stark.Types.Scalar
 where
 
 import Basement.Types.Word128 (Word128 (Word128))
-import Codec.Serialise (Serialise)
+import Codec.Serialise (Serialise (encode))
 import Control.Monad (guard)
 import Data.Bits (shiftR, (.&.))
 import qualified Data.ByteString as BS
@@ -29,6 +29,7 @@ import Data.Kind (Type)
 import Data.Ratio (denominator, numerator)
 import Data.Word (Word64)
 import Die (die)
+import GHC.Generics (Generic)
 import Math.Algebra.Polynomial.Class (Ring)
 import Math.Algebra.Polynomial.Misc (IsSigned (signOf), Sign (Plus))
 import Math.Algebra.Polynomial.Pretty (Pretty (pretty))
@@ -54,8 +55,7 @@ import Stark.Cast
 --  can be used for the various arithmetic operators.
 type Scalar :: Type
 newtype Scalar = Scalar {unScalar :: Word64}
-  deriving stock (Show)
-  deriving newtype (Serialise)
+  deriving stock (Show, Generic)
 
 epsilon :: Word64
 epsilon = 0xFFFFFFFF
@@ -195,6 +195,9 @@ instance Integral Scalar where
       Just c -> a * c
       Nothing -> die "Scalar division by zero"
   quotRem = die "quotRem Scalar unimplemented"
+
+instance Serialise Scalar where
+  encode = encode . unScalar . normalize
 
 sample :: BS.ByteString -> Scalar
 sample = fromInteger . sampleInteger

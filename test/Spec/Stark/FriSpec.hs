@@ -36,13 +36,13 @@ testFri :: TestTree
 testFri =
   localOption (HedgehogShrinkLimit (Just 0))
     . localOption (HedgehogTestLimit (Just 500))
-    . localOption (HedgehogReplay (Just (10, (Seed 18112217981669132046 14647583382509377465))))
+    -- . localOption (HedgehogReplay (Just (10, (Seed 18112217981669132046 14647583382509377465))))
     $ testGroup
         "Fri"
-        [ -- testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
-          -- testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
+        [ testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
+          testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
           testPropertyNamed "Completeness: true statements are accepted" "propCompleteness"
-            $ withSkip "372:" propCompleteness
+            $ propCompleteness
         ]
 
 propSplitAndFold :: Property
