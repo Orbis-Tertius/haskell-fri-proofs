@@ -112,7 +112,6 @@ test-suite spec
     , safe
     , tasty
     , tasty-hedgehog
-    , tasty-hunit
     , vinyl
 
   hs-source-dirs: test

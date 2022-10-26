@@ -4,7 +4,7 @@
 module Spec.Stark.FriSpec (testFri, propCompleteness) where
 
 import Control.Lens ((^.))
-import Hedgehog (Property, forAll, property, (/==), (===), recheckAt, Seed (Seed))
+import Hedgehog (Property, forAll, property, (/==), (===), Seed (Seed), withSkip)
 import Spec.Gen
   ( genFriConfiguration,
     genLowDegreePoly,
@@ -25,24 +25,24 @@ import Stark.Fri.Types
   )
 import Stark.UnivariatePolynomial (degree, interpolate)
 import Test.Tasty (TestTree, localOption, testGroup)
-import Test.Tasty.HUnit (testCase)
 import Test.Tasty.Hedgehog
   ( HedgehogShrinkLimit (HedgehogShrinkLimit),
     HedgehogTestLimit (HedgehogTestLimit),
+    HedgehogReplay (HedgehogReplay),
     testPropertyNamed,
   )
 
 testFri :: TestTree
 testFri =
   localOption (HedgehogShrinkLimit (Just 0))
-    . localOption (HedgehogTestLimit (Just 500)) $
-      testGroup
+    . localOption (HedgehogTestLimit (Just 500))
+    . localOption (HedgehogReplay (Just (10, (Seed 18112217981669132046 14647583382509377465))))
+    $ testGroup
         "Fri"
-        [ testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
-          testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
-          testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" propCompleteness
-        , testCase "Completeness regression 1"
-            $ recheckAt (Seed 10822687330201541884 5480550241888532489) "338:" propCompleteness
+        [ -- testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
+          -- testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
+          testPropertyNamed "Completeness: true statements are accepted" "propCompleteness"
+            $ withSkip "372:" propCompleteness
         ]
 
 propSplitAndFold :: Property
