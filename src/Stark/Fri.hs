@@ -59,7 +59,7 @@ import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
 import Stark.Types.FiatShamir (ErrorMessage (ErrorMessage), IOP, Transcript (Transcript), TranscriptPartition (TranscriptPartition), proverFiatShamir, respond, sampleChallenge, verifierFiatShamir)
 import Stark.Types.Index (Index (Index, unIndex))
-import Stark.Types.Scalar (Scalar)
+import Stark.Types.Scalar (Scalar, normalize)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial)
 import Stark.UnivariatePolynomial (areColinear, degree, evaluate, interpolate)
 
@@ -175,8 +175,8 @@ runFriDSLProver =
           . sequence
           $ zipWith6
             (\ai a bi b ci c -> Query <$> ((,,) <$> (A . (ai,) <$> a) <*> (B . (bi,) <$> b) <*> (C . (ci,) <$> c)))
-            (Index <$> aIndices) (pure <$> ays)
-            (Index <$> bIndices) (pure <$> bys)
+            (Index <$> aIndices) (pure . normalize <$> ays)
+            (Index <$> bIndices) (pure . normalize <$> bys)
             (repeat (unChallenge alpha))
             (pure <$> zipWith3 (linearCombination roundOmega offset alpha)
                (Index <$> aIndices) ays bys)
@@ -193,8 +193,8 @@ runFriDSLProver =
       forM_ queries $ \q -> do
         let ai = q ^. #unQuery . _1 . #unA . _1
             bi = q ^. #unQuery . _2 . #unB . _1
-            ax = (roundOmega ^ ai) ^. #unOmega
-            bx = (roundOmega ^ bi) ^. #unOmega
+            ax = normalize $ (roundOmega ^ ai) ^. #unOmega
+            bx = normalize $ (roundOmega ^ bi) ^. #unOmega
             cx = q ^. #unQuery . _3 . #unC . _1
             ay = q ^. #unQuery . _1 . #unA . _2
             by = q ^. #unQuery . _2 . #unB . _2
@@ -344,7 +344,8 @@ commitRound ::
   RoundIndex ->
   Sem r (CapCommitment, Challenge)
 commitRound i = do
-  alpha <- sampleChallenge
+  alpha <- Challenge . normalize . unChallenge
+           <$> sampleChallenge
   respond (Challenge' alpha)
   alpha' <- getTranscriptChallenge i alpha
   when (alpha /= alpha') . throw . ErrorMessage
@@ -508,11 +509,10 @@ splitAndFold omega offset (Codeword codeword) alpha =
         ]
 
 linearCombination :: Omega -> Offset -> Challenge -> Index -> Scalar -> Scalar -> Scalar
-linearCombination (Omega omega) (Offset offset) (Challenge alpha) i a b =
-  recip 2
-    * ( (1 + alpha / (offset * (omega ^ i))) * a
-          + (1 - alpha / (offset * (omega ^ i))) * b
-      )
+linearCombination (Omega omega) (Offset offset) (Challenge x) i ay by =
+  let ax = offset * (omega ^ i)
+      bx = negate ax
+  in normalize $ (ay * (bx - x) + by * (x - ax)) / (bx - ax)
 
 openCodeword ::
   Member (Error ErrorMessage) r =>
