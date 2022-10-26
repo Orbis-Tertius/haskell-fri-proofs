@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Spec.Stark.FriSpec (testFri) where
+module Spec.Stark.FriSpec (testFri, propCompleteness) where
 
 import Control.Lens ((^.))
-import Hedgehog (Property, forAll, property, (/==), (===))
+import Hedgehog (Property, forAll, property, (/==), (===), recheckAt, Seed (Seed))
 import Spec.Gen
   ( genFriConfiguration,
     genLowDegreePoly,
@@ -25,20 +25,25 @@ import Stark.Fri.Types
   )
 import Stark.UnivariatePolynomial (degree, interpolate)
 import Test.Tasty (TestTree, localOption, testGroup)
+import Test.Tasty.HUnit (testCase)
 import Test.Tasty.Hedgehog
   ( HedgehogShrinkLimit (HedgehogShrinkLimit),
+    HedgehogTestLimit (HedgehogTestLimit),
     testPropertyNamed,
   )
 
 testFri :: TestTree
 testFri =
-  localOption (HedgehogShrinkLimit (Just 0)) $
-    testGroup
-      "Fri"
-      [ testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
-        testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
-        testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" propCompleteness
-      ]
+  localOption (HedgehogShrinkLimit (Just 0))
+    . localOption (HedgehogTestLimit (Just 500)) $
+      testGroup
+        "Fri"
+        [ testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
+          testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
+          testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" propCompleteness
+        , testCase "Completeness regression 1"
+            $ recheckAt (Seed 10822687330201541884 5480550241888532489) "338:" propCompleteness
+        ]
 
 propSplitAndFold :: Property
 propSplitAndFold = property $ do

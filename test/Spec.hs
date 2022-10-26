@@ -1,9 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Main
   ( main,
   )
 where
 
-import Spec.Stark.FriSpec (testFri)
+import Spec.Stark.FriSpec (testFri, propCompleteness)
 import Spec.Stark.MerkleTreeSpec (testMerkleTree)
 import Spec.Stark.ScalarSpec (testScalar)
 import Spec.Stark.UnivariatePolynomialSpec (testUnivariatePolynomial)
@@ -12,6 +14,7 @@ import Test.Tasty
     defaultMain,
     testGroup,
   )
+import Hedgehog (recheckAt, Seed (Seed))
 
 main :: IO ()
 main = defaultMain tests

@@ -42,6 +42,7 @@ import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
 import Data.List.Extra (zip5, zipWith6, (!?))
 import Data.Monoid (Last (Last), getLast)
+import Debug.Trace (trace)
 import GHC.Generics (Generic)
 import Polysemy (Effect, Member, Sem, interpret, makeSem, run)
 import Polysemy.Error (Error, runError, throw)
@@ -65,6 +66,7 @@ import Stark.UnivariatePolynomial (areColinear, degree, evaluate, interpolate)
 type FriResponse :: Type
 data FriResponse
   = Commit CapCommitment
+  | Challenge' Challenge
   | LastCodeword' (Last Codeword)
   | QueryRound ([Query], [AuthPaths])
   deriving stock (Eq, Show, Generic)
@@ -87,6 +89,9 @@ data FriDSL m a where
   GetConfig :: FriDSL m FriConfiguration
   GetInitialCommitment :: FriDSL m CapCommitment
   GetCommitment :: RoundIndex -> Challenge -> FriDSL m CapCommitment
+  -- in the prover, returns the passed in challenge.
+  -- in the verifier, returns the challenge the prover used.
+  GetTranscriptChallenge :: RoundIndex -> Challenge -> FriDSL m Challenge
   GetLastCodeword :: FriDSL m (Last Codeword)
   GetQueries :: RoundIndex -> Challenge -> [(A Index, B Index)] -> FriDSL m ([Query], [AuthPaths])
 
@@ -140,12 +145,14 @@ runFriDSLProver =
       when (i /= RoundIndex (length codewords - 1)) $
         throw "runFriDSLProver: GetCommitment: rounds are out of order"
       let omega = (config ^. #omega) ^ (two ^ i)
-          offset = (config ^. #offset) ^ (two ^ i)
+          offset = config ^. #offset
           codeword = splitAndFold omega offset lastCodeword alpha
       commitment <- commitCodeword (config ^. #capLength) codeword
       put (ProverState (codewords <> [codeword]))
       pure commitment
     GetLastCodeword -> getLastCodeword'
+    GetTranscriptChallenge _ alpha ->
+      pure alpha
     GetQueries (RoundIndex i) alpha indices -> do
       config <- input @FriConfiguration
       ProverState codewords <- get
@@ -157,7 +164,8 @@ runFriDSLProver =
       let aIndices = (^. _1 . #unA . #unIndex) <$> indices
           bIndices = (^. _2 . #unB . #unIndex) <$> indices
           offset = config ^. #offset
-          roundOmega = (config ^. #omega) ^ (two ^ i)
+          roundOmega' = (config ^. #omega) ^ (two ^ i)
+          roundOmega = trace ("prover round omega: " <> show (i, roundOmega')) roundOmega'
       ays <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
           $ sequence ((currentCodeword !?) . word64ToInt <$> aIndices)
       bys <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
@@ -211,6 +219,14 @@ runFriDSLVerifier =
       case reply of
         Commit c -> pure c
         _ -> throw "runFriDSLVerifier: GetInitialCommitment: impossible happened"
+    GetTranscriptChallenge (RoundIndex i) _ -> do
+      Transcript t <- input @(Transcript FriResponse)
+      reply <-
+        maybe (throw "runFriDSLVerifier: GetTranscriptChallenge: no challenge") pure $
+          (filter isChallenge t) !? i
+      case reply of
+        Challenge' c -> pure c
+        _ -> throw "runFriDSLVerifier: GetTranscriptChallenge: impossible happened"
     GetCommitment (RoundIndex i) _alpha -> do
       Transcript t <- input @(Transcript FriResponse)
       reply <-
@@ -236,6 +252,9 @@ runFriDSLVerifier =
   where
     isCommitment (Commit _) = True
     isCommitment _ = False
+
+    isChallenge (Challenge' _) = True
+    isChallenge _ = False
 
     isLastCodeword (LastCodeword' _) = True
     isLastCodeword _ = False
@@ -313,12 +332,16 @@ commitPhase = do
   pure (commitment0 : commitments, alphas)
 
 commitRound ::
-  Member FriIOP r =>
-  Member FriDSL r =>
+  FriEffects r =>
   RoundIndex ->
   Sem r (CapCommitment, Challenge)
 commitRound i = do
   alpha <- sampleChallenge
+  respond (Challenge' alpha)
+  alpha' <- getTranscriptChallenge i alpha
+  when (alpha /= alpha') . throw . ErrorMessage
+    $ "Challenges in round " <> show i <> " do not match: "
+       <> show (alpha, alpha')
   c <- getCommitment i alpha
   respond (Commit c)
   pure (c, alpha)
@@ -345,7 +368,8 @@ queryRound ::
   Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
 queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = do
   config <- getConfig
-  let omega = (config ^. #omega) ^ ((2 :: Integer) ^ i)
+  let omega' = (config ^. #omega) ^ ((2 :: Integer) ^ i)
+      omega = trace ("query round omega: " <> show (i, omega')) omega'
       offset = config ^. #offset
       nextIndices =
         (fst <$> indices)
@@ -381,14 +405,13 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       aPaths, bPaths :: [AuthPath]
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
-  forM_ points colinearityCheck
-  forM_
-    ( mconcat
+      authPathCheckInputs = mconcat
         [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
           zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs
         ]
-    )
+  forM_ authPathCheckInputs
     $ uncurry5 (authPathCheck (config ^. #capLength))
+  forM_ points colinearityCheck
   pure
     ( zip nextIndices (snd <$> indices),
       i + 1,
@@ -450,7 +473,7 @@ commitCodeword capLength =
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
   let nr = numRounds config
-   in (config ^. #omega) ^ (2 * (nr - 1))
+   in (config ^. #omega) ^ (2 ^ (nr - 1))
 
 evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
 evalDomain (Offset o) (Omega m) (DomainLength d) =
