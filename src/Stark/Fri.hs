@@ -32,7 +32,7 @@ where
 
 import Codec.Serialise (Serialise, serialise)
 import Control.Lens ((^.), _1, _2, _3)
-import Control.Monad (forM_, when)
+import Control.Monad (forM_, mapAndUnzipM, unless, when)
 import Crypto.Number.Basic (log2)
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
@@ -40,7 +40,7 @@ import Data.ByteString.Lazy (toStrict)
 import Data.Functor ((<&>))
 import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
-import Data.List.Extra (zip5, zipWith6, (!?))
+import Data.List.Extra (foldl', zip5, zipWith6, (!?))
 import Data.Monoid (Last (Last), getLast)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
@@ -49,7 +49,7 @@ import Polysemy.Error (Error, runError, throw)
 import Polysemy.Input (Input, input, runInputConst)
 import Polysemy.State (State, evalState, execState, get, put, runState)
 import qualified Stark.BinaryTree as BinaryTree
-import Stark.Cast (intToInteger, word64ToInt)
+import Stark.Cast (intToInteger, word64ToInt, word8ToWord64)
 import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
@@ -77,7 +77,7 @@ type FriIOP :: (Type -> Type) -> Type -> Type
 type FriIOP = IOP Challenge FriResponse
 
 type ProverState :: Type
-data ProverState
+newtype ProverState
   = ProverState [Codeword]
 
 type RoundIndex :: Type
@@ -108,10 +108,10 @@ prove c w = do
         execState @(Transcript FriResponse) mempty $
           runState (ProverState [w]) $
             proverFiatShamir $
-              runFriDSLProver $ fri
+              runFriDSLProver fri
 
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
-verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier $ fri
+verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier fri
 
 -- It assumes that the state initially contains a list of length 1,
 -- with the largest codeword as its element.
@@ -168,10 +168,10 @@ runFriDSLProver =
           roundOmega = trace ("prover round omega: " <> show (i, roundOmega')) roundOmega'
       ays <-
         maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure $
-          sequence ((currentCodeword !?) . word64ToInt <$> aIndices)
+          mapM ((currentCodeword !?) . word64ToInt) aIndices
       bys <-
         maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure $
-          sequence ((currentCodeword !?) . word64ToInt <$> bIndices)
+          mapM ((currentCodeword !?) . word64ToInt) bIndices
       queries <-
         maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
           . sequence
@@ -191,14 +191,14 @@ runFriDSLProver =
             )
       let capLength = config ^. #capLength
       openingProofs <-
-        sequence $
+        mapM
           ( \(a, b) ->
               AuthPaths
                 <$> ( (,) <$> (A <$> openCodeword capLength (Codeword currentCodeword) (Index a))
                         <*> (B <$> openCodeword capLength (Codeword currentCodeword) (Index b))
                     )
           )
-            <$> zip aIndices bIndices
+          (zip aIndices bIndices)
       forM_ queries $ \q -> do
         let ai = q ^. #unQuery . _1 . #unA . _1
             bi = q ^. #unQuery . _2 . #unB . _1
@@ -234,7 +234,7 @@ runFriDSLVerifier =
       Transcript t <- input @(Transcript FriResponse)
       reply <-
         maybe (throw "runFriDSLVerifier: GetInitialCommitment: no commitment") pure $
-          (filter isCommitment t) !? 0
+          filter isCommitment t !? 0
       case reply of
         Commit c -> pure c
         _ -> throw "runFriDSLVerifier: GetInitialCommitment: impossible happened"
@@ -242,7 +242,7 @@ runFriDSLVerifier =
       Transcript t <- input @(Transcript FriResponse)
       reply <-
         maybe (throw "runFriDSLVerifier: GetTranscriptChallenge: no challenge") pure $
-          (filter isChallenge t) !? i
+          filter isChallenge t !? i
       case reply of
         Challenge' c -> pure c
         _ -> throw "runFriDSLVerifier: GetTranscriptChallenge: impossible happened"
@@ -250,7 +250,7 @@ runFriDSLVerifier =
       Transcript t <- input @(Transcript FriResponse)
       reply <-
         maybe (throw "runFriDSLVerifier: GetCommitment: no commitment") pure $
-          (filter isCommitment t) !? (i + 1)
+          filter isCommitment t !? (i + 1)
       case reply of
         Commit c -> pure c
         _ -> throw "runFriDSLVerifier: GetCommitment: impossible happened"
@@ -264,7 +264,7 @@ runFriDSLVerifier =
       Transcript t <- input @(Transcript FriResponse)
       reply <-
         maybe (throw "runFriDSLVerifier: GetQueries: no queries") pure $
-          (filter isQueryRound t) !? i
+          filter isQueryRound t !? i
       case reply of
         QueryRound r -> pure r
         _ -> throw "runFriDSLVerifier: GetQueries: impossible happened"
@@ -327,8 +327,7 @@ commitPhase = do
   commitment0 <- getInitialCommitment
   respond (Commit commitment0)
   (commitments, alphas) <-
-    unzip
-      <$> sequence (commitRound <$> [0 .. RoundIndex (n - 1)])
+    mapAndUnzipM commitRound [0 .. RoundIndex (n - 1)]
   lastRoot <-
     maybe (throw "commitPhase: no last root") pure $
       commitments !? (length commitments - 1)
@@ -379,15 +378,15 @@ queryPhase commitments challenges indices = do
     go :: FriEffects r => ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge]) -> Sem r ()
     go x@(_, RoundIndex i, _, _) = do
       config <- getConfig
-      if i < numRounds config
-        then go =<< queryRound x
-        else pure ()
+      when
+        (i < numRounds config)
+        (go =<< queryRound x)
 
 queryRound ::
   FriEffects r =>
   ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge]) ->
   Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
-queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = do
+queryRound (indices, i, root : nextRoot : remainingRoots, alpha : alphas) = do
   config <- getConfig
   let omega' = getRoundOmega config i
       omega = trace ("query round omega: " <> show (i, omega')) omega'
@@ -420,8 +419,8 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       f = (* unOffset offset) . (unOmega omega ^)
       points =
         zip3
-          (A <$> (zip (f . unA <$> aIndices) ays))
-          (B <$> (zip (f . unB <$> bIndices) bys))
+          (A <$> zip (f . unA <$> aIndices) ays)
+          (B <$> zip (f . unB <$> bIndices) bys)
           (C <$> cs)
       allPaths = unAuthPaths <$> ps
       aPaths, bPaths :: [AuthPath]
@@ -441,13 +440,13 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       nextRoot : remainingRoots,
       alphas
     )
-queryRound (_, _, _ : [], _) = throw "queryRound: not enough roots (1)"
+queryRound (_, _, [_], _) = throw "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
 queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
 
 colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
 colinearityCheck s i (A a, B b, C c) =
-  when (not (areColinear [a, b, c]))
+  unless (areColinear [a, b, c])
     . throw
     . ErrorMessage
     $ s <> " colinearity check failed: "
@@ -458,8 +457,8 @@ authPathCheck capLength i abc commitment j authPath q = do
   when
     (j /= (q ^. _1))
     (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, i, j, q ^. _1, commitment, authPath))
-  when
-    (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
+  unless
+    (Merkle.verify capLength commitment j authPath (q ^. _2))
     (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
 
 roundDomainLength ::
@@ -481,7 +480,7 @@ numRounds' d e =
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
-  foldl (\acc b -> (acc `shift` 8) `xor` fromIntegral b) 0 (unpack bs)
+  foldl' (\acc b -> (acc `shift` 8) `xor` Index (word8ToWord64 b)) 0 (unpack bs)
     `mod` Index len
 
 commitCodeword ::

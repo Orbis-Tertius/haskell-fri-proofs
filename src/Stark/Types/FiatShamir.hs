@@ -65,9 +65,8 @@ proverFiatShamir =
     \case
       Respond r -> do
         put . (<> Transcript [r]) =<< get
-      SampleChallenge -> do
-        transcript <- get
-        pure (sample (BSL.toStrict (serialise transcript)))
+      SampleChallenge ->
+        sample . BSL.toStrict . serialise <$> get
 
 type TranscriptPartition :: Type -> Type
 newtype TranscriptPartition r = TranscriptPartition

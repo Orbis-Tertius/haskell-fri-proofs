@@ -4,7 +4,7 @@
 module Spec.Stark.FriSpec (testFri, propCompleteness) where
 
 import Control.Lens ((^.))
-import Hedgehog (Property, Seed (Seed), forAll, property, withSkip, (/==), (===))
+import Hedgehog (Property, forAll, property {- Seed (Seed), withSkip, -}, (/==), (===))
 import Spec.Gen
   ( genFriConfiguration,
     genLowDegreePoly,
@@ -26,7 +26,7 @@ import Stark.Fri.Types
 import Stark.UnivariatePolynomial (degree, interpolate)
 import Test.Tasty (TestTree, localOption, testGroup)
 import Test.Tasty.Hedgehog
-  ( HedgehogReplay (HedgehogReplay),
+  ( -- HedgehogReplay (HedgehogReplay),
     HedgehogShrinkLimit (HedgehogShrinkLimit),
     HedgehogTestLimit (HedgehogTestLimit),
     testPropertyNamed,
@@ -41,7 +41,9 @@ testFri =
       "Fri"
       [ testPropertyNamed "Split and fold: preserves low-degreeness" "propSplitAndFold" propSplitAndFold,
         testPropertyNamed "Soundness: rejects invalid proofs" "propSoundness" propSoundness,
-        testPropertyNamed "Completeness: true statements are accepted" "propCompleteness" $
+        testPropertyNamed
+          "Completeness: true statements are accepted"
+          "propCompleteness" -- withSkip "40:" $
           propCompleteness
       ]
 
@@ -59,7 +61,7 @@ propSplitAndFold = property $ do
       polyI = interpolate (zip d (unCodeword c))
   poly === polyI
   let c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
-      dLength' = ((config ^. #domainLength) `div` 2)
+      dLength' = (config ^. #domainLength) `div` 2
       d' =
         evalDomain
           (config ^. #offset)
