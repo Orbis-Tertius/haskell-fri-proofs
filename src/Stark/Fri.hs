@@ -144,7 +144,7 @@ runFriDSLProver =
           (getLast lastCodewordM)
       when (i /= RoundIndex (length codewords - 1)) $
         throw "runFriDSLProver: GetCommitment: rounds are out of order"
-      let omega = (config ^. #omega) ^ (two ^ i)
+      let omega = getRoundOmega config i
           offset = config ^. #offset
           codeword = splitAndFold omega offset lastCodeword alpha
       commitment <- commitCodeword (config ^. #capLength) codeword
@@ -164,7 +164,7 @@ runFriDSLProver =
       let aIndices = (^. _1 . #unA . #unIndex) <$> indices
           bIndices = (^. _2 . #unB . #unIndex) <$> indices
           offset = config ^. #offset
-          roundOmega' = (config ^. #omega) ^ (two ^ i)
+          roundOmega' = getRoundOmega config (RoundIndex i)
           roundOmega = trace ("prover round omega: " <> show (i, roundOmega')) roundOmega'
       ays <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
           $ sequence ((currentCodeword !?) . word64ToInt <$> aIndices)
@@ -190,6 +190,17 @@ runFriDSLProver =
                     )
           )
             <$> zip aIndices bIndices
+      forM_ queries $ \q -> do
+        let ai = q ^. #unQuery . _1 . #unA . _1
+            bi = q ^. #unQuery . _2 . #unB . _1
+            ax = (roundOmega ^ ai) ^. #unOmega
+            bx = (roundOmega ^ bi) ^. #unOmega
+            cx = q ^. #unQuery . _3 . #unC . _1
+            ay = q ^. #unQuery . _1 . #unA . _2
+            by = q ^. #unQuery . _2 . #unB . _2
+            cy = q ^. #unQuery . _3 . #unC . _2
+        colinearityCheck "prover" (RoundIndex i)
+          (A (ax, ay), B (bx, by), C (cx, cy))
       pure (queries, openingProofs)
   where
     getLastCodeword' ::
@@ -198,9 +209,6 @@ runFriDSLProver =
     getLastCodeword' = do
       ProverState codewords <- get @ProverState
       pure $ mconcat $ Last . Just <$> codewords
-
-    two :: Integer
-    two = 2
 
 runFriDSLVerifier ::
   Member (Input FriConfiguration) r =>
@@ -368,7 +376,7 @@ queryRound ::
   Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
 queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = do
   config <- getConfig
-  let omega' = (config ^. #omega) ^ ((2 :: Integer) ^ i)
+  let omega' = getRoundOmega config i
       omega = trace ("query round omega: " <> show (i, omega')) omega'
       offset = config ^. #offset
       nextIndices =
@@ -410,32 +418,33 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
           zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs
         ]
   forM_ authPathCheckInputs
-    $ uncurry5 (authPathCheck (config ^. #capLength))
-  forM_ points colinearityCheck
+    $ uncurry5 (authPathCheck (config ^. #capLength) i)
+  forM_ points (colinearityCheck "IOP" i)
   pure
     ( zip nextIndices (snd <$> indices),
       i + 1,
       nextRoot : remainingRoots,
       alphas
     )
-  where
-    colinearityCheck :: FriEffects r => ABC (Scalar, Scalar) -> Sem r ()
-    colinearityCheck (A a, B b, C c) =
-      when (not (areColinear [a, b, c]))
-        . throw . ErrorMessage $ "colinearity check failed: "
-          <> show (i, a, b, c)
-
-    authPathCheck :: FriEffects r => CapLength -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
-    authPathCheck capLength abc commitment j authPath q = do
-      when
-        (j /= (q ^. _1))
-        (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, i, j, q ^. _1, commitment, authPath))
-      when
-        (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
-        (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
 queryRound (_, _, _ : [], _) = throw "queryRound: not enough roots (1)"
 queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
 queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
+
+colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
+colinearityCheck s i (A a, B b, C c) =
+  when (not (areColinear [a, b, c]))
+    . throw . ErrorMessage $ s <> " colinearity check failed: "
+      <> show (i, a, b, c)
+
+authPathCheck :: FriEffects r => CapLength -> RoundIndex -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
+authPathCheck capLength i abc commitment j authPath q = do
+  when
+    (j /= (q ^. _1))
+    (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, i, j, q ^. _1, commitment, authPath))
+  when
+    (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
+    (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
+
 
 roundDomainLength ::
   FriConfiguration ->
@@ -470,10 +479,17 @@ commitCodeword capLength =
     . BinaryTree.fromList
     . unCodeword
 
+
+getRoundOmega :: FriConfiguration -> RoundIndex -> Omega
+getRoundOmega config i =
+  (config ^. #omega) ^ (two ^ i)
+  where
+    two :: Integer
+    two = 2
+
 getLastOmega :: FriConfiguration -> Omega
 getLastOmega config =
-  let nr = numRounds config
-   in (config ^. #omega) ^ (2 ^ (nr - 1))
+  getRoundOmega config (RoundIndex (numRounds config - 1))
 
 evalDomain :: Offset -> Omega -> DomainLength -> [Scalar]
 evalDomain (Offset o) (Omega m) (DomainLength d) =
