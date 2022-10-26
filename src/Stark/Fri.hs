@@ -166,20 +166,29 @@ runFriDSLProver =
           offset = config ^. #offset
           roundOmega' = getRoundOmega config (RoundIndex i)
           roundOmega = trace ("prover round omega: " <> show (i, roundOmega')) roundOmega'
-      ays <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
-          $ sequence ((currentCodeword !?) . word64ToInt <$> aIndices)
-      bys <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
-          $ sequence((currentCodeword !?) . word64ToInt <$> bIndices)
+      ays <-
+        maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure $
+          sequence ((currentCodeword !?) . word64ToInt <$> aIndices)
+      bys <-
+        maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure $
+          sequence ((currentCodeword !?) . word64ToInt <$> bIndices)
       queries <-
         maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
           . sequence
           $ zipWith6
             (\ai a bi b ci c -> Query <$> ((,,) <$> (A . (ai,) <$> a) <*> (B . (bi,) <$> b) <*> (C . (ci,) <$> c)))
-            (Index <$> aIndices) (pure . normalize <$> ays)
-            (Index <$> bIndices) (pure . normalize <$> bys)
+            (Index <$> aIndices)
+            (pure . normalize <$> ays)
+            (Index <$> bIndices)
+            (pure . normalize <$> bys)
             (repeat (unChallenge alpha))
-            (pure <$> zipWith3 (linearCombination roundOmega offset alpha)
-               (Index <$> aIndices) ays bys)
+            ( pure
+                <$> zipWith3
+                  (linearCombination roundOmega offset alpha)
+                  (Index <$> aIndices)
+                  ays
+                  bys
+            )
       let capLength = config ^. #capLength
       openingProofs <-
         sequence $
@@ -199,7 +208,9 @@ runFriDSLProver =
             ay = q ^. #unQuery . _1 . #unA . _2
             by = q ^. #unQuery . _2 . #unB . _2
             cy = q ^. #unQuery . _3 . #unC . _2
-        colinearityCheck "prover" (RoundIndex i)
+        colinearityCheck
+          "prover"
+          (RoundIndex i)
           (A (ax, ay), B (bx, by), C (cx, cy))
       pure (queries, openingProofs)
   where
@@ -344,13 +355,14 @@ commitRound ::
   RoundIndex ->
   Sem r (CapCommitment, Challenge)
 commitRound i = do
-  alpha <- Challenge . normalize . unChallenge
-           <$> sampleChallenge
+  alpha <-
+    Challenge . normalize . unChallenge
+      <$> sampleChallenge
   respond (Challenge' alpha)
   alpha' <- getTranscriptChallenge i alpha
-  when (alpha /= alpha') . throw . ErrorMessage
-    $ "Challenges in round " <> show i <> " do not match: "
-       <> show (alpha, alpha')
+  when (alpha /= alpha') . throw . ErrorMessage $
+    "Challenges in round " <> show i <> " do not match: "
+      <> show (alpha, alpha')
   c <- getCommitment i alpha
   respond (Commit c)
   pure (c, alpha)
@@ -406,20 +418,22 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
       bys = (^. _2) <$> bs
       f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
-      points = zip3
-        (A <$> (zip (f . unA <$> aIndices) ays))
-        (B <$> (zip (f . unB <$> bIndices) bys))
-        (C <$> cs)
+      points =
+        zip3
+          (A <$> (zip (f . unA <$> aIndices) ays))
+          (B <$> (zip (f . unB <$> bIndices) bys))
+          (C <$> cs)
       allPaths = unAuthPaths <$> ps
       aPaths, bPaths :: [AuthPath]
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
-      authPathCheckInputs = mconcat
-        [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
-          zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs
-        ]
-  forM_ authPathCheckInputs
-    $ uncurry5 (authPathCheck (config ^. #capLength) i)
+      authPathCheckInputs =
+        mconcat
+          [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
+            zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs
+          ]
+  forM_ authPathCheckInputs $
+    uncurry5 (authPathCheck (config ^. #capLength) i)
   forM_ points (colinearityCheck "IOP" i)
   pure
     ( zip nextIndices (snd <$> indices),
@@ -434,7 +448,9 @@ queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
 colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
 colinearityCheck s i (A a, B b, C c) =
   when (not (areColinear [a, b, c]))
-    . throw . ErrorMessage $ s <> " colinearity check failed: "
+    . throw
+    . ErrorMessage
+    $ s <> " colinearity check failed: "
       <> show (i, a, b, c)
 
 authPathCheck :: FriEffects r => CapLength -> RoundIndex -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
@@ -445,7 +461,6 @@ authPathCheck capLength i abc commitment j authPath q = do
   when
     (not (Merkle.verify capLength commitment j authPath (q ^. _2)))
     (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
-
 
 roundDomainLength ::
   FriConfiguration ->
@@ -480,7 +495,6 @@ commitCodeword capLength =
     . BinaryTree.fromList
     . unCodeword
 
-
 getRoundOmega :: FriConfiguration -> RoundIndex -> Omega
 getRoundOmega config i =
   (config ^. #omega) ^ (two ^ i)
@@ -512,7 +526,7 @@ linearCombination :: Omega -> Offset -> Challenge -> Index -> Scalar -> Scalar -
 linearCombination (Omega omega) (Offset offset) (Challenge x) i ay by =
   let ax = offset * (omega ^ i)
       bx = negate ax
-  in normalize $ (ay * (bx - x) + by * (x - ax)) / (bx - ax)
+   in normalize $ (ay * (bx - x) + by * (x - ax)) / (bx - ax)
 
 openCodeword ::
   Member (Error ErrorMessage) r =>
