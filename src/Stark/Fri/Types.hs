@@ -100,12 +100,12 @@ type ABC :: Type -> Type
 type ABC a = (A a, B a, C a)
 
 type Query :: Type
-newtype Query = Query {unQuery :: ABC (Index, Scalar)}
+newtype Query = Query {unQuery :: (A (Index, Scalar), B (Index, Scalar), C (Scalar, Scalar))}
   deriving stock (Eq, Generic, Show)
   deriving newtype (Serialise)
 
 type AuthPaths :: Type
-newtype AuthPaths = AuthPaths {unAuthPaths :: ABC AuthPath}
+newtype AuthPaths = AuthPaths {unAuthPaths :: (A AuthPath, B AuthPath)}
   deriving stock (Eq, Generic, Show)
   deriving newtype (Serialise)
 

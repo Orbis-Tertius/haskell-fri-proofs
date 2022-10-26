@@ -52,7 +52,6 @@ propSplitAndFold = property $ do
           (config ^. #omega)
           (config ^. #domainLength)
       polyI = interpolate (zip d (unCodeword c))
-      m = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
   poly === polyI
   let c' = splitAndFold (config ^. #omega) (config ^. #offset) c alpha
       dLength' = ((config ^. #domainLength) `div` 2)

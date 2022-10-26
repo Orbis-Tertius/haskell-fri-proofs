@@ -79,11 +79,11 @@ defaultFriConfiguration =
     (Offset 1)
     (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
-    (ExpansionFactor 2)
+    (ExpansionFactor 4)
     (NumColinearityTests 1)
   where
     dl :: Word64
-    dl = 64
+    dl = 128
 
 genTranscript :: FriConfiguration -> Gen (Transcript FriResponse)
 genTranscript config =
@@ -103,9 +103,8 @@ genFriResponse config =
 genAuthPaths :: Gen AuthPaths
 genAuthPaths =
   AuthPaths
-    <$> ( (,,) <$> (A <$> genAuthPath)
+    <$> ( (,) <$> (A <$> genAuthPath)
             <*> (B <$> genAuthPath)
-            <*> (C <$> genAuthPath)
         )
 
 genCommitment :: Gen Commitment
@@ -124,7 +123,7 @@ genQuery =
     <$> ( (,,)
             <$> (A <$> ((,) <$> genIndex <*> genScalar))
             <*> (B <$> ((,) <$> genIndex <*> genScalar))
-            <*> (C <$> ((,) <$> genIndex <*> genScalar))
+            <*> (C <$> ((,) <$> genScalar <*> genScalar))
         )
 
 genIndex :: Gen Index

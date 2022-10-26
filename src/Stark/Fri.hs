@@ -48,8 +48,8 @@ import Polysemy.Error (Error, runError, throw)
 import Polysemy.Input (Input, input, runInputConst)
 import Polysemy.State (State, evalState, execState, get, put, runState)
 import qualified Stark.BinaryTree as BinaryTree
-import Stark.Cast (intToInteger, word64ToInt, word64ToInteger)
-import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C, unC), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
+import Stark.Cast (intToInteger, word64ToInt)
+import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
 import Stark.Prelude (uncurry5)
@@ -88,7 +88,7 @@ data FriDSL m a where
   GetInitialCommitment :: FriDSL m CapCommitment
   GetCommitment :: RoundIndex -> Challenge -> FriDSL m CapCommitment
   GetLastCodeword :: FriDSL m (Last Codeword)
-  GetQueries :: RoundIndex -> [ABC Index] -> FriDSL m ([Query], [AuthPaths])
+  GetQueries :: RoundIndex -> Challenge -> [(A Index, B Index)] -> FriDSL m ([Query], [AuthPaths])
 
 makeSem ''FriDSL
 
@@ -146,7 +146,7 @@ runFriDSLProver =
       put (ProverState (codewords <> [codeword]))
       pure commitment
     GetLastCodeword -> getLastCodeword'
-    GetQueries (RoundIndex i) indices -> do
+    GetQueries (RoundIndex i) alpha indices -> do
       config <- input @FriConfiguration
       ProverState codewords <- get
       currentCodeword <-
@@ -154,36 +154,34 @@ runFriDSLProver =
           (throw "runFriDSLProver: GetQueries: missing current codeword")
           (pure . unCodeword)
           (codewords !? i)
-      nextCodeword <-
-        maybe
-          (throw "runFriDSLProver: GetQueries: missing next codeword")
-          (pure . unCodeword)
-          (codewords !? (i + 1))
       let aIndices = (^. _1 . #unA . #unIndex) <$> indices
           bIndices = (^. _2 . #unB . #unIndex) <$> indices
-          cIndices = (^. _3 . #unC . #unIndex) <$> indices
+          offset = config ^. #offset
+          roundOmega = (config ^. #omega) ^ (two ^ i)
+      ays <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
+          $ sequence ((currentCodeword !?) . word64ToInt <$> aIndices)
+      bys <- maybe (throw "runFriDSLProver: GetQueries: failed a index lookups") pure
+          $ sequence((currentCodeword !?) . word64ToInt <$> bIndices)
       queries <-
         maybe (throw "runFriDSLProver: GetQueries: missing leaf") pure
           . sequence
           $ zipWith6
             (\ai a bi b ci c -> Query <$> ((,,) <$> (A . (ai,) <$> a) <*> (B . (bi,) <$> b) <*> (C . (ci,) <$> c)))
-            (Index <$> aIndices)
-            ((currentCodeword !?) . word64ToInt <$> aIndices)
-            (Index <$> bIndices)
-            ((currentCodeword !?) . word64ToInt <$> bIndices)
-            (Index <$> cIndices)
-            ((nextCodeword !?) . word64ToInt <$> cIndices)
+            (Index <$> aIndices) (pure <$> ays)
+            (Index <$> bIndices) (pure <$> bys)
+            (repeat (unChallenge alpha))
+            (pure <$> zipWith3 (linearCombination roundOmega offset alpha)
+               (Index <$> aIndices) ays bys)
       let capLength = config ^. #capLength
       openingProofs <-
         sequence $
-          ( \(a, b, c) ->
+          ( \(a, b) ->
               AuthPaths
-                <$> ( (,,) <$> (A <$> openCodeword capLength (Codeword currentCodeword) (Index a))
+                <$> ( (,) <$> (A <$> openCodeword capLength (Codeword currentCodeword) (Index a))
                         <*> (B <$> openCodeword capLength (Codeword currentCodeword) (Index b))
-                        <*> (C <$> openCodeword capLength (Codeword nextCodeword) (Index c))
                     )
           )
-            <$> zip3 aIndices bIndices cIndices
+            <$> zip aIndices bIndices
       pure (queries, openingProofs)
   where
     getLastCodeword' ::
@@ -227,7 +225,7 @@ runFriDSLVerifier =
         [LastCodeword' l] -> pure l
         [] -> throw "runFriDSLVerifier: GetLastCodeword: no last codeword"
         _ -> throw "runFriDSLVerifier: GetLastCodeword: more than one last codeword"
-    GetQueries (RoundIndex i) _indices -> do
+    GetQueries (RoundIndex i) _alpha _indices -> do
       Transcript t <- input @(Transcript FriResponse)
       reply <-
         maybe (throw "runFriDSLVerifier: GetQueries: no queries") pure $
@@ -362,37 +360,32 @@ queryRound (indices, i, (root : nextRoot : remainingRoots), (alpha : alphas)) = 
         B
           . ( +
                 Index
-                  ( unDomainLength (roundDomainLength config i)
-                      `quot` 2
+                  ( unDomainLength (roundDomainLength config (i + 1))
                   )
             )
           <$> nextIndices
-      cIndices = C <$> nextIndices
-  (qs, ps) <- getQueries i ((,,) <$> aIndices <*> bIndices <*> cIndices)
+  (qs, ps) <- getQueries i alpha ((,) <$> aIndices <*> bIndices)
   respond (QueryRound (qs, ps))
   let as = (^. #unQuery . _1 . #unA) <$> qs
       bs = (^. #unQuery . _2 . #unB) <$> qs
       cs = (^. #unQuery . _3 . #unC) <$> qs
       ays = (^. _2) <$> as
       bys = (^. _2) <$> bs
-      cys = (^. _2) <$> cs
       f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
       points = zip3
         (A <$> (zip (f . unA <$> aIndices) ays))
         (B <$> (zip (f . unB <$> bIndices) bys))
-        (C <$> (zip (repeat (unChallenge alpha)) cys))
+        (C <$> cs)
       allPaths = unAuthPaths <$> ps
-      aPaths, bPaths, cPaths :: [AuthPath]
+      aPaths, bPaths :: [AuthPath]
       aPaths = (^. _1 . #unA) <$> allPaths
       bPaths = (^. _2 . #unB) <$> allPaths
-      cPaths = (^. _3 . #unC) <$> allPaths
   forM_ points colinearityCheck
   forM_
     ( mconcat
         [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
-          zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs,
-          zip5 (repeat "C") (repeat nextRoot) (unC <$> cIndices) cPaths cs
+          zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs
         ]
     )
     $ uncurry5 (authPathCheck (config ^. #capLength))
@@ -435,8 +428,8 @@ numRounds config =
     (config ^. #expansionFactor)
 
 numRounds' :: DomainLength -> ExpansionFactor -> Int
-numRounds' (DomainLength d) (ExpansionFactor e) =
-  log2 (word64ToInteger d `div` intToInteger e)
+numRounds' d e =
+  log2 (intToInteger (getMaxLowDegree d e))
 
 sampleIndex :: ByteString -> ListSize -> Index
 sampleIndex bs (ListSize len) =
@@ -468,15 +461,19 @@ getMaxLowDegree (DomainLength d) (ExpansionFactor e) =
   word64ToInt d `div` e
 
 splitAndFold :: Omega -> Offset -> Codeword -> Challenge -> Codeword
-splitAndFold (Omega omega) (Offset offset) (Codeword codeword) (Challenge alpha) =
+splitAndFold omega offset (Codeword codeword) alpha =
   let (l, r) = splitAt (length codeword `quot` 2) codeword
    in Codeword $
-        [ recip 2
-            * ( (1 + alpha / (offset * (omega ^ i))) * xi
-                  + (1 - alpha / (offset * (omega ^ i))) * xj
-              )
-          | (i, xi, xj) <- zip3 [(0 :: Integer) ..] l r
+        [ linearCombination omega offset alpha i xi xj
+          | (i, xi, xj) <- zip3 [0 ..] l r
         ]
+
+linearCombination :: Omega -> Offset -> Challenge -> Index -> Scalar -> Scalar -> Scalar
+linearCombination (Omega omega) (Offset offset) (Challenge alpha) i a b =
+  recip 2
+    * ( (1 + alpha / (offset * (omega ^ i))) * a
+          + (1 - alpha / (offset * (omega ^ i))) * b
+      )
 
 openCodeword ::
   Member (Error ErrorMessage) r =>
