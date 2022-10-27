@@ -90,7 +90,7 @@ addScalar (toWord64 -> x) (toWord64 -> y) =
           else r
 
 negateScalar :: Scalar -> Scalar
-negateScalar (Scalar x) = Scalar $ order - x -- very simple
+negateScalar x = Scalar $ order - unScalar (normalize x)
 
 -- FIXME: Why is this algorithm correct? Give an informal proof.
 mulScalar :: Scalar -> Scalar -> Scalar
