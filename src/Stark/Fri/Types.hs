@@ -129,3 +129,36 @@ data FriConfiguration = FriConfiguration
     capLength :: CapLength
   }
   deriving stock (Generic, Show)
+
+
+type RoundIndex :: Type
+newtype RoundIndex = RoundIndex {unRoundIndex :: Int}
+ deriving newtype (Eq, Ord, Show, Num, Enum, Real, Integral)
+
+
+{-
+type Proof :: Type
+data Proof = Proof
+  { initialCommitment :: Maybe Commitment
+  , roundCommitments :: Map RoundIndex CapCommitment
+  , lastCodeword :: Maybe Codeword
+  , queries :: Map RoundIndex (Query, AuthPaths)
+  } deriving stock (Eq, Generic, Show)
+-}
+
+type a :* b = (a, b)
+
+type Proof = Commitment :* Vector i (Query, AuthPaths, CapCommitment)
+
+partitionProof :: Proof -> [Proof]
+partitionProof = undefined
+
+-- instance Semigroup Proof where
+--   p <> p' = Proof
+--             { initialCommitment = initialCommitment p <> initialCommitment p
+--             , roundCommitments :: Map RoundIndex CapCommitment
+--             , lastCodeword :: Maybe Codeword
+--             , queries :: Map RoundIndex (Query, AuthPaths)
+--             }
+
+-- instance Monoid Proof where

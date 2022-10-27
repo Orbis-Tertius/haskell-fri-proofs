@@ -110,6 +110,19 @@ prove c w = do
             proverFiatShamir $
               runFriDSLProver fri
 
+
+{-
+The issue with partitioning the transcript as it is, is that it doesn't have any logic to align by
+either rounds or a set of message exchanges. Morgan suggested the following structure:
+
+-}
+partitionTranscript :: Transcript FriResponse -> [Transcript FriResponse]
+partitionTranscript = sequence
+
+verifyInc :: FriConfiguration -> Transcript FriResponse -> (Transcript FriResponse )
+verifyInc = undefined
+
+
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
 verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier fri
 
