@@ -3,7 +3,7 @@
 module Spec.Gen
   ( genFriConfiguration,
     defaultFriConfiguration,
-    genProofStream,
+    genTranscript,
     genCodeword,
     genQuery,
     genAuthPath,
@@ -22,6 +22,7 @@ import Data.ByteString (ByteString)
 import Data.Generics.Labels ()
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
+import Data.Monoid (Last (Last))
 import Data.Word (Word64)
 import Die (die)
 import Hedgehog (Gen)
@@ -32,12 +33,13 @@ import Hedgehog.Gen
     list,
     word64,
   )
+import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod))
 import Math.Algebra.Polynomial.Univariate (U (U), Univariate (Uni))
 import qualified Stark.BinaryTree as BinaryTree
 import Stark.Cast (word64ToInt)
-import Stark.Fri (getMaxDegree)
+import Stark.Fri (FriResponse (Commit, LastCodeword', QueryRound), getMaxLowDegree)
 import Stark.Fri.Types
   ( A (A),
     AuthPaths (AuthPaths),
@@ -50,7 +52,6 @@ import Stark.Fri.Types
     NumColinearityTests (NumColinearityTests),
     Offset (Offset),
     Omega (Omega),
-    ProofStream (ProofStream),
     Query (Query),
   )
 import Stark.Types.AuthPath (AuthPath (AuthPath))
@@ -58,45 +59,52 @@ import Stark.Types.BinaryTree (BinaryTree)
 import Stark.Types.CapCommitment (CapCommitment (CapCommitment))
 import Stark.Types.CapLength (CapLength (CapLength))
 import Stark.Types.Commitment (Commitment (Commitment))
+import Stark.Types.FiatShamir (Transcript (Transcript))
+import Stark.Types.Index (Index (Index))
 import Stark.Types.MerkleHash (MerkleHash (MerkleHash))
 import Stark.Types.Scalar
   ( Scalar,
     fromWord64,
-    generator,
     order,
     primitiveNthRoot,
   )
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial))
 
 genFriConfiguration :: Gen FriConfiguration
-genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> enum (0 :: Int) 4
+genFriConfiguration = defaultFriConfiguration . CapLength . (2 ^) <$> enum (0 :: Int) 0
 
 defaultFriConfiguration :: CapLength -> FriConfiguration
 defaultFriConfiguration =
   FriConfiguration
-    (Offset generator)
+    (Offset 1)
     (Omega . fromMaybe (die "could not find omega") $ primitiveNthRoot dl)
     (DomainLength dl)
-    (ExpansionFactor 2)
-    (NumColinearityTests 4)
+    (ExpansionFactor 4)
+    (NumColinearityTests 1)
   where
     dl :: Word64
-    dl = 64
+    dl = 128
 
-genProofStream :: FriConfiguration -> Gen ProofStream
-genProofStream config =
-  ProofStream
-    <$> list (Range.linear 1 10) genCapCommitment
-    <*> list (Range.linear 1 10) (list (Range.linear 1 10) genQuery)
-    <*> choice [pure Nothing, Just <$> genCodeword config]
-    <*> list (Range.linear 1 10) (list (Range.linear 1 10) genAuthPaths)
+genTranscript :: FriConfiguration -> Gen (Transcript FriResponse)
+genTranscript config =
+  Transcript <$> list (Range.linear 0 100) (genFriResponse config)
+
+genFriResponse :: FriConfiguration -> Gen FriResponse
+genFriResponse config =
+  choice
+    [ Commit <$> genCapCommitment,
+      LastCodeword' . Last <$> Gen.maybe (genCodeword config),
+      QueryRound
+        <$> ( (,) <$> Gen.list (Range.linear 0 10) genQuery
+                <*> Gen.list (Range.linear 0 10) genAuthPaths
+            )
+    ]
 
 genAuthPaths :: Gen AuthPaths
 genAuthPaths =
   AuthPaths
-    <$> ( (,,) <$> (A <$> genAuthPath)
+    <$> ( (,) <$> (A <$> genAuthPath)
             <*> (B <$> genAuthPath)
-            <*> (C <$> genAuthPath)
         )
 
 genCommitment :: Gen Commitment
@@ -110,10 +118,26 @@ genCapCommitment = do
     <$> list (Range.singleton n) genCommitment
 
 genQuery :: Gen Query
-genQuery = Query <$> ((,,) <$> (A <$> genScalar) <*> (B <$> genScalar) <*> (C <$> genScalar))
+genQuery =
+  Query
+    <$> ( (,,)
+            <$> (A <$> ((,) <$> genIndex <*> genScalar))
+            <*> (B <$> ((,) <$> genIndex <*> genScalar))
+            <*> (C <$> ((,) <$> genScalar <*> genScalar))
+        )
+
+genIndex :: Gen Index
+genIndex = Index <$> Gen.integral (Range.linear 0 10)
 
 genAuthPath :: Gen AuthPath
-genAuthPath = AuthPath <$> list (Range.linear 1 10) (Commitment . MerkleHash <$> genByteString)
+genAuthPath =
+  AuthPath
+    <$> list
+      (Range.linear 1 10)
+      ( (,,) <$> (Commitment . MerkleHash <$> genByteString)
+          <*> (Commitment . MerkleHash <$> genByteString)
+          <*> (Commitment . MerkleHash <$> genByteString)
+      )
 
 genByteString :: Gen ByteString
 genByteString = bytes (Range.linear 1 10)
@@ -127,7 +151,7 @@ genCodeword config =
 
 genLowDegreePoly :: FriConfiguration -> Gen (UnivariatePolynomial Scalar)
 genLowDegreePoly config = do
-  let maxDegree = getMaxDegree (config ^. #domainLength)
+  let maxDegree = getMaxLowDegree (config ^. #domainLength) (config ^. #expansionFactor)
   coefs <- list (Range.singleton maxDegree) genScalar
   let monos :: [U x]
       monos = U <$> [0 .. maxDegree - 1]

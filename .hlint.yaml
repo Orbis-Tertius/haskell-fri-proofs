@@ -20,7 +20,7 @@
        - error: {lhs: minimumBy, rhs: minimumByMay, name: "No minimumBy"}
        - error: {lhs: maximumBy, rhs: maximumByMay, name: "No maximumBy"}
        - error: {lhs: decodeUtf8, rhs: decodeUtf8', name: "No decodeUtf8"}
-       - error: {lhs: throw, rhs: throwIO, name: "No throw"}
+       - error: {lhs: Control.Exception.throw, rhs: throwIO, name: "No throw"}
        - error: {lhs: undefined, rhs: die, name: "No undefined"}
        - error: {lhs: error, rhs: die}
        - error: {lhs: Double, rhs: Fixed, name: "No Double"}

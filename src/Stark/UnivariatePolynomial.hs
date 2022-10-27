@@ -17,6 +17,7 @@ import Data.Map
     lookupMax,
     singleton,
   )
+import qualified Data.Map as Map
 import Math.Algebra.Polynomial.Class (Polynomial (evalP), Ring)
 import Math.Algebra.Polynomial.FreeModule (FreeMod (FreeMod, unFreeMod))
 import Math.Algebra.Polynomial.Univariate
@@ -28,9 +29,9 @@ import Stark.Types.Scalar (Scalar)
 import qualified Stark.Types.Scalar as Scalar
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
-degree :: UnivariatePolynomial a -> Int
+degree :: Eq a => Num a => UnivariatePolynomial a -> Int
 degree (UnivariatePolynomial p) =
-  case lookupMax (unFreeMod (unUni p)) of
+  case lookupMax (Map.filter (/= 0) (unFreeMod (unUni p))) of
     Just (U i, _) -> i
     Nothing -> -1
 
@@ -72,7 +73,7 @@ interpolate ps =
       ]
 
 areColinear :: [(Scalar, Scalar)] -> Bool
-areColinear = (< 2) . degree . interpolate
+areColinear = (< 2) . degree . normalize . interpolate
 
 normalize :: UnivariatePolynomial Scalar -> UnivariatePolynomial Scalar
 normalize (UnivariatePolynomial (Uni (FreeMod p))) =

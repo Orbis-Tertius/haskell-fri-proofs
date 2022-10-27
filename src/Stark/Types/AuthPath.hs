@@ -5,6 +5,6 @@ import Data.Kind (Type)
 import Stark.Types.Commitment (Commitment)
 
 type AuthPath :: Type
-newtype AuthPath = AuthPath {unAuthPath :: [Commitment]}
+newtype AuthPath = AuthPath {unAuthPath :: [(Commitment, Commitment, Commitment)]}
   deriving stock (Eq, Show)
   deriving newtype (Semigroup, Monoid, Serialise)

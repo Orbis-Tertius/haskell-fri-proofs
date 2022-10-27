@@ -15,23 +15,27 @@ module Stark.Fri.Types
     A (A, unA),
     B (B, unB),
     C (C, unC),
+    ABC,
     Query (Query, unQuery),
     AuthPaths (AuthPaths, unAuthPaths),
-    ProofStream (ProofStream),
     Challenge (Challenge, unChallenge),
     FriConfiguration (FriConfiguration),
+    randomSeed,
   )
 where
 
-import Codec.Serialise (Serialise)
-import Data.ByteString (ByteString)
+import Codec.Serialise (Serialise, serialise)
+import Data.ByteString (ByteString, toStrict)
 import Data.Kind (Type)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
+import Stark.Hash (hash)
 import Stark.Types.AuthPath (AuthPath)
-import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
+import Stark.Types.FiatShamir (Sampleable (sample))
+import Stark.Types.Index (Index)
 import Stark.Types.Scalar (Scalar)
+import qualified Stark.Types.Scalar as Scalar
 
 type Offset :: Type
 newtype Offset = Offset {unOffset :: Scalar}
@@ -46,10 +50,10 @@ newtype Omega = Omega {unOmega :: Scalar}
 type DomainLength :: Type
 newtype DomainLength = DomainLength {unDomainLength :: Word64}
   deriving stock (Eq, Ord, Show, Generic)
-  deriving newtype (Num)
+  deriving newtype (Num, Enum, Real, Integral)
 
 type ExpansionFactor :: Type
-newtype ExpansionFactor = ExpansionFactor {unExpansionFactor :: Rational}
+newtype ExpansionFactor = ExpansionFactor {unExpansionFactor :: Int}
   deriving stock (Show)
 
 type NumColinearityTests :: Type
@@ -96,29 +100,24 @@ type ABC :: Type -> Type
 type ABC a = (A a, B a, C a)
 
 type Query :: Type
-newtype Query = Query {unQuery :: ABC Scalar}
+newtype Query = Query {unQuery :: (A (Index, Scalar), B (Index, Scalar), C (Scalar, Scalar))}
   deriving stock (Eq, Generic, Show)
   deriving newtype (Serialise)
 
 type AuthPaths :: Type
-newtype AuthPaths = AuthPaths {unAuthPaths :: ABC AuthPath}
+newtype AuthPaths = AuthPaths {unAuthPaths :: (A AuthPath, B AuthPath)}
   deriving stock (Eq, Generic, Show)
   deriving newtype (Serialise)
-
-type ProofStream :: Type
-data ProofStream = ProofStream
-  { commitments :: [CapCommitment],
-    queries :: [[Query]],
-    lastCodeword :: Maybe Codeword,
-    authPaths :: [[AuthPaths]]
-  }
-  deriving stock (Eq, Generic, Show)
-
-instance Serialise ProofStream
 
 type Challenge :: Type
 newtype Challenge = Challenge {unChallenge :: Scalar}
-  deriving newtype (Serialise)
+  deriving newtype (Eq, Show, Serialise)
+
+instance Sampleable Challenge where
+  sample = Challenge . Scalar.sample . unRandomSeed . randomSeed
+
+randomSeed :: Serialise a => a -> RandomSeed
+randomSeed = RandomSeed . hash . toStrict . serialise
 
 type FriConfiguration :: Type
 data FriConfiguration = FriConfiguration

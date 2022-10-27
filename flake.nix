@@ -32,6 +32,7 @@
             overrides = hfinal: hprev:
               horizon-orbis.packages.x86_64-linux //
               {
+                generic-monoid = doJailbreak (hprev.callHackage "generic-monoid" "0.1.0.1" { });
                 fri-proofs = disableLibraryProfiling (hprev.callCabal2nix "fri-proofs" ./. { });
                 fri-proofs-spec = disableLibraryProfiling (hprev.callCabal2nix "fri-proofs:spec" ./. { });
               };
@@ -63,6 +64,7 @@
       devShells.default = hsPkgs.fri-proofs.env.overrideAttrs (attrs: {
         buildInputs = attrs.buildInputs ++ [
           hsPkgs.cabal-install
+          hsPkgs.ghcid
           pkgs.nixpkgs-fmt
           pkgs.ghcid
           pkgs.ormolu

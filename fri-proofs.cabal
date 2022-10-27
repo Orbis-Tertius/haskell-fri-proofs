@@ -11,6 +11,7 @@ common globals
   default-extensions:
     DataKinds
     DerivingStrategies
+    DerivingVia
     GADTs
     TypeFamilies
 
@@ -26,9 +27,9 @@ library
     Plonk.Arithmetization
     Plonk.Example
     Plonk.FFT
+    Plonk.Transcript
     Plonk.Types.Circuit
     Plonk.Types.Fin
-    Plonk.Types.Vect
     Plonk.Types.Z2
     Stark.BinaryTree
     Stark.Cast
@@ -43,6 +44,7 @@ library
     Stark.Types.CapCommitment
     Stark.Types.CapLength
     Stark.Types.Commitment
+    Stark.Types.FiatShamir
     Stark.Types.Index
     Stark.Types.MerkleHash
     Stark.Types.MultivariatePolynomial
@@ -60,12 +62,12 @@ library
     , extra
     , finite-field
     , generic-lens
-    , ghc
+    , generic-monoid
     , groups
     , lens
-    , listsafe
     , polynomial-algebra
-    , safe
+    , polysemy
+    , polysemy-plugin
     , serialise
     , vinyl
     , basement
@@ -105,7 +107,6 @@ test-suite spec
     , safe
     , tasty
     , tasty-hedgehog
-    , vinyl
 
   hs-source-dirs: test
   ghc-options:    -threaded -rtsopts -with-rtsopts=-N

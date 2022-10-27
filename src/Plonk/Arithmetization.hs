@@ -66,18 +66,17 @@ import Plonk.Types.Circuit
     RelativeRowIndex (RelativeRowIndex),
   )
 import Plonk.Types.Fin (Fin (FS, FZ))
-import Plonk.Types.Vect (Vect, toList)
 import Stark.Types.UnivariatePolynomial (UnivariatePolynomial (UnivariatePolynomial, unUnivariatePolynomial))
 
 columnVectorToPoly ::
   Group a =>
   Num a =>
   Domain n a ->
-  Vect n a ->
+  [a] ->
   UnivariatePolynomial a
 columnVectorToPoly d xs =
   UnivariatePolynomial . Uni . FreeMod $
-    Map.fromList (zip (U <$> [0 ..]) (fft d (toList xs)))
+    Map.fromList (zip (U <$> [0 ..]) (fft d xs))
 
 circuitWithDataToPolys ::
   Group a =>
