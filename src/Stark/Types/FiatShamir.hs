@@ -22,14 +22,13 @@ import Codec.Serialise (Serialise, serialise)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 import Data.Kind (Constraint, Type)
-import Data.Map
 import Data.String (IsString)
 import GHC.Generics (Generic)
 import Polysemy (Members, Sem, interpret, makeSem)
 import Polysemy.Error (Error, throw)
 import Polysemy.State (State, get, put)
 import Stark.Prelude ()
-import Stark.Fri.Types
+
 
 type Sampleable :: Type -> Constraint
 class Sampleable a where
@@ -51,32 +50,8 @@ data IOP c r m a where
 
 type Transcript :: Type -> Type
 newtype Transcript r = Transcript {unTranscript :: [r]}
-  deriving newtype (Eq, Semigroup, Monoid, Serialise, Functor, Foldable, Traversable)
-  deriving stock (Generic, Show)
-
-type RoundIndex :: Type
-newtype RoundIndex = RoundIndex {unRoundIndex :: Int}
- deriving newtype (Eq, Ord, Show, Num, Enum, Real, Integral)
-
-
-type Proof :: Type
-data Proof = Proof
-  { initialCommitment :: Maybe Commitment
-  , roundCommitments :: Map RoundIndex CapCommitment
-  , lastCodeword :: Maybe Codeword
-  , queries :: Map RoundIndex (Query, AuthPaths)
-  } deriving stock (Eq, Generic, Show)
-
-
--- instance Semigroup Proof where
---   p <> p' = Proof
---             { initialCommitment = initialCommitment p <> initialCommitment p
---             , roundCommitments :: Map RoundIndex CapCommitment
---             , lastCodeword :: Maybe Codeword
---             , queries :: Map RoundIndex (Query, AuthPaths)
---             }
-
--- instance Monoid Proof where
+  deriving newtype (Eq, Semigroup, Monoid, Serialise)
+  deriving stock (Generic, Show, Functor, Foldable, Traversable)
 
 
 makeSem ''IOP
