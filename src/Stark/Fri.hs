@@ -406,7 +406,7 @@ queryRound ::
   Sem r ()
 queryRound (idx, i, root, alpha) = do
   config <- getConfig
-  let indices = fst $ unzip idx
+  let indices = map fst idx
       omega' = getRoundOmega config i
       omega = trace ("query round omega: " <> show (i, omega')) omega'
       offset = config ^. #offset
