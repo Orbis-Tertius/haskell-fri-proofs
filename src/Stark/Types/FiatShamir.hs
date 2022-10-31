@@ -50,7 +50,7 @@ data IOP c r m a where
 type Transcript :: Type -> Type
 newtype Transcript r = Transcript {unTranscript :: [r]}
   deriving newtype (Eq, Semigroup, Monoid, Serialise)
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Show, Functor, Foldable, Traversable)
 
 makeSem ''IOP
 

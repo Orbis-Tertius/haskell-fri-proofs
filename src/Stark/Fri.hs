@@ -37,10 +37,9 @@ import Crypto.Number.Basic (log2)
 import Data.Bits (shift, xor)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
-import Data.Functor ((<&>))
 import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
-import Data.List.Extra (foldl', zip5, zipWith6, (!?))
+import Data.List.Extra (foldl', zip4, zip5, zipWith6, (!?))
 import Data.Monoid (Last (Last), getLast)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
@@ -109,6 +108,12 @@ prove c w = do
           runState (ProverState [w]) $
             proverFiatShamir $
               runFriDSLProver fri
+
+{-
+The issue with partitioning the transcript as it is, is that it doesn't have any logic to align by
+either rounds or a set of message exchanges. Morgan suggested the following structure:
+
+-}
 
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
 verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier fri
@@ -366,6 +371,12 @@ commitRound i = do
   respond (Commit c)
   pure (c, alpha)
 
+{-
+Parallelizing across rounds requires changing the structure of queryPhase and queryRound to
+not have a monadic dependency across rounds. This can easily be lifted out by calculating
+indicies and roots for each step within query phase and mapping over that data structure instead
+of having a monadic dependency.
+-}
 queryPhase ::
   FriEffects r =>
   [CapCommitment] ->
@@ -373,33 +384,33 @@ queryPhase ::
   [(Index, ReducedIndex)] ->
   Sem r ()
 queryPhase commitments challenges indices = do
-  go (indices, 0, commitments, challenges)
+  config <- getConfig
+  let n = RoundIndex $ numRounds config
+  mapM_ queryRound (zip4 (genIdxSet config n indices) [0 .. n] commitments challenges)
   where
-    go :: FriEffects r => ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge]) -> Sem r ()
-    go x@(_, RoundIndex i, _, _) = do
-      config <- getConfig
-      when
-        (i < numRounds config)
-        (go =<< queryRound x)
+    incrementIdx :: FriConfiguration -> RoundIndex -> [Index] -> [Index]
+    incrementIdx config i = fmap n
+      where
+        n i' = mod i' ni
+        ni = Index (unDomainLength (roundDomainLength config (i + 1)))
+    genIdxs :: FriConfiguration -> RoundIndex -> [Index] -> [[Index]]
+    genIdxs config numRs idx = scanr (incrementIdx config) idx [0 .. numRs]
+    genIdxSet :: FriConfiguration -> RoundIndex -> [(Index, ReducedIndex)] -> [[(Index, ReducedIndex)]]
+    genIdxSet config numRs idx = fmap (`zip` rs) (genIdxs config numRs is)
+      where
+        (is, rs) = unzip idx
 
 queryRound ::
   FriEffects r =>
-  ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge]) ->
-  Sem r ([(Index, ReducedIndex)], RoundIndex, [CapCommitment], [Challenge])
-queryRound (indices, i, root : nextRoot : remainingRoots, alpha : alphas) = do
+  ([(Index, ReducedIndex)], RoundIndex, CapCommitment, Challenge) ->
+  Sem r ()
+queryRound (idx, i, root, alpha) = do
   config <- getConfig
-  let omega' = getRoundOmega config i
+  let indices = map fst idx
+      omega' = getRoundOmega config i
       omega = trace ("query round omega: " <> show (i, omega')) omega'
       offset = config ^. #offset
-      nextIndices =
-        (fst <$> indices)
-          <&> ( `mod`
-                  Index
-                    ( unDomainLength
-                        (roundDomainLength config (i + 1))
-                    )
-              )
-      aIndices = A <$> nextIndices
+      aIndices = A <$> indices
       bIndices =
         B
           . ( +
@@ -407,7 +418,7 @@ queryRound (indices, i, root : nextRoot : remainingRoots, alpha : alphas) = do
                   ( unDomainLength (roundDomainLength config (i + 1))
                   )
             )
-          <$> nextIndices
+          <$> indices
   (qs, ps) <- getQueries i alpha ((,) <$> aIndices <*> bIndices)
   respond (QueryRound (qs, ps))
   let as = (^. #unQuery . _1 . #unA) <$> qs
@@ -434,15 +445,6 @@ queryRound (indices, i, root : nextRoot : remainingRoots, alpha : alphas) = do
   forM_ authPathCheckInputs $
     uncurry5 (authPathCheck (config ^. #capLength) i)
   forM_ points (colinearityCheck "IOP" i)
-  pure
-    ( zip nextIndices (snd <$> indices),
-      i + 1,
-      nextRoot : remainingRoots,
-      alphas
-    )
-queryRound (_, _, [_], _) = throw "queryRound: not enough roots (1)"
-queryRound (_, _, [], _) = throw "queryRound: not enough roots (0)"
-queryRound (_, _, _, []) = throw "queryRound: not enough alphas"
 
 colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
 colinearityCheck s i (A a, B b, C c) =
