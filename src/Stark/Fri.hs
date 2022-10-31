@@ -109,13 +109,11 @@ prove c w = do
             proverFiatShamir $
               runFriDSLProver fri
 
-
 {-
 The issue with partitioning the transcript as it is, is that it doesn't have any logic to align by
 either rounds or a set of message exchanges. Morgan suggested the following structure:
 
 -}
-
 
 verify :: FriConfiguration -> Transcript FriResponse -> Either ErrorMessage ()
 verify c t = run $ evalState (TranscriptPartition (mempty, t)) $ runInputConst t $ runInputConst c $ runError @ErrorMessage $ verifierFiatShamir $ runFriDSLVerifier fri
@@ -373,7 +371,6 @@ commitRound i = do
   respond (Commit c)
   pure (c, alpha)
 
-
 {-
 Parallelizing across rounds requires changing the structure of queryPhase and queryRound to
 not have a monadic dependency across rounds. This can easily be lifted out by calculating
@@ -389,7 +386,7 @@ queryPhase ::
 queryPhase commitments challenges indices = do
   config <- getConfig
   let n = RoundIndex $ numRounds config
-  mapM_ queryRound (zip4 (genIdxSet config n indices) [0..n] commitments challenges)
+  mapM_ queryRound (zip4 (genIdxSet config n indices) [0 .. n] commitments challenges)
   where
     incrementIdx :: FriConfiguration -> RoundIndex -> [Index] -> [Index]
     incrementIdx config i = fmap n
@@ -397,13 +394,11 @@ queryPhase commitments challenges indices = do
         n i' = mod i' ni
         ni = Index (unDomainLength (roundDomainLength config (i + 1)))
     genIdxs :: FriConfiguration -> RoundIndex -> [Index] -> [[Index]]
-    genIdxs config numRs idx = scanr (incrementIdx config) idx [0..numRs]
+    genIdxs config numRs idx = scanr (incrementIdx config) idx [0 .. numRs]
     genIdxSet :: FriConfiguration -> RoundIndex -> [(Index, ReducedIndex)] -> [[(Index, ReducedIndex)]]
     genIdxSet config numRs idx = fmap (`zip` rs) (genIdxs config numRs is)
       where
         (is, rs) = unzip idx
-
-
 
 queryRound ::
   FriEffects r =>

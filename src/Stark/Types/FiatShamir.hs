@@ -29,7 +29,6 @@ import Polysemy.Error (Error, throw)
 import Polysemy.State (State, get, put)
 import Stark.Prelude ()
 
-
 type Sampleable :: Type -> Constraint
 class Sampleable a where
   sample :: BS.ByteString -> a
@@ -52,7 +51,6 @@ type Transcript :: Type -> Type
 newtype Transcript r = Transcript {unTranscript :: [r]}
   deriving newtype (Eq, Semigroup, Monoid, Serialise)
   deriving stock (Generic, Show, Functor, Foldable, Traversable)
-
 
 makeSem ''IOP
 
