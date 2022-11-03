@@ -35,11 +35,12 @@ import Control.Lens ((^.), _1, _2, _3)
 import Control.Monad (forM_, mapAndUnzipM, unless, when)
 import Crypto.Number.Basic (log2)
 import Data.Bits (shift, xor)
+import Data.Bifunctor (bimap)
 import Data.ByteString (ByteString, unpack)
 import Data.ByteString.Lazy (toStrict)
 import Data.Generics.Labels ()
 import Data.Kind (Constraint, Type)
-import Data.List.Extra (foldl', zip4, zip5, zipWith6, (!?))
+import Data.List.Extra (foldl', zip4, zipWith6, (!?))
 import Data.Monoid (Last (Last), getLast)
 import Debug.Trace (trace)
 import GHC.Generics (Generic)
@@ -52,7 +53,7 @@ import Stark.Cast (intToInteger, word64ToInt, word8ToWord64)
 import Stark.Fri.Types (A (A, unA), ABC, AuthPaths (AuthPaths, unAuthPaths), B (B, unB), C (C), Challenge (Challenge, unChallenge), Codeword (Codeword, unCodeword), DomainLength (DomainLength, unDomainLength), ExpansionFactor (ExpansionFactor), FriConfiguration, ListSize (ListSize), NumColinearityTests (unNumColinearityTests), Offset (Offset, unOffset), Omega (Omega, unOmega), Query (Query), RandomSeed (RandomSeed), ReducedIndex (ReducedIndex), ReducedListSize (ReducedListSize, unReducedListSize), SampleSize (SampleSize), randomSeed)
 import Stark.Hash (hash)
 import qualified Stark.MerkleTree as Merkle
-import Stark.Prelude (uncurry5)
+import Stark.Prelude ()
 import Stark.Types.AuthPath (AuthPath)
 import Stark.Types.CapCommitment (CapCommitment)
 import Stark.Types.CapLength (CapLength)
@@ -400,51 +401,44 @@ queryPhase commitments challenges indices = do
       where
         (is, rs) = unzip idx
 
-queryRound ::
+queryRound :: forall r.
   FriEffects r =>
-  ([(Index, ReducedIndex)], RoundIndex, CapCommitment, Challenge) ->
-  Sem r ()
+  ([(Index, ReducedIndex)], RoundIndex, CapCommitment, Challenge) -> Sem r ()
 queryRound (idx, i, root, alpha) = do
   config <- getConfig
-  let indices = map fst idx
+  let
       omega' = getRoundOmega config i
       omega = trace ("query round omega: " <> show (i, omega')) omega'
       offset = config ^. #offset
-      aIndices = A <$> indices
-      bIndices =
-        B
-          . ( +
-                Index
+      bIdxOffset = Index
                   ( unDomainLength (roundDomainLength config (i + 1))
                   )
-            )
-          <$> indices
-  (qs, ps) <- getQueries i alpha ((,) <$> aIndices <*> bIndices)
-  respond (QueryRound (qs, ps))
-  let as = (^. #unQuery . _1 . #unA) <$> qs
-      bs = (^. #unQuery . _2 . #unB) <$> qs
-      cs = (^. #unQuery . _3 . #unC) <$> qs
-      ays = (^. _2) <$> as
-      bys = (^. _2) <$> bs
+      bIndices = (B . (+ bIdxOffset)) <$> indices
       f :: Integral x => x -> Scalar
       f = (* unOffset offset) . (unOmega omega ^)
-      points =
-        zip3
+  (qs, ps) <- getQueries i alpha ((,) <$> aIndices <*> bIndices)
+  respond (QueryRound (qs, ps))
+  let
+      as = (^. #unQuery . _1 . #unA) <$> qs
+      bs = (^. #unQuery . _2 . #unB) <$> qs
+      cs = (^. #unQuery . _3 . #unC) <$> qs
+      ays = snd <$> as
+      bys = snd <$> bs
+      points = zip3
           (A <$> zip (f . unA <$> aIndices) ays)
           (B <$> zip (f . unB <$> bIndices) bys)
           (C <$> cs)
       allPaths = unAuthPaths <$> ps
-      aPaths, bPaths :: [AuthPath]
-      aPaths = (^. _1 . #unA) <$> allPaths
-      bPaths = (^. _2 . #unB) <$> allPaths
-      authPathCheckInputs =
-        mconcat
-          [ zip5 (repeat "A") (repeat root) (unA <$> aIndices) aPaths as,
-            zip5 (repeat "B") (repeat root) (unB <$> bIndices) bPaths bs
-          ]
-  forM_ authPathCheckInputs $
-    uncurry5 (authPathCheck (config ^. #capLength) i)
-  forM_ points (colinearityCheck "IOP" i)
+      (aPaths, bPaths) = unzip $ fmap (bimap unA unB) allPaths
+      apCheck :: String -> ((Index, AuthPath), (Index, Scalar)) -> Sem r ()
+      apCheck t = uncurry (authPathCheck (config ^. #capLength) i t root)
+  mapM_ (apCheck "A") $ zip (zip (unA <$> aIndices) aPaths) as
+  mapM_ (apCheck "B") $ zip (zip (unB <$> bIndices) bPaths) bs
+  mapM_ (colinearityCheck "IOP" i) points
+  where
+    indices = fst <$> idx
+    aIndices = A <$> indices
+
 
 colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
 colinearityCheck s i (A a, B b, C c) =
@@ -454,14 +448,14 @@ colinearityCheck s i (A a, B b, C c) =
     $ s <> " colinearity check failed: "
       <> show (i, a, b, c)
 
-authPathCheck :: FriEffects r => CapLength -> RoundIndex -> String -> CapCommitment -> Index -> AuthPath -> (Index, Scalar) -> Sem r ()
-authPathCheck capLength i abc commitment j authPath q = do
+authPathCheck :: FriEffects r => CapLength -> RoundIndex -> String -> CapCommitment -> (Index, AuthPath) -> (Index, Scalar) -> Sem r ()
+authPathCheck capLength r abc commitment (i, authPath) (i', c) = do
   when
-    (j /= (q ^. _1))
-    (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, i, j, q ^. _1, commitment, authPath))
+    (i /= i')
+    (throw . ErrorMessage $ "auth path check: wrong indices: " <> show (abc, r, i, i', commitment, authPath))
   unless
-    (Merkle.verify capLength commitment j authPath (q ^. _2))
-    (throw . ErrorMessage $ "auth path check failed: " <> show (abc, i, j, q, commitment, authPath))
+    (Merkle.verify capLength commitment i authPath c)
+    (throw . ErrorMessage $ "auth path check failed: " <> show (abc, r, i, (i', c), commitment, authPath))
 
 roundDomainLength ::
   FriConfiguration ->
