@@ -419,26 +419,32 @@ queryRound (idx, i, root, alpha) = do
   (qs, ps) <- getQueries i alpha ((,) <$> aIndices <*> bIndices)
   respond (QueryRound (qs, ps))
   let
+      ax = unA <$> aIndices
+      bx = unB <$> bIndices
       as = (^. #unQuery . _1 . #unA) <$> qs
       bs = (^. #unQuery . _2 . #unB) <$> qs
       cs = (^. #unQuery . _3 . #unC) <$> qs
-      ays = snd <$> as
-      bys = snd <$> bs
-      points = zip3
-          (A <$> zip (f . unA <$> aIndices) ays)
-          (B <$> zip (f . unB <$> bIndices) bys)
-          (C <$> cs)
-      allPaths = unAuthPaths <$> ps
-      (aPaths, bPaths) = unzip $ fmap (bimap unA unB) allPaths
-      apCheck :: String -> ((Index, AuthPath), (Index, Scalar)) -> Sem r ()
-      apCheck t = uncurry (authPathCheck (config ^. #capLength) i t root)
-  mapM_ (apCheck "A") $ zip (zip (unA <$> aIndices) aPaths) as
-  mapM_ (apCheck "B") $ zip (zip (unB <$> bIndices) bPaths) bs
-  mapM_ (colinearityCheck "IOP" i) points
+  queryAuthPathCheck (config ^. #capLength) ax bx as bs ps
+  queryColinCheck f ax bx as bs cs
   where
     indices = fst <$> idx
     aIndices = A <$> indices
-
+    queryAuthPathCheck capLen ax bx as bs ps = do
+      let
+        (aPaths, bPaths) = unzip $ fmap (bimap unA unB) $ unAuthPaths <$> ps
+        apCheck :: String -> ((Index, AuthPath), (Index, Scalar)) -> Sem r ()
+        apCheck t = uncurry (authPathCheck capLen i t root)
+      mapM_ (apCheck "A") $ zip (zip ax aPaths) as
+      mapM_ (apCheck "B") $ zip (zip bx bPaths) bs
+    queryColinCheck f ax bx as bs cs = do
+      let
+        ays = snd <$> as
+        bys = snd <$> bs
+        points = zip3
+          (A <$> zip (f <$> ax) ays)
+          (B <$> zip (f <$> bx) bys)
+          (C <$> cs)
+      mapM_ (colinearityCheck "IOP" i) points
 
 colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
 colinearityCheck s i (A a, B b, C c) =
