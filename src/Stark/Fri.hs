@@ -401,7 +401,7 @@ queryPhase commitments challenges indices = do
       where
         (is, rs) = unzip idx
 
-queryRound :: forall r.
+queryRound ::
   FriEffects r =>
   ([(Index, ReducedIndex)], RoundIndex, CapCommitment, Challenge) -> Sem r ()
 queryRound (idx, i, root, alpha) = do
@@ -431,19 +431,16 @@ queryRound (idx, i, root, alpha) = do
     aIndices = A <$> indices
     queryAuthPathCheck capLen ax bx as bs ps = do
       let
-        (aPaths, bPaths) = unzip $ fmap (bimap unA unB) $ unAuthPaths <$> ps
+        (aPaths, bPaths) = unzip $ (bimap unA unB) <$> unAuthPaths <$> ps
         apCheck :: String -> ((Index, AuthPath), (Index, Scalar)) -> Sem r ()
         apCheck t = uncurry (authPathCheck capLen i t root)
       mapM_ (apCheck "A") $ zip (zip ax aPaths) as
       mapM_ (apCheck "B") $ zip (zip bx bPaths) bs
     queryColinCheck f ax bx as bs cs = do
-      let
-        ays = snd <$> as
-        bys = snd <$> bs
-        points = zip3
-          (A <$> zip (f <$> ax) ays)
-          (B <$> zip (f <$> bx) bys)
-          (C <$> cs)
+      let points = zip3
+            (A <$> zip (f <$> ax) (snd <$> as))
+            (B <$> zip (f <$> bx) (snd <$> bs))
+            (C <$> cs)
       mapM_ (colinearityCheck "IOP" i) points
 
 colinearityCheck :: Member (Error ErrorMessage) r => String -> RoundIndex -> ABC (Scalar, Scalar) -> Sem r ()
